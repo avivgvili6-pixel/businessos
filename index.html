@@ -1,50 +1,25 @@
-# BusinessOS — Deploy to Vercel
-
-## הוראות העלאה (5 דקות)
-
-### שלב 1 — התקן כלים (פעם אחת)
-```bash
-node --version   # צריך 18+, אם אין: nodejs.org
-npm install -g vercel
-```
-
-### שלב 2 — הורד את התיקייה
-הורד את תיקיית `businessos-vercel` למחשב שלך.
-
-### שלב 3 — פתח טרמינל בתיקייה
-```bash
-cd businessos-vercel
-npm install
-npm run dev      # בדיקה מקומית — http://localhost:5173
-```
-
-### שלב 4 — העלה ל-Vercel
-```bash
-vercel
-# ↓ שאלות:
-# Set up and deploy? → Y
-# Which scope? → בחר את החשבון שלך
-# Link to existing project? → N
-# Project name? → businessos (או כל שם)
-# Directory? → . (נקודה)
-# Override settings? → N
-```
-
-### שלב 5 — קישור חי!
-תקבל קישור כמו:
-```
-✅ https://businessos-xxx.vercel.app
-```
-
----
-
-## עדכון בעתיד
-```bash
-vercel --prod
-```
-
-## משתני סביבה (אופציונלי — לג'ארוויס)
-ב-Vercel Dashboard → Settings → Environment Variables:
-```
-VITE_ANTHROPIC_API_KEY=your_key_here
-```
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BusinessOS</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23c8a84b'/><text y='.9em' font-size='70' x='15' fill='%230d0d14' font-weight='900'>B</text></svg>"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Heebo', 'Segoe UI', sans-serif; direction: rtl; }
+      #root { min-height: 100vh; }
+      input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; background: #e8e3d8; border-radius: 2px; outline: none; }
+      input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #c8a84b; cursor: pointer; }
+      select { appearance: none; -webkit-appearance: none; }
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 2px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.jsx"></script>
+  </body>
+</html>
