@@ -7,6 +7,7 @@ import { exercises, MUSCLE_GROUPS, EQUIPMENT, CATEGORIES, LEVELS, workoutSplits 
 import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescription } from '../../../data/programs'
 import { todayKey, DAYS_HE } from '../../../utils/date'
 import { QuickBuilder } from './QuickBuilder'
+import { PdfImporter } from './PdfImporter'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
@@ -16,6 +17,7 @@ export function Train() {
         { key:'plan',     label:'התכנית שלי' },
         { key:'quick',    label:'⚡ אימון מהיר' },
         { key:'programs', label:'🌍 תכניות מוכרות' },
+        { key:'import',   label:'📄 ייבוא PDF' },
         { key:'library',  label:'מאגר תרגילים' },
         { key:'builder',  label:'מחולל מלא' },
         { key:'history',  label:'היסטוריה' },
@@ -23,6 +25,7 @@ export function Train() {
       {tab === 'plan'     && <MyPlan />}
       {tab === 'quick'    && <QuickBuilder />}
       {tab === 'programs' && <ProgramsLibrary />}
+      {tab === 'import'   && <PdfImporter />}
       {tab === 'library'  && <Library />}
       {tab === 'builder'  && <Builder />}
       {tab === 'history'  && <History />}
