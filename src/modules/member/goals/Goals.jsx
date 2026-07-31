@@ -38,9 +38,6 @@ export function Goals() {
   }
 
   const daysSince = Math.floor((Date.now() - new Date(active.startDate)) / (24 * 3600 * 1000))
-  const totalDays = active.deadlineWeeks * 7
-  const daysLeft = Math.max(0, totalDays - daysSince)
-  const percent = Math.min(100, Math.round((daysSince / totalDays) * 100))
   const dir = DIRECTIONS.find(d => d.id === active.direction)
 
   // Progress from actual data
@@ -76,28 +73,23 @@ export function Goals() {
             stroke={10}
             color={progress.pct >= 80 ? t.color.success : progress.pct >= 50 ? t.color.gold : t.color.warning}
             label={`${progress.pct}%`}
-            sublabel="התקדמות"
+            sublabel="למטרה"
           />
           <div style={{ display:'grid', gap: 10 }}>
             <div>
               <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>מתחילת המטרה</div>
-              <div style={{ fontWeight: 700 }}>יום {daysSince} מתוך {totalDays}</div>
+              <div style={{ fontWeight: 700 }}>{daysSince === 0 ? 'התחלת היום 🚀' : `יום ${daysSince} בדרך`}</div>
             </div>
-            <div>
-              <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>נשארו</div>
-              <div style={{ fontWeight: 700, color: t.color.gold }}>{daysLeft} ימים · {Math.ceil(daysLeft/7)} שבועות</div>
-            </div>
-            {progress.status && (
+            {progress.currentValue != null && progress.targetValue != null && (
               <div>
-                <Badge color={progress.status === 'on-track' ? t.color.success : progress.status === 'behind' ? t.color.warning : t.color.info}>
-                  {progress.statusLabel}
-                </Badge>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>נותר להשיג</div>
+                <div style={{ fontWeight: 700, color: t.color.gold }}>
+                  {Math.abs(progress.targetValue - progress.currentValue).toFixed(1)} {active.metric?.unit || ''}
+                </div>
               </div>
             )}
           </div>
         </div>
-
-        <ProgressBar value={daysSince} max={totalDays} style={{ marginTop: 20 }} />
       </Card>
 
       {/* Metric card - shows current vs target */}
@@ -236,10 +228,6 @@ export function Goals() {
 
 // Compute progress from actual data
 function computeProgress(goal, state) {
-  const totalDays = goal.deadlineWeeks * 7
-  const daysSince = Math.floor((Date.now() - new Date(goal.startDate)) / (24 * 3600 * 1000))
-  const expectedPct = Math.min(100, (daysSince / totalDays) * 100)
-
   let currentValue = null, targetValue = null, startValue = null, metricLabel = '', trend = []
 
   switch (goal.kind) {
@@ -317,22 +305,15 @@ function computeProgress(goal, state) {
     if (latestCheckin != null && currentValue == null) currentValue = latestCheckin
   }
 
-  // Overall %
+  // Overall % - based purely on metric progress, no time pressure
   let pct = 0
   if (currentValue != null && targetValue != null && startValue != null) {
     const total = Math.abs(targetValue - startValue)
     const done = Math.abs(currentValue - startValue)
     pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
-  } else {
-    pct = Math.round(expectedPct)
   }
 
-  let status = null, statusLabel = null
-  if (pct >= expectedPct + 10) { status = 'ahead'; statusLabel = 'לפני הלו״ז 🚀' }
-  else if (pct < expectedPct - 15) { status = 'behind'; statusLabel = 'מאחור - צריך להאיץ' }
-  else if (currentValue != null) { status = 'on-track'; statusLabel = 'בקצב ✓' }
-
-  return { pct, currentValue, targetValue, startValue, metricLabel, trend, status, statusLabel }
+  return { pct, currentValue, targetValue, startValue, metricLabel, trend }
 }
 
 function hebrewLift(key) {
