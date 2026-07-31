@@ -120,14 +120,39 @@ export function AuthProvider({ children }) {
     }
 
     // Real Supabase magic-link
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        emailRedirectTo: window.location.origin + window.location.pathname,
-        data: { name: name || normalizedEmail.split('@')[0] },
-      },
-    })
-    if (error) throw new Error(error.message || 'שגיאה בשליחת קישור הכניסה')
+    let response
+    try {
+      response = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: window.location.origin + window.location.pathname,
+          data: { name: name || normalizedEmail.split('@')[0] },
+        },
+      })
+    } catch (networkErr) {
+      // Fetch/CORS failures land here. Preserve details so caller can surface them.
+      const w = new Error(networkErr?.message || 'בעיית רשת - נסה שוב')
+      w.code = networkErr?.code || 'NETWORK'
+      w.name = networkErr?.name || 'NetworkError'
+      w.cause = networkErr
+      console.error('[supabase.signInWithOtp] network error:', networkErr)
+      throw w
+    }
+
+    const { error } = response
+    if (error) {
+      // Preserve Supabase's rich AuthApiError metadata (code, status, name)
+      // so LoginScreen can show the actual reason - not a generic message.
+      const w = new Error(error.message || error.name || 'שגיאה בשליחת קישור הכניסה')
+      w.code = error.code
+      w.status = error.status
+      w.name = error.name || 'AuthApiError'
+      w.cause = error
+      console.error('[supabase.signInWithOtp] auth error:', {
+        message: error.message, code: error.code, status: error.status, name: error.name,
+      })
+      throw w
+    }
     return { user: null, magicLinkSent: true, email: normalizedEmail }
   }
 

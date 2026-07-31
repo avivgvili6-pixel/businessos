@@ -53,24 +53,39 @@ export function LoginScreen() {
       if (name) storage.set(LAST_NAME_KEY, name)
       if (result?.magicLinkSent) setStep('link-sent')
     } catch (err) {
-      // Log everything we can extract for on-device debugging
       const debugInfo = {
         message: err?.message,
         name: err?.name,
         code: err?.code,
         status: err?.status,
+        cause: err?.cause,
         stack: err?.stack?.slice(0, 200),
-        stringified: (() => { try { return JSON.stringify(err) } catch { return String(err) } })(),
+        stringified: (() => { try { return JSON.stringify(err, Object.getOwnPropertyNames(err || {})) } catch { return String(err) } })(),
       }
       console.error('[Login] submit failed:', debugInfo)
 
-      // Show the raw error message if we have one, otherwise fallback + code hint
-      let msg = err?.message
-      if (!msg || typeof msg !== 'string' || /^[\{\[\]\}]+$/.test(msg.trim())) {
-        const code = err?.code || err?.status
-        msg = code
-          ? `שגיאה: ${code}. נסה שוב או תיצור קשר עם התמיכה.`
-          : 'לא הצלחנו לשלוח את הקישור. פרטים נוספים בקונסולת הדפדפן.'
+      // Human-friendly message per known Supabase / network conditions
+      const rawMsg = typeof err?.message === 'string' ? err.message : ''
+      const status = err?.status
+      const code = err?.code || err?.name
+      let msg
+      if (status === 429 || /rate.?limit|too many|60 seconds|only request/i.test(rawMsg)) {
+        msg = '⏱️ יותר מדי בקשות. המתן דקה ונסה שוב.'
+      } else if (/redirect.?url/i.test(rawMsg)) {
+        msg = '🔧 בעיית הגדרת URL בשרת. פנה למנהל להוסיף את הכתובת ל־Redirect URLs ב־Supabase.'
+      } else if (/invalid.?email|email.?format/i.test(rawMsg)) {
+        msg = '📧 כתובת מייל לא תקינה. בדוק את הכתובת ונסה שוב.'
+      } else if (/rate.?exceed|smtp|email send|failed to send/i.test(rawMsg) || (rawMsg && /^\{.*\}$|^\[.*\]$/.test(rawMsg.trim()))) {
+        msg = '📮 בעיה בשליחת המייל. ייתכן שהגענו למכסה יומית. תיצור קשר: israelgrip@gmail.com'
+      } else if (/failed to fetch|networkerror|connection|typeerror/i.test(rawMsg) || code === 'NETWORK') {
+        msg = '📶 בעיית חיבור לאינטרנט. בדוק חיבור ונסה שוב.'
+      } else if (rawMsg && !/^[\{\[\]\}]+$/.test(rawMsg.trim())) {
+        // Real Supabase message - show it with code if present
+        msg = code ? `${rawMsg} (${code})` : rawMsg
+      } else if (status || code) {
+        msg = `שגיאה: ${status || code}. תשלח צילום מסך למנהל.`
+      } else {
+        msg = 'משהו השתבש. נסה שוב עוד רגע.'
       }
       setError(msg)
     } finally {
