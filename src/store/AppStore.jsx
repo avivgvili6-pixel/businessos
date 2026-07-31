@@ -29,6 +29,8 @@ const initialState = {
   ],
   bloodTests: [],           // {date, values:{markerId: value}}
   wearable: null,           // last synced snapshot
+  customFoods: [],          // user-created foods {id, name, cat, kcal, p, c, f, barcode?}
+  rehabPrograms: [],        // active rehab {id, area, startedAt, painLog:[], sessions:[]}
   lastActiveDate: todayKey(),
 }
 
@@ -59,6 +61,12 @@ function reducer(state, action) {
     case 'REMOVE_HABIT':   return { ...state, habits: state.habits.filter(h=>h.id!==action.id) }
     case 'ADD_BLOOD':      return { ...state, bloodTests: [action.test, ...state.bloodTests] }
     case 'SET_WEARABLE':   return { ...state, wearable: action.data }
+    case 'ADD_CUSTOM_FOOD':return { ...state, customFoods: [action.food, ...state.customFoods] }
+    case 'REMOVE_CUSTOM_FOOD': return { ...state, customFoods: state.customFoods.filter(f => f.id !== action.id) }
+    case 'START_REHAB':    return { ...state, rehabPrograms: [action.program, ...state.rehabPrograms.filter(p => p.area !== action.program.area)] }
+    case 'LOG_REHAB_PAIN': return { ...state, rehabPrograms: state.rehabPrograms.map(p => p.id === action.programId ? { ...p, painLog: [{ date: new Date().toISOString(), pain: action.pain, note: action.note }, ...p.painLog] } : p) }
+    case 'LOG_REHAB_SESSION': return { ...state, rehabPrograms: state.rehabPrograms.map(p => p.id === action.programId ? { ...p, sessions: [{ date: new Date().toISOString(), week: action.week }, ...p.sessions] } : p) }
+    case 'STOP_REHAB':     return { ...state, rehabPrograms: state.rehabPrograms.filter(p => p.id !== action.id) }
     case 'RESET':          return initialState
     default: return state
   }
@@ -97,6 +105,12 @@ export function AppProvider({ children }) {
     removeHabit: (id) => dispatch({ type:'REMOVE_HABIT', id }),
     addBlood: (test) => dispatch({ type:'ADD_BLOOD', test }),
     setWearable: (data) => dispatch({ type:'SET_WEARABLE', data }),
+    addCustomFood: (food) => dispatch({ type:'ADD_CUSTOM_FOOD', food }),
+    removeCustomFood: (id) => dispatch({ type:'REMOVE_CUSTOM_FOOD', id }),
+    startRehab: (program) => dispatch({ type:'START_REHAB', program }),
+    logRehabPain: (programId, pain, note) => dispatch({ type:'LOG_REHAB_PAIN', programId, pain, note }),
+    logRehabSession: (programId, week) => dispatch({ type:'LOG_REHAB_SESSION', programId, week }),
+    stopRehab: (id) => dispatch({ type:'STOP_REHAB', id }),
     reset: () => dispatch({ type:'RESET' }),
   }
 

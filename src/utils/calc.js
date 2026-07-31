@@ -27,14 +27,22 @@ export const goalAdjustments = {
 
 // macros % by diet template
 export const dietTemplates = {
-  balanced:      { label: 'מאוזן',           p: 30, c: 40, f: 30 },
-  high_protein:  { label: 'עתיר חלבון',      p: 40, c: 35, f: 25 },
-  keto:          { label: 'קטו',             p: 25, c: 5,  f: 70 },
-  mediterranean: { label: 'ים-תיכוני',       p: 25, c: 45, f: 30 },
-  low_carb:      { label: 'דל פחמימות',      p: 35, c: 20, f: 45 },
-  vegetarian:    { label: 'צמחוני',          p: 25, c: 50, f: 25 },
-  vegan:         { label: 'טבעוני',          p: 22, c: 53, f: 25 },
-  if_16_8:       { label: 'צום לסירוגין 16:8', p: 30, c: 40, f: 30 },
+  balanced:      { label: 'מאוזן',              p: 30, c: 40, f: 30 },
+  high_protein:  { label: 'עתיר חלבון',         p: 40, c: 35, f: 25 },
+  keto:          { label: 'קטו',                p: 25, c: 5,  f: 70 },
+  carnivore:     { label: 'קרניבור',            p: 35, c: 0,  f: 65 },
+  paleo:         { label: 'פליאו',              p: 30, c: 30, f: 40 },
+  mediterranean: { label: 'ים-תיכוני',          p: 25, c: 45, f: 30 },
+  dash:          { label: 'DASH (לחץ דם)',      p: 22, c: 55, f: 23 },
+  whole30:       { label: 'Whole30',            p: 30, c: 35, f: 35 },
+  low_carb:      { label: 'דל פחמימות',         p: 35, c: 20, f: 45 },
+  low_fodmap:    { label: 'Low-FODMAP',         p: 25, c: 45, f: 30 },
+  zone:          { label: 'Zone (40/30/30)',    p: 30, c: 40, f: 30 },
+  vegetarian:    { label: 'צמחוני',             p: 25, c: 50, f: 25 },
+  vegan:         { label: 'טבעוני',             p: 22, c: 53, f: 25 },
+  pescatarian:   { label: 'פסקטריאני',          p: 28, c: 42, f: 30 },
+  if_16_8:       { label: 'צום לסירוגין 16:8',  p: 30, c: 40, f: 30 },
+  if_omad:       { label: 'ארוחה אחת ביום',     p: 35, c: 30, f: 35 },
 }
 
 export function macros(kcal, pPct = 30, cPct = 40, fPct = 30) {

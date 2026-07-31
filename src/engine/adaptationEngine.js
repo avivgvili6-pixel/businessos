@@ -312,7 +312,23 @@ const RULES = [
     return null
   },
 
-  // 17. Wearable snapshot
+  // 17. Rehab pain trending up
+  ({ state }) => {
+    const active = state.rehabPrograms?.[0]
+    if (!active || active.painLog.length < 2) return null
+    const last = active.painLog[0]?.pain ?? 0
+    const first = active.painLog[active.painLog.length - 1]?.pain ?? 0
+    if (last > first + 1) return {
+      id: 'rehab-pain-up', severity: 'high', module: 'health',
+      icon: '🩹',
+      title: `כאב עולה בתכנית השיקום`,
+      body: `רמת הכאב עלתה מ-${first} ל-${last} מאז תחילת התכנית. שקול להוריד עומס בשבוע הזה או להתייעץ עם פיזיותרפיסט לפני המשך.`,
+      action: { label: 'פתח שיקום', target: 'rehab' },
+    }
+    return null
+  },
+
+  // 18. Wearable snapshot
   ({ wearable }) => {
     if (!wearable) return null
     if (wearable.hrv && wearable.hrv < 45) return {

@@ -6,6 +6,7 @@ const MEMBER_NAV = [
   { key:'home',      label:'בית',      icon:'🏠' },
   { key:'insights',  label:'תובנות',   icon:'✨' },
   { key:'train',     label:'אימונים',  icon:'💪' },
+  { key:'rehab',     label:'שיקום',    icon:'🩹' },
   { key:'nutrition', label:'תזונה',    icon:'🥗' },
   { key:'mind',      label:'מנטלי',    icon:'🧠' },
   { key:'habits',    label:'הרגלים',   icon:'🎯' },

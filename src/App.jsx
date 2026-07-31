@@ -7,6 +7,7 @@ import { Onboarding } from './modules/member/onboarding/Onboarding'
 import { Home } from './modules/member/home/Home'
 import { Insights } from './modules/member/insights/Insights'
 import { Train } from './modules/member/train/Train'
+import { Rehab } from './modules/member/rehab/Rehab'
 import { Nutrition } from './modules/member/nutrition/Nutrition'
 import { Mind } from './modules/member/mind/Mind'
 import { Habits } from './modules/member/habits/Habits'
@@ -33,6 +34,7 @@ function AppRouter() {
     home:      <Home go={setPage} />,
     insights:  <Insights go={setPage} />,
     train:     <Train />,
+    rehab:     <Rehab />,
     nutrition: <Nutrition />,
     mind:      <Mind />,
     habits:    <Habits />,

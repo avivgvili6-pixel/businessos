@@ -9,6 +9,7 @@ import { dietInfo } from '../../../data/dietTemplates'
 import { bloodMarkers, statusForValue } from '../../../data/bloodMarkers'
 import { todayKey } from '../../../utils/date'
 import { MealPlanner } from './MealPlanner'
+import { FoodPickerPro } from './FoodPickerPro'
 
 export function Nutrition() {
   const [tab, setTab] = useState('today')
@@ -93,7 +94,7 @@ function Today() {
         </div>
       </Card>
 
-      <FoodPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onAdd={(item) => { logMeal(item); setPickerOpen(false) }} />
+      <FoodPickerPro open={pickerOpen} onClose={() => setPickerOpen(false)} onAdd={(item) => { logMeal(item); setPickerOpen(false) }} />
       <style>{`@media (max-width: 900px) { .hfos-grid-nut { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   )
