@@ -38,14 +38,29 @@ export function LoginScreen() {
   const submit = async (e) => {
     e?.preventDefault?.()
     setError(''); setBusy(true)
+
+    // Client-side validation (bypass browser's native to avoid `{}` artifacts)
+    const em = (email || '').trim().toLowerCase()
+    if (!em || !em.includes('@') || !em.includes('.')) {
+      setError('כתובת מייל לא תקינה')
+      setBusy(false)
+      return
+    }
+
     try {
-      const result = await login(email, name || email.split('@')[0])
-      // Remember for next time
-      if (normalizedEmail) storage.set(LAST_EMAIL_KEY, normalizedEmail)
+      const result = await login(em, name || em.split('@')[0])
+      if (em) storage.set(LAST_EMAIL_KEY, em)
       if (name) storage.set(LAST_NAME_KEY, name)
       if (result?.magicLinkSent) setStep('link-sent')
     } catch (err) {
-      setError(err.message || 'שגיאה בכניסה')
+      // Normalize any error to a clean Hebrew string. Never trust raw err.message
+      // (Supabase / fetch failures can return "{}" or object-like text).
+      console.error('[Login] submit failed:', err)
+      const raw = err?.message ?? ''
+      const msg = raw && typeof raw === 'string' && !raw.match(/^[\{\[\]\}]+$/)
+        ? raw
+        : 'לא הצלחנו לשלוח את הקישור. נסה שוב או בדוק את החיבור לאינטרנט.'
+      setError(msg)
     } finally {
       setBusy(false)
     }
@@ -139,7 +154,7 @@ export function LoginScreen() {
 
         {/* EXISTING USER: email only */}
         {step === 'existing' && (
-          <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
+          <form onSubmit={submit} noValidate style={{ display: 'grid', gap: 14 }}>
             <Input
               label="מייל"
               type="email"
@@ -178,9 +193,9 @@ export function LoginScreen() {
 
         {/* NEW USER: name + email */}
         {step === 'new' && (
-          <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-            <Input label="איך קוראים לך?" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus required />
-            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required error={error ? String(error) : ''} />
+          <form onSubmit={submit} noValidate style={{ display: 'grid', gap: 14 }}>
+            <Input label="איך קוראים לך?" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
+            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" error={error ? String(error) : ''} />
 
             {normalizedEmail && emailIsAdmin && (
               <div style={{

@@ -68,7 +68,9 @@ export function Input({ label, hint, error, ...rest }) {
         {...rest}
       />
       {hint && <div style={{ fontSize:t.font.xs, color: t.color.textMuted, marginTop:4 }}>{hint}</div>}
-      {error && <div style={{ fontSize:t.font.xs, color: t.color.danger, marginTop:4 }}>{error}</div>}
+      {error && typeof error === 'string' && !/^[\{\[\]\}]+$/.test(error.trim()) && (
+        <div style={{ fontSize:t.font.xs, color: t.color.danger, marginTop:4 }}>{error}</div>
+      )}
     </label>
   )
 }
