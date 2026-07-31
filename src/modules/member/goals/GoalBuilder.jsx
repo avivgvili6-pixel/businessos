@@ -6,6 +6,7 @@ import {
   DIRECTIONS, GOAL_TEMPLATES, COACHING_ROUNDS,
   WHY_PROMPTS, COMMON_BARRIERS, templateToGoal,
 } from '../../../data/goals'
+import { SimpleGoal } from './SimpleGoal'
 
 // Wizard-style goal builder. Two entry paths:
 //   1. Direction-first (user knows what they want)
@@ -15,6 +16,7 @@ import {
 
 export function GoalBuilder({ onDone, embedded = false }) {
   const { setGoal } = useApp()
+  const [mode, setMode] = useState('simple') // simple | advanced
   const [phase, setPhase] = useState('start') // start | direction | template | why | barriers | weekly | review | coaching
   const [direction, setDirection] = useState(null)
   const [template, setTemplate] = useState(null)
@@ -44,6 +46,11 @@ export function GoalBuilder({ onDone, embedded = false }) {
     onDone?.(goal)
   }
 
+  // Simple mode is the default - 3-tap fitness-language flow
+  if (mode === 'simple') {
+    return <SimpleGoal onDone={onDone} onGoAdvanced={() => setMode('advanced')} />
+  }
+
   return (
     <div style={{ display:'grid', gap: 16 }}>
       {!embedded && phase !== 'start' && (
@@ -52,7 +59,7 @@ export function GoalBuilder({ onDone, embedded = false }) {
         </Card>
       )}
 
-      {phase === 'start'     && <PhaseStart onPickDirect={() => setPhase('direction')} onPickCoaching={() => { setPhase('coaching'); setCoachingIdx(0); setCoachingAnswers([]) }} />}
+      {phase === 'start'     && <PhaseStart onPickDirect={() => setPhase('direction')} onPickCoaching={() => { setPhase('coaching'); setCoachingIdx(0); setCoachingAnswers([]) }} onBackToSimple={() => setMode('simple')} />}
       {phase === 'coaching'  && <PhaseCoaching idx={coachingIdx} answers={coachingAnswers}
         onAnswer={(ans) => {
           const next = [...coachingAnswers, ans]
@@ -82,16 +89,22 @@ export function GoalBuilder({ onDone, embedded = false }) {
   )
 }
 
-// ─── Phase: Start ────────────────────────────────────────
-function PhaseStart({ onPickDirect, onPickCoaching }) {
+// ─── Phase: Start (Advanced mode entry) ─────────────────
+function PhaseStart({ onPickDirect, onPickCoaching, onBackToSimple }) {
   return (
     <>
       <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 32, textAlign:'center' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
-        <h1 style={{ fontSize: t.font.xxxl, fontWeight: 800, marginBottom: 10 }}>בואי נבנה מטרה חכמה</h1>
+        <h1 style={{ fontSize: t.font.xxxl, fontWeight: 800, marginBottom: 10 }}>מחולל מטרה מתקדם</h1>
         <div style={{ color: t.color.textDim, fontSize: t.font.md, lineHeight: 1.6, maxWidth: 500, margin:'0 auto' }}>
-          מטרה טובה = ספציפית, מדידה, ובעלת דדליין. בלי מטרה ברורה - קשה לדעת האם התקדמת.
+          תהליך מפורט של 6 שלבים - מכיוון, דרך Why, מכשולים, ומיני-מטרות שבועיות.
         </div>
+        {onBackToSimple && (
+          <button onClick={onBackToSimple} style={{
+            marginTop: 14, background:'none', border:'none', color: t.color.gold,
+            textDecoration:'underline', cursor:'pointer', fontFamily:'inherit', fontSize: t.font.sm,
+          }}>← חזור למחולל המהיר (3 קליקים)</button>
+        )}
       </Card>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12 }} className="hfos-goal-start">
