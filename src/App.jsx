@@ -18,6 +18,8 @@ import { Nutrition } from './modules/member/nutrition/Nutrition'
 import { Mind } from './modules/member/mind/Mind'
 import { Habits } from './modules/member/habits/Habits'
 import { Calendar } from './modules/member/calendar/Calendar'
+import { Store } from './modules/member/store/Store'
+import { Personal } from './modules/member/personal/Personal'
 import { Profile } from './modules/member/profile/Profile'
 
 // admin
@@ -31,6 +33,7 @@ import { Analytics } from './modules/admin/analytics/Analytics'
 import { Alerts } from './modules/admin/alerts/Alerts'
 import { Settings } from './modules/admin/settings/Settings'
 import { CoachRequests } from './modules/admin/coach-requests/CoachRequests'
+import { PersonalRequests } from './modules/admin/personal-requests/PersonalRequests'
 
 function AppRouter() {
   const { user, effectiveRole } = useAuth()
@@ -60,10 +63,13 @@ function AppRouter() {
     mind:      <Mind />,
     habits:    <Habits />,
     calendar:  <Calendar />,
+    store:     <Store />,
+    personal:  <Personal />,
     profile:   <Profile />,
   }
   const adminPages = {
     overview:  <Overview />,
+    personal:  <PersonalRequests />,
     requests:  <CoachRequests />,
     members:   <Members />,
     team:      <Team />,

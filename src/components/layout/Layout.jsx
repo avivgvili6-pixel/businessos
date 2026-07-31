@@ -14,11 +14,14 @@ const MEMBER_NAV = [
   { key:'mind',      label:'מנטלי',    icon:'🧠' },
   { key:'habits',    label:'הרגלים',   icon:'🎯' },
   { key:'calendar',  label:'יומן',     icon:'📅' },
+  { key:'store',     label:'חנות',     icon:'🛍️' },
+  { key:'personal',  label:'אימון אישי', icon:'💼' },
   { key:'profile',   label:'פרופיל',   icon:'👤' },
 ]
 
 const ADMIN_NAV = [
   { key:'overview',  label:'סקירה',    icon:'📊' },
+  { key:'personal',  label:'בקשות אימון אישי', icon:'💼' },
   { key:'requests',  label:'בקשות מאמנים', icon:'📥' },
   { key:'members',   label:'מתאמנים',  icon:'👥' },
   { key:'team',      label:'צוות',     icon:'🧑‍🏫' },

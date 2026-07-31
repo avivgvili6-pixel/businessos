@@ -9,7 +9,8 @@ import { todayKey, DAYS_HE } from '../../../utils/date'
 import { QuickBuilder } from './QuickBuilder'
 import { PdfImporter } from './PdfImporter'
 import { ExerciseGuideButton } from './ExerciseGuide'
-import { workoutEvent, googleCalendarUrl } from '../../../utils/calendar'
+import { workoutEvent, googleCalendarUrl, downloadICS } from '../../../utils/calendar'
+import { distributeWeek, weekDates, nextSundayOf } from '../../../utils/weekSchedule'
 import {
   DIFFICULTY_LEVELS, DIFFICULTY_LABELS,
   detectStyle, currentWeekOf, weekCompletion, isPlanCycleComplete,
@@ -84,60 +85,132 @@ function MyPlan() {
         </Card>
       )}
 
-      <Card>
-        <SectionHeader
-          title={plan.name}
-          subtitle={`${plan.split} · ${plan.days} ימים · ${plan.weeks} שבועות${plan.cycle ? ` · מחזור ${plan.cycle}` : ''}`}
-          action={<Badge color={t.color.gold}>שבוע {currentWeek}/{plan.weeks}</Badge>}
-        />
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {displaySessions.map((s, i) => (
-            <Card key={i} hover style={{ padding: 18, position:'relative' }}>
-              <button onClick={(e) => { e.stopPropagation(); const day = new Date(); day.setDate(day.getDate() + i); day.setHours(18,0,0,0); window.open(googleCalendarUrl(workoutEvent({ session: s, date: day, plan })), '_blank') }} title="הוסף ליומן Google" style={{
-                position:'absolute', top: 12, left: 12, background: t.color.bgSoft, border:`1px solid ${t.color.border}`,
-                borderRadius: t.radius.pill, color: t.color.gold, fontSize: 12, padding:'4px 10px',
-                cursor:'pointer', fontFamily:'inherit', fontWeight: 600, zIndex: 2,
-              }}>📅+</button>
-              <div onClick={() => setSession(s)} style={{ cursor:'pointer' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{s.name}</div>
-                {s.wodType ? <Badge color={t.color.danger}>{s.wodType}</Badge> : <Badge>{DAYS_HE[(i+1) % 7]}</Badge>}
-              </div>
-              {s.prescription && (
-                <div style={{ padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 8, fontSize: t.font.xs, fontFamily:'Space Mono, monospace', whiteSpace:'pre-wrap' }}>
-                  {s.prescription}
-                </div>
-              )}
-              <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 8 }}>{s.exercises.length} תרגילים</div>
-              <div style={{ display:'grid', gap: 4 }}>
-                {s.exercises.slice(0, 5).map((e, j) => (
-                  <div key={j} style={{ display:'grid', gridTemplateColumns:'1fr auto', gap: 8, fontSize: t.font.xs, alignItems:'center' }}>
-                    <span style={{ display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap' }}>
-                      {e.name}
-                      {e.supersetWith && <span style={{ fontSize: 10, color: t.color.info, fontWeight: 700 }}>🔗 סופרסט</span>}
-                      {e.dropSetOnLast && <span style={{ fontSize: 10, color: t.color.danger, fontWeight: 700 }}>🔻 דרופסט</span>}
-                      {e.restPause && <span style={{ fontSize: 10, color: t.color.warning, fontWeight: 700 }}>⏸ Rest-Pause</span>}
-                      {e.amrap && <span style={{ fontSize: 10, color: t.color.warning, fontWeight: 700 }}>🔥 AMRAP</span>}
-                      {e.tempo && <span style={{ fontSize: 10, color: t.color.textDim }}>טמפו {e.tempo}</span>}
-                    </span>
-                    <span style={{ color: t.color.gold, fontFamily:'Space Mono, monospace', textAlign:'left' }}>
-                      {e.intensityLabel
-                        ? `${e.sets}×${e.reps} @ ${e.intensityLabel}`
-                        : e.intensity
-                          ? `${e.sets}×${e.reps} @ ${Math.round((Array.isArray(e.intensity) ? e.intensity[0] : e.intensity) * 100)}%`
-                          : `${e.sets}×${e.reps}${e.rir ? ` RIR ${e.rir}` : ''}`}
-                    </span>
-                  </div>
-                ))}
-                {s.exercises.length > 5 && <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>+ {s.exercises.length - 5} נוספים</div>}
-              </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </Card>
+      <WeeklySchedule plan={{ ...plan, sessions: displaySessions }} onOpenSession={setSession} />
 
       <SessionRunner session={session} onClose={() => setSession(null)} onFinish={(log) => { logWorkout({ ...log, date: new Date().toISOString() }); setSession(null) }} />
+    </div>
+  )
+}
+
+// ─── Weekly schedule with rest days + one-click ICS export ─────────
+function WeeklySchedule({ plan, onOpenSession }) {
+  const week = distributeWeek(plan)
+  const workoutDays = week.filter(d => d.type === 'workout').length
+
+  // Export the whole week to a downloadable .ics file (all workouts,
+  // one file, imports into any calendar app)
+  const exportWeek = () => {
+    const start = nextSundayOf()
+    const dates = weekDates(start)
+    const events = week
+      .filter(d => d.type === 'workout')
+      .map(d => {
+        const dt = new Date(dates[d.dayIdx])
+        dt.setHours(18, 0, 0, 0) // default 18:00
+        return workoutEvent({ session: d.session, date: dt, plan })
+      })
+    downloadICS(events, `שבוע-${plan.name}.ics`)
+  }
+
+  const exportGoogleWeek = () => {
+    const start = nextSundayOf()
+    const dates = weekDates(start)
+    week.filter(d => d.type === 'workout').forEach((d, idx) => {
+      const dt = new Date(dates[d.dayIdx])
+      dt.setHours(18, 0, 0, 0)
+      // Stagger window opens so browsers don't block
+      setTimeout(() => window.open(googleCalendarUrl(workoutEvent({ session: d.session, date: dt, plan })), '_blank'), idx * 300)
+    })
+  }
+
+  return (
+    <Card>
+      <SectionHeader
+        title={plan.name}
+        subtitle={`${plan.split || plan.days + ' ימים'} · ${plan.weeks} שבועות · חלוקה מומלצת עם ימי מנוחה`}
+      />
+
+      {/* One-click week-to-calendar export */}
+      <div style={{
+        padding: 14, background: t.color.goldGlow, borderRadius: t.radius.md,
+        border: `1px solid ${t.color.gold}`, marginBottom: 14,
+        display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+      }}>
+        <div style={{ fontSize: 28 }}>📅</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontWeight: 800, color: t.color.gold, marginBottom: 2 }}>
+            הוסף את כל השבוע ליומן בקליק אחד
+          </div>
+          <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+            {workoutDays} אימונים · שבוע קרוב · ברירת מחדל 18:00
+          </div>
+        </div>
+        <Button icon="📥" onClick={exportWeek}>הורד ICS</Button>
+        <Button variant="outline" icon="G" onClick={exportGoogleWeek}>Google Calendar</Button>
+      </div>
+
+      {/* Weekly day-by-day grid */}
+      <div style={{ display: 'grid', gap: 8 }}>
+        {week.map((day, i) => (
+          <DayRow key={i} day={day} plan={plan} onOpen={onOpenSession} />
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function DayRow({ day, plan, onOpen }) {
+  const isWorkout = day.type === 'workout'
+  const s = day.session
+
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 12, alignItems: 'stretch',
+      padding: 12,
+      background: isWorkout ? t.color.bgCard : t.color.bgSoft,
+      border: `1px solid ${isWorkout ? t.color.border : 'transparent'}`,
+      borderRadius: t.radius.md,
+      cursor: isWorkout ? 'pointer' : 'default',
+      opacity: isWorkout ? 1 : 0.7,
+    }} onClick={() => isWorkout && onOpen(s)}>
+      {/* Day label vertical */}
+      <div style={{
+        width: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: isWorkout ? t.color.goldGlow : 'transparent',
+        borderRadius: t.radius.sm, padding: '8px 4px',
+        border: `1px solid ${isWorkout ? t.color.gold : t.color.border}`,
+      }}>
+        <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>יום</div>
+        <div style={{ fontSize: t.font.lg, fontWeight: 900, color: isWorkout ? t.color.gold : t.color.textDim }}>{day.dayShort}</div>
+      </div>
+
+      {/* Content */}
+      <div style={{ display: 'grid', gap: 4, alignSelf: 'center' }}>
+        {isWorkout ? (
+          <>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ fontWeight: 800, fontSize: t.font.md }}>{s.name}</div>
+              {s.wodType && <Badge color={t.color.danger}>{s.wodType}</Badge>}
+              {s.exercises.some(e => e.supersetWith) && <Badge color={t.color.info}>🔗 סופרסט</Badge>}
+              {s.exercises.some(e => e.dropSetOnLast) && <Badge color={t.color.danger}>🔻 דרופסט</Badge>}
+              {s.exercises.some(e => e.amrap) && <Badge color={t.color.warning}>🔥 AMRAP</Badge>}
+            </div>
+            <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+              {s.exercises.length} תרגילים · לחץ להתחלה
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontWeight: 700, fontSize: t.font.md, color: t.color.textDim }}>😴 מנוחה</div>
+            <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>{day.reason}</div>
+          </>
+        )}
+      </div>
+
+      {/* Icon */}
+      <div style={{ alignSelf: 'center', fontSize: 22 }}>
+        {isWorkout ? '💪' : ''}
+      </div>
     </div>
   )
 }
