@@ -88,7 +88,7 @@ export function LoginScreen() {
         filter: 'blur(60px)', pointerEvents: 'none',
       }} />
 
-      <Card style={{ maxWidth: 480, width: '100%', padding: 32, position: 'relative', zIndex: 1 }} glow>
+      <Card style={{ maxWidth: 480, width: '100%', padding: 'clamp(20px, 5vw, 32px)', position: 'relative', zIndex: 1 }} glow>
         {/* Logo + header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{
@@ -149,19 +149,17 @@ export function LoginScreen() {
               autoComplete="email"
               autoFocus
               required
-              error={error}
+              error={error ? String(error) : ''}
             />
 
-            {normalizedEmail && (
+            {normalizedEmail && emailIsAdmin && (
               <div style={{
                 padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
-                background: emailIsAdmin ? t.color.goldGlow : emailIsCoach ? '#5a9be015' : t.color.bgSoft,
-                border: `1px solid ${emailIsAdmin ? t.color.gold : emailIsCoach ? t.color.info : t.color.border}`,
-                color: emailIsAdmin ? t.color.gold : emailIsCoach ? t.color.info : t.color.textDim,
+                background: t.color.goldGlow,
+                border: `1px solid ${t.color.gold}`,
+                color: t.color.gold,
               }}>
-                {emailIsAdmin && '🎯 מייל של מנהל'}
-                {!emailIsAdmin && emailIsCoach && '👨‍🏫 מייל של מאמן מאושר'}
-                {!emailIsAdmin && !emailIsCoach && '👤 מייל של מתאמן'}
+                🎯 מייל של מנהל · קונסולת אדמין
               </div>
             )}
 
@@ -182,16 +180,15 @@ export function LoginScreen() {
         {step === 'new' && (
           <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
             <Input label="איך קוראים לך?" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus required />
-            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required error={error} />
+            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required error={error ? String(error) : ''} />
 
-            {normalizedEmail && (
+            {normalizedEmail && emailIsAdmin && (
               <div style={{
                 padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
-                background: emailIsAdmin ? t.color.goldGlow : t.color.bgSoft,
-                border: `1px solid ${emailIsAdmin ? t.color.gold : t.color.border}`,
-                color: emailIsAdmin ? t.color.gold : t.color.textDim,
+                background: t.color.goldGlow, border: `1px solid ${t.color.gold}`,
+                color: t.color.gold,
               }}>
-                {emailIsAdmin ? '🎯 מייל של מנהל - תיכנס לקונסולת אדמין' : '👤 תיכנס כמתאמן'}
+                🎯 מייל של מנהל · תיכנס לקונסולת אדמין
               </div>
             )}
 
