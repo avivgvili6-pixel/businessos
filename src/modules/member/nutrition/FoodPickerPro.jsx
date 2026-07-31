@@ -5,34 +5,103 @@ import { Card, Button, Input, Select, Badge, Modal, EmptyState } from '../../../
 import { foods, portionSizes, lookupBarcode } from '../../../data/foods'
 
 // Enhanced picker with search, barcode, custom-food entry, and portion-size hints.
+// Aggregates the user's recent/frequent meals so they can 1-tap add favorites.
 export function FoodPickerPro({ open, onClose, onAdd }) {
   const { state, addCustomFood } = useApp()
-  const [tab, setTab] = useState('search')
+  const [tab, setTab] = useState('recent')
   const allFoods = useMemo(() => [...state.customFoods, ...foods], [state.customFoods])
+  const recent = useMemo(() => computeRecentMeals(state.mealLogs), [state.mealLogs])
 
   if (!open) return null
   return (
     <Modal open={open} onClose={onClose} title="הוסף מזון" width={680}>
       <div style={{ display:'flex', gap: 4, background: t.color.bgSoft, padding: 4, borderRadius: t.radius.md, marginBottom: 16 }}>
         {[
+          { key:'recent',  label:`⭐ המרשמים שלי${recent.length ? ` (${recent.length})` : ''}` },
           { key:'search',  label:'🔍 חיפוש' },
-          { key:'barcode', label:'📷 סרוק ברקוד' },
+          { key:'barcode', label:'📷 ברקוד' },
           { key:'custom',  label:'✏️ מזון אישי' },
         ].map(x => (
           <button key={x.key} onClick={() => setTab(x.key)} style={{
-            flex: 1, padding:'8px 12px', border:'none',
+            flex: 1, padding:'8px 8px', border:'none',
             background: tab === x.key ? t.color.bgCard : 'transparent',
             color: tab === x.key ? t.color.gold : t.color.textDim,
             fontWeight: 600, fontFamily:'inherit', cursor:'pointer', borderRadius: t.radius.sm,
-            fontSize: t.font.sm,
+            fontSize: t.font.xs, whiteSpace: 'nowrap',
           }}>{x.label}</button>
         ))}
       </div>
 
+      {tab === 'recent'  && <RecentTab recent={recent} onAdd={onAdd} />}
       {tab === 'search'  && <SearchTab foods={allFoods} onAdd={onAdd} />}
       {tab === 'barcode' && <BarcodeTab onAdd={onAdd} onSave={addCustomFood} />}
       {tab === 'custom'  && <CustomTab onAdd={onAdd} onSave={addCustomFood} customFoods={state.customFoods} />}
     </Modal>
+  )
+}
+
+// Aggregate all meal logs into unique dishes with count + last-eaten date
+function computeRecentMeals(mealLogs) {
+  const map = new Map()
+  const dateKeys = Object.keys(mealLogs || {}).sort().reverse() // newest first
+  for (const date of dateKeys) {
+    for (const m of (mealLogs[date] || [])) {
+      const key = `${m.name}|${m.grams}` // dedup by name + grams
+      if (map.has(key)) {
+        map.get(key).count++
+      } else {
+        map.set(key, { ...m, count: 1, lastDate: date })
+      }
+    }
+  }
+  // Sort by count desc, then recent
+  return Array.from(map.values())
+    .sort((a, b) => (b.count - a.count) || (b.lastDate.localeCompare(a.lastDate)))
+    .slice(0, 20)  // top 20 most useful
+}
+
+function RecentTab({ recent, onAdd }) {
+  if (!recent.length) {
+    return (
+      <EmptyState
+        icon="⭐"
+        title="עדיין לא רשמת מרשמים"
+        subtitle="לאחר שתוסיף כמה ארוחות, הן יופיעו כאן להוספה מהירה בקליק אחד"
+      />
+    )
+  }
+  return (
+    <div>
+      <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginBottom: 10, textAlign: 'center' }}>
+        לחץ על ארוחה כדי להוסיף אותה שוב באותה כמות
+      </div>
+      <div style={{ maxHeight: 380, overflowY: 'auto', display: 'grid', gap: 6 }}>
+        {recent.map((m, i) => (
+          <div key={i} onClick={() => onAdd({ foodId: m.foodId, name: m.name, grams: m.grams, kcal: m.kcal, p: m.p, c: m.c, f: m.f })}
+            style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
+              cursor: 'pointer', border: `1px solid ${t.color.border}`,
+              transition: t.transition,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = t.color.gold; e.currentTarget.style.background = t.color.goldGlow }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = t.color.border; e.currentTarget.style.background = t.color.bgSoft }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center' }}>
+                {m.name}
+                <Badge color={t.color.textDim}>{m.grams}ג׳</Badge>
+                {m.count > 2 && <Badge color={t.color.gold}>⭐ נאכל {m.count}x</Badge>}
+              </div>
+              <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
+                {Math.round(m.kcal)} קק״ל · חלבון {Math.round(m.p)}ג׳ · פחמימות {Math.round(m.c)}ג׳ · שומן {Math.round(m.f)}ג׳
+              </div>
+            </div>
+            <div style={{ fontSize: 20, color: t.color.gold, fontWeight: 700 }}>+</div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

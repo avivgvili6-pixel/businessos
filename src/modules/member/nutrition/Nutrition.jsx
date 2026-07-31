@@ -42,6 +42,20 @@ function Today() {
   const day = todayKey()
   const meals = state.mealLogs[day] || []
 
+  // Build a "recent meals" quick-access list from all past meal logs
+  const recentMeals = useMemo(() => {
+    const map = new Map()
+    const dates = Object.keys(state.mealLogs || {}).sort().reverse()
+    for (const d of dates) {
+      for (const m of (state.mealLogs[d] || [])) {
+        const key = `${m.name}|${m.grams}`
+        if (map.has(key)) map.get(key).count++
+        else map.set(key, { ...m, count: 1 })
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 8)
+  }, [state.mealLogs])
+
   const totals = meals.reduce((acc, m) => ({
     kcal: acc.kcal + (m.kcal||0),
     p: acc.p + (m.p||0),
@@ -78,6 +92,39 @@ function Today() {
           </div>
         </Card>
       </div>
+
+      {recentMeals.length > 0 && (
+        <Card style={{ background: `linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, border: `1px solid ${t.color.gold}` }}>
+          <SectionHeader
+            title="⭐ המרשמים שלי"
+            subtitle="קליק אחד כדי להוסיף שוב"
+            action={<Badge color={t.color.gold}>{recentMeals.length}</Badge>}
+          />
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginTop: 4 }}>
+            {recentMeals.map((m, i) => (
+              <button key={i}
+                onClick={() => logMeal({ foodId: m.foodId, name: m.name, grams: m.grams, kcal: m.kcal, p: m.p, c: m.c, f: m.f })}
+                style={{
+                  flexShrink: 0, minWidth: 160, padding: 12,
+                  background: t.color.bgSoft, border: `1px solid ${t.color.border}`,
+                  borderRadius: t.radius.md, cursor: 'pointer',
+                  color: t.color.text, fontFamily: 'inherit', textAlign: 'right',
+                  transition: t.transition,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = t.color.gold }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = t.color.border }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 700, fontSize: t.font.sm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>{m.name}</div>
+                  {m.count > 1 && <span style={{ fontSize: 10, color: t.color.gold, fontWeight: 700 }}>{m.count}×</span>}
+                </div>
+                <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{m.grams}ג׳ · {Math.round(m.kcal)} קק״ל</div>
+                <div style={{ marginTop: 6, fontSize: t.font.xs, color: t.color.gold, fontWeight: 700 }}>+ הוסף שוב</div>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <SectionHeader title="ארוחות היום" action={<Button onClick={() => setPickerOpen(true)}>+ הוסף</Button>} />
