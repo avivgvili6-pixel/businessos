@@ -1,16 +1,27 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { t } from '../../../theme/tokens'
 import { Card, Button, Input, Select, Badge, SectionHeader, Modal, ProgressBar, EmptyState } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
-import { mockMembers } from '../../../data/mockUsers'
+import { storage } from '../../../utils/storage'
 
 export function Members() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
   const [risk, setRisk] = useState('')
   const [selected, setSelected] = useState(null)
+  const [showDemo, setShowDemo] = useState(false)
 
-  const filtered = mockMembers.filter(m =>
+  // Real members would come from a backend. For now, we show an honest empty
+  // state and let the admin opt-in to sample data for UI preview.
+  const [demoMembers, setDemoMembers] = useState([])
+  useEffect(() => {
+    if (showDemo && !demoMembers.length) {
+      import('../../../data/mockUsers').then(m => setDemoMembers(m.mockMembers))
+    }
+  }, [showDemo])
+
+  const source = showDemo ? demoMembers : []
+  const filtered = source.filter(m =>
     (!q || m.name.includes(q)) &&
     (!status || m.status === status) &&
     (!risk || m.risk === risk)
@@ -35,6 +46,28 @@ export function Members() {
           <Button icon="+">הוסף מתאמן</Button>
         </div>
       </Card>
+
+      {!showDemo && (
+        <Card style={{ padding: 20, background: `${t.color.info}10`, borderColor: t.color.info }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ fontSize: 28 }}>📡</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>אין עדיין מתאמנים רשומים</div>
+              <div style={{ color: t.color.textDim, fontSize: t.font.sm, lineHeight: 1.5 }}>
+                כשמתאמנים ייצרו חשבון עם המייל שלהם, הם יופיעו כאן. כדי לראות איך זה נראה עם נתונים - הפעל תצוגת דמו.
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowDemo(true)}>הצג תצוגת דמו</Button>
+          </div>
+        </Card>
+      )}
+
+      {showDemo && (
+        <div style={{ padding: 10, background: t.color.goldGlow, border: `1px solid ${t.color.gold}`, borderRadius: t.radius.md, fontSize: t.font.sm, color: t.color.gold, textAlign: 'center' }}>
+          🎭 תצוגת דמו פעילה - הנתונים כאן דמיוניים
+          <button onClick={() => setShowDemo(false)} style={{ background: 'none', border: 'none', color: t.color.gold, marginRight: 12, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>כבה</button>
+        </div>
+      )}
 
       <Card>
         <SectionHeader title={`מתאמנים (${filtered.length})`} />

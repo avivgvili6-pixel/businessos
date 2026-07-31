@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { t } from '../../theme/tokens'
 import { useApp } from '../../store/AppStore'
+import { useAuth } from '../../auth/AuthContext'
 
 const MEMBER_NAV = [
   { key:'home',      label:'בית',      icon:'🏠' },
@@ -18,6 +19,7 @@ const MEMBER_NAV = [
 
 const ADMIN_NAV = [
   { key:'overview',  label:'סקירה',    icon:'📊' },
+  { key:'requests',  label:'בקשות מאמנים', icon:'📥' },
   { key:'members',   label:'מתאמנים',  icon:'👥' },
   { key:'team',      label:'צוות',     icon:'🧑‍🏫' },
   { key:'schedule',  label:'לו״ז',     icon:'📅' },
@@ -29,8 +31,9 @@ const ADMIN_NAV = [
 ]
 
 export function Shell({ page, setPage, children }) {
-  const { state, setRole } = useApp()
-  const isAdmin = state.role === 'admin' || state.role === 'coach'
+  const { state } = useApp()
+  const { user, logout } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const nav = isAdmin ? ADMIN_NAV : MEMBER_NAV
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -43,7 +46,7 @@ export function Shell({ page, setPage, children }) {
         position:'sticky', top: 0, height: '100vh',
       }}>
         <BrandBlock isAdmin={isAdmin} />
-        <RoleSwitcher role={state.role} setRole={r => { setRole(r); setPage(r === 'member' ? 'home' : 'overview') }} />
+        <UserBlock user={user} onLogout={logout} />
         <nav style={{ display:'flex', flexDirection:'column', gap: 4, marginTop: 12 }}>
           {nav.map(item => (
             <NavItem key={item.key} item={item} active={page === item.key} onClick={() => setPage(item.key)} />
@@ -65,7 +68,7 @@ export function Shell({ page, setPage, children }) {
             display:'flex', flexDirection:'column', gap: t.space.md,
           }}>
             <BrandBlock isAdmin={isAdmin} />
-            <RoleSwitcher role={state.role} setRole={r => { setRole(r); setPage(r === 'member' ? 'home' : 'overview'); setMobileOpen(false) }} />
+            <UserBlock user={user} onLogout={() => { logout(); setMobileOpen(false) }} />
             {nav.map(item => (
               <NavItem key={item.key} item={item} active={page === item.key} onClick={() => { setPage(item.key); setMobileOpen(false) }} />
             ))}
@@ -127,22 +130,24 @@ function BrandBlock({ isAdmin }) {
   )
 }
 
-function RoleSwitcher({ role, setRole }) {
+function UserBlock({ user, onLogout }) {
+  if (!user) return null
+  const roleLabel = { admin: 'מנהל', coach: 'מאמן', member: 'מתאמן' }[user.role] || 'משתמש'
+  const roleColor = { admin: t.color.gold, coach: t.color.info, member: t.color.success }[user.role]
   return (
-    <div style={{ display:'flex', background: t.color.bgSoft, borderRadius: t.radius.md, padding: 3, gap: 2 }}>
-      {[
-        { key:'member', label:'מתאמן' },
-        { key:'coach',  label:'מאמן' },
-        { key:'admin',  label:'מנהל' },
-      ].map(r => (
-        <button key={r.key} onClick={() => setRole(r.key)} style={{
-          flex: 1, padding:'6px 8px', border:'none', cursor:'pointer',
-          background: role === r.key ? t.color.gold : 'transparent',
-          color: role === r.key ? '#0d0d14' : t.color.textDim,
-          fontWeight: 600, borderRadius: t.radius.sm, fontFamily:'inherit', fontSize: 11,
-          transition: t.transition,
-        }}>{r.label}</button>
-      ))}
+    <div style={{ background: t.color.bgSoft, borderRadius: t.radius.md, padding: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%', background: roleColor, color: '#0d0d14',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0,
+      }}>{(user.name || user.email)[0]?.toUpperCase() || '?'}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+        <div style={{ fontSize: 10, color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
+      </div>
+      <button onClick={onLogout} title="יציאה" style={{
+        background: 'transparent', border: `1px solid ${t.color.border}`, color: t.color.textDim,
+        borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
+      }}>יציאה</button>
     </div>
   )
 }

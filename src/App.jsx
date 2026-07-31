@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AppProvider, useApp } from './store/AppStore'
+import { AuthProvider, useAuth } from './auth/AuthContext'
 import { Shell } from './components/layout/Layout'
 import { InstallPrompt } from './components/layout/InstallPrompt'
+import { LoginScreen } from './modules/auth/LoginScreen'
 import { Onboarding } from './modules/member/onboarding/Onboarding'
 
 // member
@@ -27,12 +29,23 @@ import { Billing } from './modules/admin/billing/Billing'
 import { Analytics } from './modules/admin/analytics/Analytics'
 import { Alerts } from './modules/admin/alerts/Alerts'
 import { Settings } from './modules/admin/settings/Settings'
+import { CoachRequests } from './modules/admin/coach-requests/CoachRequests'
 
 function AppRouter() {
-  const { state } = useApp()
+  const { user } = useAuth()
+  const { state, setRole } = useApp()
   const [page, setPage] = useState('home')
 
-  if (!state.onboarded && state.role === 'member') return <Onboarding />
+  // Not logged in → login screen
+  if (!user) return <LoginScreen />
+
+  // Sync auth role → app role (so Layout picks the correct nav)
+  useEffect(() => {
+    if (user.role && state.role !== user.role) setRole(user.role)
+  }, [user.role, state.role])
+
+  // Member/coach that hasn't finished onboarding → run onboarding
+  if (!state.onboarded && user.role === 'member') return <Onboarding />
 
   const memberPages = {
     home:      <Home go={setPage} />,
@@ -49,6 +62,7 @@ function AppRouter() {
   }
   const adminPages = {
     overview:  <Overview />,
+    requests:  <CoachRequests />,
     members:   <Members />,
     team:      <Team />,
     schedule:  <Schedule />,
@@ -58,9 +72,10 @@ function AppRouter() {
     alerts:    <Alerts />,
     settings:  <Settings />,
   }
-  const isAdmin = state.role === 'admin' || state.role === 'coach'
-  const pages = isAdmin ? adminPages : memberPages
-  const validPage = pages[page] ? page : (isAdmin ? 'overview' : 'home')
+
+  const pages = user.role === 'admin' ? adminPages : memberPages
+  const defaultPage = user.role === 'admin' ? 'overview' : 'home'
+  const validPage = pages[page] ? page : defaultPage
 
   return (
     <>
@@ -74,8 +89,10 @@ function AppRouter() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppRouter />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AppRouter />
+      </AppProvider>
+    </AuthProvider>
   )
 }

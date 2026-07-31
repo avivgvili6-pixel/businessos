@@ -8,6 +8,7 @@ import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescripti
 import { todayKey, DAYS_HE } from '../../../utils/date'
 import { QuickBuilder } from './QuickBuilder'
 import { PdfImporter } from './PdfImporter'
+import { ExerciseGuideButton } from './ExerciseGuide'
 import { workoutEvent, googleCalendarUrl } from '../../../utils/calendar'
 
 export function Train() {
@@ -134,10 +135,13 @@ function SessionRunner({ session, onClose, onFinish }) {
       <div style={{ display:'grid', gap: 14 }}>
         {log.map((ex, i) => (
           <Card key={i} style={{ padding: 16 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontWeight: 700 }}>{ex.name}</div>
-                {ex.format && <Badge color={ex.format === 'strength' ? t.color.gold : ex.format === 'metcon' ? t.color.danger : t.color.textDim} style={{ marginTop: 4 }}>{ex.format}</Badge>}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{ex.name}</div>
+                  {ex.format && <Badge color={ex.format === 'strength' ? t.color.gold : ex.format === 'metcon' ? t.color.danger : t.color.textDim} style={{ marginTop: 4 }}>{ex.format}</Badge>}
+                </div>
+                <ExerciseGuideButton exerciseId={ex.id} exerciseName={ex.name} />
               </div>
               <div style={{ textAlign:'left' }}>
                 <Badge>{ex.sets.length}×{ex.reps || 8}</Badge>
@@ -231,16 +235,20 @@ function Library() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         {filtered.map(ex => (
           <Card key={ex.id} hover style={{ padding: 18 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 8 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 8, gap: 8 }}>
               <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{ex.name}</div>
-              <Badge>{ex.level}</Badge>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {ex.yt && <Badge color="#ff0000">▶</Badge>}
+                <Badge>{ex.level}</Badge>
+              </div>
             </div>
             <div style={{ display:'flex', gap: 6, flexWrap:'wrap', marginBottom: 12 }}>
               <Badge color={t.color.gold}>{ex.muscle}</Badge>
               <Badge color={t.color.textDim}>{ex.category}</Badge>
               <Badge color={t.color.textDim}>{ex.equipment}</Badge>
             </div>
-            <div style={{ fontSize: t.font.sm, color: t.color.textDim, borderTop:`1px solid ${t.color.border}`, paddingTop: 10 }}>💡 {ex.tips}</div>
+            <div style={{ fontSize: t.font.sm, color: t.color.textDim, borderTop:`1px solid ${t.color.border}`, paddingTop: 10, marginBottom: 10 }}>💡 {ex.tips}</div>
+            <ExerciseGuideButton exerciseId={ex.id} exerciseName={ex.name} />
           </Card>
         ))}
         {!filtered.length && <EmptyState icon="🔍" title="לא נמצאו תרגילים" subtitle="נסה לשנות את הפילטרים" />}
