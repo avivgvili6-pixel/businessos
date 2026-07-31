@@ -6,6 +6,7 @@ import { Sparkline } from '../../../components/charts/Charts'
 import { exercises, MUSCLE_GROUPS, EQUIPMENT, CATEGORIES, LEVELS, workoutSplits } from '../../../data/exercises'
 import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescription } from '../../../data/programs'
 import { todayKey, DAYS_HE } from '../../../utils/date'
+import { QuickBuilder } from './QuickBuilder'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
@@ -13,12 +14,14 @@ export function Train() {
     <>
       <Tabs tabs={[
         { key:'plan',     label:'התכנית שלי' },
+        { key:'quick',    label:'⚡ אימון מהיר' },
         { key:'programs', label:'🌍 תכניות מוכרות' },
         { key:'library',  label:'מאגר תרגילים' },
-        { key:'builder',  label:'מחולל מהיר' },
+        { key:'builder',  label:'מחולל מלא' },
         { key:'history',  label:'היסטוריה' },
       ]} active={tab} onChange={setTab} />
       {tab === 'plan'     && <MyPlan />}
+      {tab === 'quick'    && <QuickBuilder />}
       {tab === 'programs' && <ProgramsLibrary />}
       {tab === 'library'  && <Library />}
       {tab === 'builder'  && <Builder />}
