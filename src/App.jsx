@@ -20,6 +20,7 @@ import { Habits } from './modules/member/habits/Habits'
 import { Calendar } from './modules/member/calendar/Calendar'
 import { Store } from './modules/member/store/Store'
 import { Personal } from './modules/member/personal/Personal'
+import { OnDemand } from './modules/member/ondemand/OnDemand'
 import { Profile } from './modules/member/profile/Profile'
 
 // admin
@@ -34,6 +35,7 @@ import { Alerts } from './modules/admin/alerts/Alerts'
 import { Settings } from './modules/admin/settings/Settings'
 import { CoachRequests } from './modules/admin/coach-requests/CoachRequests'
 import { PersonalRequests } from './modules/admin/personal-requests/PersonalRequests'
+import { MemberPhotos } from './modules/admin/member-photos/MemberPhotos'
 
 function AppRouter() {
   const { user, effectiveRole } = useAuth()
@@ -65,11 +67,13 @@ function AppRouter() {
     calendar:  <Calendar />,
     store:     <Store />,
     personal:  <Personal />,
+    ondemand:  <OnDemand />,
     profile:   <Profile />,
   }
   const adminPages = {
     overview:  <Overview />,
     personal:  <PersonalRequests />,
+    photos:    <MemberPhotos />,
     requests:  <CoachRequests />,
     members:   <Members />,
     team:      <Team />,

@@ -11,6 +11,7 @@ import { PdfImporter } from './PdfImporter'
 import { ExerciseGuideButton } from './ExerciseGuide'
 import { workoutEvent, googleCalendarUrl, downloadICS } from '../../../utils/calendar'
 import { distributeWeek, weekDates, nextSundayOf } from '../../../utils/weekSchedule'
+import { WorkoutComplete } from '../../../components/celebration/WorkoutComplete'
 import {
   DIFFICULTY_LEVELS, DIFFICULTY_LABELS,
   detectStyle, currentWeekOf, weekCompletion, isPlanCycleComplete,
@@ -44,6 +45,7 @@ export function Train() {
 function MyPlan() {
   const { state, logWorkout, setWeekDifficulty, startNewCycle } = useApp()
   const [session, setSession] = useState(null)
+  const [celebration, setCelebration] = useState(null)
   const plan = state.plan
 
   if (!plan) return <EmptyState icon="🏋️" title="עדיין אין תכנית פעילה" subtitle="בנה תכנית מותאמת לפי המטרה שלך במחולל התכניות" />
@@ -87,7 +89,36 @@ function MyPlan() {
 
       <WeeklySchedule plan={{ ...plan, sessions: displaySessions }} onOpenSession={setSession} />
 
-      <SessionRunner session={session} onClose={() => setSession(null)} onFinish={(log) => { logWorkout({ ...log, date: new Date().toISOString() }); setSession(null) }} />
+      <SessionRunner session={session} onClose={() => setSession(null)} onFinish={(log) => {
+        logWorkout({ ...log, date: new Date().toISOString() })
+        // Compute a rough streak (consecutive days with a workout)
+        const dates = new Set([todayKey(), ...state.workoutLogs.map(l => l.date?.slice(0, 10))])
+        let streak = 0
+        const d = new Date()
+        while (dates.has(d.toISOString().slice(0, 10))) {
+          streak++
+          d.setDate(d.getDate() - 1)
+        }
+        // Refresh week completion using the new log
+        const nextCompletion = { done: completion.done + 1, total: completion.total, pct: Math.min(100, Math.round(((completion.done + 1) / completion.total) * 100)) }
+        nextCompletion.complete = nextCompletion.pct >= 75
+        setCelebration({
+          sessionName: log.sessionName,
+          weekCompletion: nextCompletion,
+          currentWeek,
+          streak,
+        })
+        setSession(null)
+      }} />
+
+      <WorkoutComplete
+        open={!!celebration}
+        onClose={() => setCelebration(null)}
+        sessionName={celebration?.sessionName}
+        weekCompletion={celebration?.weekCompletion}
+        currentWeek={celebration?.currentWeek}
+        streak={celebration?.streak || 0}
+      />
     </div>
   )
 }

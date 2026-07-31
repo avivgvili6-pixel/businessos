@@ -5,10 +5,10 @@ import { Button, Card, Input, Select } from '../../../components/ui/UI'
 import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/calc'
 import { GoalBuilder } from '../goals/GoalBuilder'
 
-const STEPS = ['ברוכים הבאים','פרטים אישיים','מטרה חכמה','תזונה','סיום']
+const STEPS = ['ברוכים הבאים','פרטים אישיים','מטרה חכמה','תזונה','תמונת התחלה','סיום']
 
 export function Onboarding() {
-  const { completeOnboarding } = useApp()
+  const { completeOnboarding, addProgressPhoto } = useApp()
   const [step, setStep] = useState(0)
   const [data, setData] = useState({
     name: '', age: 30, sex: 'male', heightCm: 175, weightKg: 75,
@@ -78,7 +78,8 @@ export function Onboarding() {
           {step === 1 && <StepPersonal data={data} set={set} />}
           {step === 2 && <StepGoalIntro onStartWizard={() => setGoalPhase('wizard')} onSkip={next} goalPhase={goalPhase} />}
           {step === 3 && <StepDiet data={data} set={set} />}
-          {step === 4 && <StepFinish data={data} />}
+          {step === 4 && <StepPhoto onUpload={addProgressPhoto} onNext={next} />}
+          {step === 5 && <StepFinish data={data} />}
         </div>
 
         {error && (
@@ -179,6 +180,69 @@ function StepDiet({ data, set }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function StepPhoto({ onUpload, onNext }) {
+  const [angle, setAngle] = useState('front')
+  const [uploaded, setUploaded] = useState(false)
+  const fileRef = React.useRef(null)
+
+  const handle = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      onUpload({
+        id: 'photo_' + Date.now(),
+        date: new Date().toISOString(),
+        dataUrl: ev.target.result,
+        angle,
+        note: 'תמונת התחלה',
+      })
+      setUploaded(true)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+      <div style={{ fontSize: 56, marginBottom: 12 }}>📸</div>
+      <h2 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 8 }}>תמונת התחלה של המסע</h2>
+      <p style={{ color: t.color.textDim, fontSize: t.font.md, lineHeight: 1.6, maxWidth: 460, margin: '0 auto 20px' }}>
+        תמונה אחת עכשיו = השוואות מדהימות עוד חודשיים. אור טבעי, מראה טובה.
+        <br />
+        <b style={{ color: t.color.gold }}>אופציונלי</b> - אפשר לדלג ולעשות אחר כך.
+      </p>
+
+      {uploaded ? (
+        <div style={{ padding: 20, background: `${t.color.success}20`, borderRadius: t.radius.md, border: `1px solid ${t.color.success}`, marginBottom: 16 }}>
+          <div style={{ fontSize: 32 }}>✅</div>
+          <div style={{ fontWeight: 700, color: t.color.success, marginTop: 6 }}>נשמר!</div>
+          <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginTop: 4 }}>נזכיר לך בעוד שבועיים לתמונה חדשה</div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+            {[{ v: 'front', l: 'חזית' }, { v: 'side', l: 'צד' }, { v: 'back', l: 'גב' }].map(a => (
+              <button key={a.v} onClick={() => setAngle(a.v)} style={{
+                padding: '10px 18px', borderRadius: t.radius.md,
+                background: angle === a.v ? t.color.gold : t.color.bgSoft,
+                color: angle === a.v ? '#0d0d14' : t.color.text,
+                border: `1px solid ${angle === a.v ? t.color.gold : t.color.border}`,
+                cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700,
+              }}>{a.l}</button>
+            ))}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handle} style={{ display: 'none' }} />
+          <Button size="lg" icon="📷" onClick={() => fileRef.current?.click()}>צלם/בחר תמונה</Button>
+        </>
+      )}
+
+      <div style={{ marginTop: 20, padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5 }}>
+        🔒 התמונות שלך נשמרות מקומית במכשיר בלבד. גישה חיצונית תוכנס אחרי חיבור backend.
+      </div>
     </div>
   )
 }

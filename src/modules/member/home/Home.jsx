@@ -6,6 +6,8 @@ import { Sparkline, BarChart } from '../../../components/charts/Charts'
 import { greeting, DAYS_SHORT_HE, todayKey } from '../../../utils/date'
 import { bmr, tdee, macros, goalAdjustments, dietTemplates, waterLiters } from '../../../utils/calc'
 import { runEngine, severityColor } from '../../../engine/adaptationEngine'
+import { DailyBoost } from '../../../components/notifications/DailyBoost'
+import { PhotoReminder } from '../../../components/reminders/PhotoReminder'
 
 export function Home({ go }) {
   const { state } = useApp()
@@ -29,6 +31,9 @@ export function Home({ go }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 20 }}>
+      <DailyBoost userName={first} />
+      <PhotoReminder go={go} />
+
       {/* Hero */}
       <Card className="hfos-hero" style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 24 }}>
         <div className="hfos-hero-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap: 16 }}>
