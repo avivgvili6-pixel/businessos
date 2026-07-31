@@ -142,9 +142,9 @@ function BrandBlock({ isAdmin }) {
 
 function ViewAsSwitcher({ effectiveRole, onSwitch }) {
   const roles = [
-    { key: 'admin',  label: 'מנהל',    icon: '⚙️', color: t.color.gold },
-    { key: 'coach',  label: 'מאמן',   icon: '🧑‍🏫', color: t.color.info },
-    { key: 'member', label: 'מתאמן',  icon: '👤', color: t.color.success },
+    { key: 'admin',  label: 'מנהל',   icon: '⚙️',  color: t.color.gold,    disabled: false },
+    { key: 'coach',  label: 'בבנייה', icon: '🧑‍🏫', color: t.color.info,    disabled: true, subtitle: 'מאמן' },
+    { key: 'member', label: 'מתאמן',  icon: '👤',  color: t.color.success, disabled: false },
   ]
   const isViewingOther = effectiveRole !== 'admin'
   return (
@@ -158,21 +158,31 @@ function ViewAsSwitcher({ effectiveRole, onSwitch }) {
       <div style={{ display: 'flex', background: t.color.bgSoft, borderRadius: t.radius.md, padding: 3, gap: 2 }}>
         {roles.map(r => {
           const active = effectiveRole === r.key
+          const handleClick = () => {
+            if (r.disabled) {
+              alert(`תצוגת ${r.subtitle || r.label} עדיין בבנייה - יגיע בקרוב.\n\nכרגע הפוקוס על תצוגת המתאמן.`)
+              return
+            }
+            onSwitch(r.key)
+          }
           return (
             <button
               key={r.key}
-              onClick={() => onSwitch(r.key)}
-              title={`צפה כ־${r.label}`}
+              onClick={handleClick}
+              title={r.disabled ? `${r.subtitle} - בבנייה` : `צפה כ־${r.label}`}
               style={{
-                flex: 1, padding: '6px 4px', border: 'none', cursor: 'pointer',
+                flex: 1, padding: '6px 4px', border: 'none',
+                cursor: r.disabled ? 'not-allowed' : 'pointer',
                 background: active ? r.color : 'transparent',
-                color: active ? '#0d0d14' : t.color.textDim,
+                color: r.disabled ? t.color.textMuted : active ? '#0d0d14' : t.color.textDim,
                 fontWeight: 700, borderRadius: t.radius.sm, fontFamily: 'inherit', fontSize: 11,
                 transition: t.transition, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                opacity: r.disabled ? 0.5 : 1,
+                position: 'relative',
               }}
             >
               <span style={{ fontSize: 14 }}>{r.icon}</span>
-              <span>{r.label}</span>
+              <span style={{ fontSize: r.disabled ? 9 : 11 }}>{r.label}</span>
             </button>
           )
         })}
