@@ -46,8 +46,27 @@ function reducer(state, action) {
     case 'SET_ONBOARDED':  return { ...state, onboarded: true, profile: { ...state.profile, ...action.profile } }
     case 'UPDATE_PROFILE': return { ...state, profile: { ...state.profile, ...action.patch } }
     case 'SET_1RM':        return { ...state, profile: { ...state.profile, oneRMs: { ...(state.profile.oneRMs || {}), [action.lift]: action.value } } }
-    case 'SET_PLAN':       return { ...state, plan: action.plan }
-    case 'LOG_WORKOUT':    return { ...state, workoutLogs: [action.log, ...state.workoutLogs] }
+    case 'SET_PLAN':       return { ...state, plan: { ...action.plan, startedAt: action.plan?.startedAt || action.plan?.createdAt || new Date().toISOString(), difficultyByWeek: action.plan?.difficultyByWeek || {} } }
+    case 'LOG_WORKOUT': {
+      // Auto-tag with planId and planWeek so weekly-progression util can group by week
+      let log = action.log
+      if (state.plan) {
+        const start = new Date(state.plan.startedAt || state.plan.createdAt || Date.now()).getTime()
+        const daysSince = Math.floor((Date.now() - start) / 86400000)
+        const planWeek = Math.max(1, Math.min(state.plan.weeks || 12, Math.floor(daysSince / 7) + 1))
+        log = { ...log, planId: state.plan.id || state.plan.programId, planWeek }
+      }
+      return { ...state, workoutLogs: [log, ...state.workoutLogs] }
+    }
+    case 'SET_WEEK_DIFFICULTY': {
+      if (!state.plan) return state
+      return { ...state, plan: { ...state.plan, difficultyByWeek: { ...(state.plan.difficultyByWeek || {}), [action.week]: action.difficulty } } }
+    }
+    case 'START_NEW_CYCLE': {
+      if (!state.plan) return state
+      const now = new Date().toISOString()
+      return { ...state, plan: { ...state.plan, startedAt: now, cycle: (state.plan.cycle || 1) + 1, difficultyByWeek: {} } }
+    }
     case 'LOG_MEAL': {
       const key = action.date || todayKey()
       const cur = state.mealLogs[key] || []
@@ -112,6 +131,8 @@ export function AppProvider({ children }) {
     updateProfile: (patch) => dispatch({ type:'UPDATE_PROFILE', patch }),
     set1RM: (lift, value) => dispatch({ type:'SET_1RM', lift, value: +value || 0 }),
     setPlan: (plan) => dispatch({ type:'SET_PLAN', plan }),
+    setWeekDifficulty: (week, difficulty) => dispatch({ type:'SET_WEEK_DIFFICULTY', week, difficulty }),
+    startNewCycle: () => dispatch({ type:'START_NEW_CYCLE' }),
     logWorkout: (log) => dispatch({ type:'LOG_WORKOUT', log }),
     logMeal: (item, date) => dispatch({ type:'LOG_MEAL', item, date }),
     removeMeal: (index, date) => dispatch({ type:'REMOVE_MEAL', index, date }),

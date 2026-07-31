@@ -10,6 +10,11 @@ import { QuickBuilder } from './QuickBuilder'
 import { PdfImporter } from './PdfImporter'
 import { ExerciseGuideButton } from './ExerciseGuide'
 import { workoutEvent, googleCalendarUrl } from '../../../utils/calendar'
+import {
+  DIFFICULTY_LEVELS, DIFFICULTY_LABELS,
+  detectStyle, currentWeekOf, weekCompletion, isPlanCycleComplete,
+  applyDifficultyToSession, difficultyProfile,
+} from '../../../utils/weekProgression'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
@@ -36,22 +41,57 @@ export function Train() {
 }
 
 function MyPlan() {
-  const { state, logWorkout } = useApp()
+  const { state, logWorkout, setWeekDifficulty, startNewCycle } = useApp()
   const [session, setSession] = useState(null)
   const plan = state.plan
 
   if (!plan) return <EmptyState icon="🏋️" title="עדיין אין תכנית פעילה" subtitle="בנה תכנית מותאמת לפי המטרה שלך במחולל התכניות" />
 
+  const style = detectStyle(plan)
+  const currentWeek = currentWeekOf(plan, state.workoutLogs)
+  const completion = weekCompletion(plan, state.workoutLogs, currentWeek)
+  const cycleDone = isPlanCycleComplete(plan, state.workoutLogs)
+  const difficulty = plan.difficultyByWeek?.[currentWeek] || 'medium'
+  const profile = difficultyProfile(style, difficulty)
+
+  // Apply difficulty to each session for display
+  const displaySessions = plan.sessions.map(s => applyDifficultyToSession(s, style, difficulty, currentWeek))
+
   return (
     <div style={{ display:'grid', gap: 16 }}>
+      <WeekBanner
+        plan={plan} currentWeek={currentWeek} completion={completion}
+        difficulty={difficulty} style={style} profile={profile}
+        onSetDifficulty={(d) => setWeekDifficulty(currentWeek, d)}
+      />
+
+      {cycleDone && (
+        <Card style={{ padding: 20, background: `linear-gradient(135deg, ${t.color.success}22 0%, ${t.color.gold}22 100%)`, border: `1px solid ${t.color.gold}` }}>
+          <div style={{ display:'flex', gap: 14, alignItems:'center', flexWrap:'wrap' }}>
+            <div style={{ fontSize: 40 }}>🎉</div>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 4 }}>
+                כל הכבוד! סיימת מחזור של {plan.weeks} שבועות{plan.cycle ? ` (מחזור ${plan.cycle})` : ''}
+              </div>
+              <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>
+                עדכן את היכולת המירבית שלך (פרופיל → 1RM) והתחל מחזור חדש עם משקלים חדשים
+              </div>
+            </div>
+            <Button icon="🔄" onClick={() => { if (confirm('להתחיל מחזור חדש?')) startNewCycle() }}>
+              התחל מחזור חדש
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <SectionHeader
           title={plan.name}
-          subtitle={`${plan.split} · ${plan.days} ימים · ${plan.weeks} שבועות`}
-          action={<Badge color={t.color.gold}>שבוע {plan.currentWeek || 1}</Badge>}
+          subtitle={`${plan.split} · ${plan.days} ימים · ${plan.weeks} שבועות${plan.cycle ? ` · מחזור ${plan.cycle}` : ''}`}
+          action={<Badge color={t.color.gold}>שבוע {currentWeek}/{plan.weeks}</Badge>}
         />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {plan.sessions.map((s, i) => (
+          {displaySessions.map((s, i) => (
             <Card key={i} hover style={{ padding: 18, position:'relative' }}>
               <button onClick={(e) => { e.stopPropagation(); const day = new Date(); day.setDate(day.getDate() + i); day.setHours(18,0,0,0); window.open(googleCalendarUrl(workoutEvent({ session: s, date: day, plan })), '_blank') }} title="הוסף ליומן Google" style={{
                 position:'absolute', top: 12, left: 12, background: t.color.bgSoft, border:`1px solid ${t.color.border}`,
@@ -70,15 +110,26 @@ function MyPlan() {
               )}
               <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 8 }}>{s.exercises.length} תרגילים</div>
               <div style={{ display:'grid', gap: 4 }}>
-                {s.exercises.slice(0, 4).map((e, j) => (
-                  <div key={j} style={{ display:'flex', justifyContent:'space-between', fontSize: t.font.xs }}>
-                    <span>{e.name}</span>
-                    <span style={{ color: t.color.gold, fontFamily:'Space Mono, monospace' }}>
-                      {e.intensity ? `${e.sets}×${e.reps} @ ${Math.round((Array.isArray(e.intensity) ? e.intensity[0] : e.intensity) * 100)}%` : `${e.sets}×${e.reps}`}
+                {s.exercises.slice(0, 5).map((e, j) => (
+                  <div key={j} style={{ display:'grid', gridTemplateColumns:'1fr auto', gap: 8, fontSize: t.font.xs, alignItems:'center' }}>
+                    <span style={{ display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap' }}>
+                      {e.name}
+                      {e.supersetWith && <span style={{ fontSize: 10, color: t.color.info, fontWeight: 700 }}>🔗 סופרסט</span>}
+                      {e.dropSetOnLast && <span style={{ fontSize: 10, color: t.color.danger, fontWeight: 700 }}>🔻 דרופסט</span>}
+                      {e.restPause && <span style={{ fontSize: 10, color: t.color.warning, fontWeight: 700 }}>⏸ Rest-Pause</span>}
+                      {e.amrap && <span style={{ fontSize: 10, color: t.color.warning, fontWeight: 700 }}>🔥 AMRAP</span>}
+                      {e.tempo && <span style={{ fontSize: 10, color: t.color.textDim }}>טמפו {e.tempo}</span>}
+                    </span>
+                    <span style={{ color: t.color.gold, fontFamily:'Space Mono, monospace', textAlign:'left' }}>
+                      {e.intensityLabel
+                        ? `${e.sets}×${e.reps} @ ${e.intensityLabel}`
+                        : e.intensity
+                          ? `${e.sets}×${e.reps} @ ${Math.round((Array.isArray(e.intensity) ? e.intensity[0] : e.intensity) * 100)}%`
+                          : `${e.sets}×${e.reps}${e.rir ? ` RIR ${e.rir}` : ''}`}
                     </span>
                   </div>
                 ))}
-                {s.exercises.length > 4 && <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>+ {s.exercises.length - 4} נוספים</div>}
+                {s.exercises.length > 5 && <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>+ {s.exercises.length - 5} נוספים</div>}
               </div>
               </div>
             </Card>
@@ -575,5 +626,66 @@ function History() {
         </div>
       </Card>
     </div>
+  )
+}
+
+// ─── Week banner - shown at top of MyPlan tab ────────────────
+function WeekBanner({ plan, currentWeek, completion, difficulty, style, profile, onSetDifficulty }) {
+  const styleLabel = ({ bodybuilding:'בודיבילדינג', powerlifting:'כוח מירבי', crossfit:'CrossFit', bodyweight:'משקל גוף' })[style] || style
+  const needMore = Math.max(0, Math.ceil(0.75 * (plan.days || 3)) - completion.done)
+
+  return (
+    <Card style={{ padding: 20, background: `linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)` }}>
+      <div style={{ display:'flex', gap: 8, alignItems:'center', flexWrap:'wrap', marginBottom: 12 }}>
+        <Badge color={t.color.gold}>📅 שבוע {currentWeek} מתוך {plan.weeks}</Badge>
+        <Badge color={t.color.textDim}>{styleLabel}</Badge>
+        {plan.cycle && plan.cycle > 1 && <Badge color={t.color.info}>מחזור {plan.cycle}</Badge>}
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6, flexWrap:'wrap', gap: 6 }}>
+          <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>
+            השלמת השבוע: <b style={{ color: completion.complete ? t.color.success : t.color.gold }}>
+              {completion.done}/{completion.total} ({completion.pct}%)
+            </b>
+          </div>
+          {completion.complete
+            ? <Badge color={t.color.success}>✓ שער 75% נפתח</Badge>
+            : needMore > 0
+              ? <Badge color={t.color.warning}>עוד {needMore} ותפתח שבוע {currentWeek + 1} 🔓</Badge>
+              : null}
+        </div>
+        <ProgressBar value={completion.done} max={completion.total} />
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 8, fontWeight: 600 }}>
+          רמת הקושי לשבוע {currentWeek}:
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6 }} className="hfos-diff-grid">
+          {DIFFICULTY_LEVELS.map(d => {
+            const meta = DIFFICULTY_LABELS[d]
+            const active = difficulty === d
+            return (
+              <button key={d} onClick={() => onSetDifficulty(d)} style={{
+                padding:'10px 6px', border:`1px solid ${active ? t.color.gold : t.color.border}`,
+                background: active ? t.color.goldGlow : t.color.bgSoft,
+                color: active ? t.color.gold : t.color.text,
+                borderRadius: t.radius.md, cursor:'pointer', fontFamily:'inherit',
+                display:'flex', flexDirection:'column', gap: 2, alignItems:'center',
+              }}>
+                <span style={{ fontSize: 20 }}>{meta.icon}</span>
+                <span style={{ fontSize: t.font.xs, fontWeight: 700 }}>{meta.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ marginTop: 10, padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm,
+          fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5 }}>
+          💡 {profile.note}
+        </div>
+      </div>
+      <style>{`@media (max-width: 500px) { .hfos-diff-grid { grid-template-columns: 1fr 1fr !important; } }`}</style>
+    </Card>
   )
 }
