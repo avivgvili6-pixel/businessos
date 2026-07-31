@@ -4,6 +4,7 @@ import { useApp } from '../../../store/AppStore'
 import { Card, Button, Badge, SectionHeader, Modal, EmptyState, Input, Select, Tabs, ProgressBar } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
 import { bodyAreas, assessmentQuestions, redFlags, protocols } from '../../../data/rehab'
+import { rehabCuesFor } from '../../../data/rehabCues'
 
 export function Rehab() {
   const { state } = useApp()
@@ -74,12 +75,7 @@ function ActivePrograms() {
                     <Badge color={t.color.gold}>שבוע {week.week}</Badge>
                     <div style={{ fontWeight: 700, fontSize: t.font.lg, marginTop: 8, marginBottom: 10 }}>{week.focus}</div>
                     <div style={{ display:'grid', gap: 6 }}>
-                      {week.exercises.map((ex, i) => (
-                        <div key={i} style={{ display:'flex', gap: 10, padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
-                          <div style={{ color: t.color.gold, fontWeight: 700, minWidth: 20 }}>{i+1}.</div>
-                          <div style={{ flex: 1, fontSize: t.font.sm }}>{ex}</div>
-                        </div>
-                      ))}
+                      {week.exercises.map((ex, i) => <RehabExerciseRow key={i} index={i} exercise={ex} />)}
                     </div>
                     <div style={{ marginTop: 14, display:'flex', gap: 8 }}>
                       <Button onClick={() => { logRehabSession(p.id, week.week); alert('אימון נרשם ✓') }}>סיימתי את האימון היום ✓</Button>
@@ -317,6 +313,68 @@ function Library() {
           </div>
         )}
       </Modal>
+    </div>
+  )
+}
+
+// Row for a single rehab exercise: number + name + expand for video/cues
+function RehabExerciseRow({ index, exercise }) {
+  const [open, setOpen] = useState(false)
+  const cues = rehabCuesFor(exercise)
+  const hasVideo = !!cues?.ytId
+
+  return (
+    <div style={{ background: t.color.bgSoft, borderRadius: t.radius.sm }}>
+      <div style={{ display: 'flex', gap: 10, padding: 10, alignItems: 'center' }}>
+        <div style={{ color: t.color.gold, fontWeight: 700, minWidth: 20 }}>{index + 1}.</div>
+        <div style={{ flex: 1, fontSize: t.font.sm }}>{exercise}</div>
+        {cues ? (
+          <button onClick={() => setOpen(o => !o)} style={{
+            background: hasVideo ? t.color.gold : 'transparent',
+            color: hasVideo ? '#0d0d14' : t.color.gold,
+            border: `1px solid ${t.color.gold}`,
+            borderRadius: t.radius.pill, padding: '4px 12px',
+            cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+            whiteSpace: 'nowrap',
+          }}>{hasVideo ? '▶ סרטון' : '💡 הסבר'}</button>
+        ) : null}
+      </div>
+      {open && cues && (
+        <div style={{ padding: '4px 12px 14px 12px', borderTop: `1px solid ${t.color.border}` }}>
+          {hasVideo && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginBottom: 6 }}>
+                סרטון הסבר{cues.ytBy ? ` · ${cues.ytBy}` : ''}
+              </div>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: t.radius.sm, overflow: 'hidden', background: '#000' }}>
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${cues.ytId}?rel=0`}
+                  title={exercise}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                />
+              </div>
+            </div>
+          )}
+          {cues.cues && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: t.font.xs, fontWeight: 700, color: t.color.gold, marginBottom: 4 }}>📋 דגשים</div>
+              <ul style={{ margin: 0, paddingRight: 16, fontSize: t.font.xs, lineHeight: 1.6, color: t.color.text }}>
+                {cues.cues.map((c, i) => <li key={i}>{c}</li>)}
+              </ul>
+            </div>
+          )}
+          {cues.warn && (
+            <div>
+              <div style={{ fontSize: t.font.xs, fontWeight: 700, color: t.color.warning, marginBottom: 4 }}>⚠️ שים לב</div>
+              <ul style={{ margin: 0, paddingRight: 16, fontSize: t.font.xs, lineHeight: 1.6, color: t.color.text }}>
+                {cues.warn.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -126,6 +126,14 @@ function MyPlan() {
 
       <WeeklySchedule plan={{ ...plan, sessions: displaySessions }} onOpenSession={setSession} />
 
+      <UpcomingWeeks
+        plan={plan}
+        currentWeek={currentWeek}
+        style={style}
+        difficultyByWeek={plan.difficultyByWeek || {}}
+        onSetDifficulty={setWeekDifficulty}
+      />
+
       {/* Plans archive */}
       {archive.length > 0 && (
         <Card>
@@ -936,6 +944,90 @@ function WeekBanner({ plan, currentWeek, completion, difficulty, style, profile,
         </div>
       </div>
       <style>{`@media (max-width: 500px) { .hfos-diff-grid { grid-template-columns: 1fr 1fr !important; } }`}</style>
+    </Card>
+  )
+}
+
+// ─── Upcoming weeks preview - shows next 3 weeks with locked/unlocked state
+function UpcomingWeeks({ plan, currentWeek, style, difficultyByWeek, onSetDifficulty }) {
+  const totalWeeks = plan.weeks || 12
+  const upcoming = []
+  for (let w = currentWeek; w <= Math.min(currentWeek + 3, totalWeeks); w++) upcoming.push(w)
+  if (upcoming.length < 2) return null
+
+  const styleLabel = ({ bodybuilding:'בודיבילדינג', powerlifting:'כוח מירבי', crossfit:'CrossFit', bodyweight:'משקל גוף' })[style] || style
+  const suggestedDiff = (w) => {
+    if (w === totalWeeks) return 'easy'
+    if (w % 4 === 0) return 'easy'
+    if (w >= totalWeeks - 2) return 'elite'
+    if (w >= totalWeeks - 4) return 'hard'
+    return 'medium'
+  }
+
+  return (
+    <Card>
+      <SectionHeader
+        title="📅 שבועות קדימה"
+        subtitle="תצוגה מקדימה - הרמה נעולה מוצעת אוטומטית, ניתן לשנות"
+      />
+      <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+        {upcoming.map((w, idx) => {
+          const isCurrent = w === currentWeek
+          const isLocked = idx > 0
+          const diff = difficultyByWeek[w] || (isCurrent ? 'medium' : suggestedDiff(w))
+          const meta = DIFFICULTY_LABELS[diff]
+          return (
+            <div key={w} style={{
+              display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 12, alignItems: 'center',
+              padding: 12, borderRadius: t.radius.md,
+              background: isCurrent ? t.color.goldGlow : t.color.bgSoft,
+              border: `1px solid ${isCurrent ? t.color.gold : t.color.border}`,
+              opacity: isLocked ? 0.75 : 1,
+            }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: '50%',
+                background: isCurrent ? t.color.gold : t.color.bg,
+                color: isCurrent ? '#0d0d14' : t.color.text,
+                display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: 16,
+                border: `1px solid ${isCurrent ? t.color.gold : t.color.border}`,
+              }}>{w}</div>
+              <div>
+                <div style={{ fontSize: t.font.sm, fontWeight: 700 }}>
+                  שבוע {w}
+                  {isCurrent && <span style={{ color: t.color.gold, marginRight: 6 }}> ★ נוכחי</span>}
+                  {isLocked && <span style={{ color: t.color.textDim, marginRight: 6, fontSize: t.font.xs }}> 🔒 נעול</span>}
+                </div>
+                <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
+                  {styleLabel} · <span style={{ color: meta.color }}>{meta.icon} {meta.label}</span>
+                  {isLocked && <span> · נפתח כשתסיים 75% משבוע {w - 1}</span>}
+                  {w % 4 === 0 && !isCurrent && <span style={{ color: t.color.info }}> · דלוד מומלץ</span>}
+                </div>
+              </div>
+              {!isLocked && (
+                <select
+                  value={diff}
+                  onChange={e => onSetDifficulty(w, e.target.value)}
+                  style={{
+                    padding: '6px 10px', borderRadius: t.radius.sm,
+                    background: t.color.bg, color: t.color.text,
+                    border: `1px solid ${t.color.border}`,
+                    fontFamily: 'inherit', fontSize: t.font.xs,
+                  }}
+                >
+                  {DIFFICULTY_LEVELS.map(d => (
+                    <option key={d} value={d}>{DIFFICULTY_LABELS[d].icon} {DIFFICULTY_LABELS[d].label}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )
+        })}
+        {currentWeek + 3 < totalWeeks && (
+          <div style={{ fontSize: t.font.xs, color: t.color.textDim, textAlign: 'center', padding: 8 }}>
+            + עוד {totalWeeks - currentWeek - 3} שבועות בהמשך המחזור
+          </div>
+        )}
+      </div>
     </Card>
   )
 }
