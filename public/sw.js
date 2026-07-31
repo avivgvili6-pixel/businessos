@@ -2,8 +2,11 @@
 // Simple strategy: network-first for HTML, cache-first for assets, offline fallback.
 
 const CACHE_NAME = 'hfos-v1'
-const OFFLINE_FALLBACK = '/'
-const CORE_ASSETS = ['/', '/manifest.webmanifest']
+// Detect the deployment base from the SW's own URL (works at "/" and at
+// "/businessos/" without needing a build-time template)
+const BASE = new URL(self.registration?.scope || './', self.location.href).pathname
+const OFFLINE_FALLBACK = BASE
+const CORE_ASSETS = [BASE, BASE + 'manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
