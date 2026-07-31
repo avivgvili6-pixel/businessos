@@ -30,34 +30,34 @@ export function Home({ go }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap: 20 }}>
       {/* Hero */}
-      <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 28 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap: 20 }}>
-          <div>
-            <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginBottom: 6 }}>{greeting()}</div>
-            <h1 style={{ fontSize: t.font.xxxl, fontWeight: 800, marginBottom: 8 }}>{first}, מוכן ליום שלך?</h1>
-            <div style={{ color: t.color.textDim, fontSize: t.font.md }}>הפוקוס להיום: {focusToday(state)}</div>
+      <Card className="hfos-hero" style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 24 }}>
+        <div className="hfos-hero-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginBottom: 4 }}>{greeting()}</div>
+            <h1 className="hfos-hero-title" style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, lineHeight: 1.2 }}>{first}, מוכן/ה?</h1>
+            <div style={{ color: t.color.textDim, fontSize: t.font.sm, lineHeight: 1.5 }}>{focusToday(state)}</div>
           </div>
-          <Ring value={readiness} max={100} size={110} stroke={10}
+          <Ring value={readiness} max={100} size={90} stroke={8}
             color={readiness >= 75 ? t.color.success : readiness >= 50 ? t.color.gold : t.color.warning}
-            label={`${readiness}`} sublabel="READINESS" />
+            label={`${readiness}`} sublabel="READY" />
         </div>
       </Card>
 
       {/* Quick stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-        <Card style={{ padding: 20 }}>
-          <Stat icon="🔥" label="קלוריות היום" value={`${todayKcal} / ${kcalTarget}`} />
-          <ProgressBar value={todayKcal} max={kcalTarget} style={{ marginTop: 10 }} />
+      <div className="hfos-kpis" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+        <Card style={{ padding: 16 }}>
+          <Stat icon="🔥" label="קלוריות" value={`${todayKcal}/${kcalTarget}`} />
+          <ProgressBar value={todayKcal} max={kcalTarget} style={{ marginTop: 8 }} />
         </Card>
-        <Card style={{ padding: 20 }}>
+        <Card style={{ padding: 16 }}>
           <Stat icon="💪" label="אימונים השבוע" value={weekWorkouts(workoutLogs)} delta={`${workoutLogs.length} סה״כ`} deltaColor={t.color.textDim} />
         </Card>
-        <Card style={{ padding: 20 }}>
+        <Card style={{ padding: 16 }}>
           <Stat icon="🎯" label="הרגלים היום" value={`${habitDone}/${habits.length}`} />
-          <ProgressBar value={habitDone} max={habits.length} color={t.color.success} style={{ marginTop: 10 }} />
+          <ProgressBar value={habitDone} max={habits.length} color={t.color.success} style={{ marginTop: 8 }} />
         </Card>
-        <Card style={{ padding: 20 }}>
-          <Stat icon="😊" label="מצב רוח" value={lastMood ? `${lastMood.mood}/10` : '—'} delta={lastMood ? `אנרגיה ${lastMood.energy}/10` : 'עדיין לא נבדק'} deltaColor={t.color.textDim} />
+        <Card style={{ padding: 16 }}>
+          <Stat icon="😊" label="מצב רוח" value={lastMood ? `${lastMood.mood}/10` : '—'} delta={lastMood ? `אנרגיה ${lastMood.energy}/10` : 'טרם נבדק'} deltaColor={t.color.textDim} />
         </Card>
       </div>
 
@@ -121,7 +121,12 @@ export function Home({ go }) {
           )}
         </Card>
       </div>
-      <style>{`@media (max-width: 900px) { .hfos-grid-2 { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`
+        @media (max-width: 900px) { .hfos-grid-2 { grid-template-columns: 1fr !important; } }
+        @media (max-width: 500px) {
+          .hfos-kpis { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }

@@ -148,7 +148,10 @@ export function EmptyState({ icon='✨', title, subtitle, action }) {
 
 export function Tabs({ tabs, active, onChange }) {
   return (
-    <div style={{ display:'flex', gap: 4, background: t.color.bgSoft, padding: 4, borderRadius: t.radius.md, marginBottom: t.space.lg, overflowX:'auto' }}>
+    <div className="hfos-tabs" style={{
+      display:'flex', gap: 4, background: t.color.bgSoft, padding: 4, borderRadius: t.radius.md,
+      marginBottom: t.space.lg, overflowX:'auto', scrollbarWidth:'none',
+    }}>
       {tabs.map(tab => (
         <button key={tab.key}
           onClick={() => onChange(tab.key)}
@@ -161,6 +164,7 @@ export function Tabs({ tabs, active, onChange }) {
           }}
         >{tab.label}</button>
       ))}
+      <style>{`.hfos-tabs::-webkit-scrollbar { display: none; }`}</style>
     </div>
   )
 }

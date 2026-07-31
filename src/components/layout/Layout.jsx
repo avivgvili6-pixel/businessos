@@ -77,21 +77,32 @@ export function Shell({ page, setPage, children }) {
         <div className="hfos-content" style={{ padding: t.space.xl, maxWidth: 1400, width: '100%', margin: '0 auto', flex: 1 }}>
           {children}
         </div>
-        {/* Mobile bottom nav */}
+        {/* Mobile bottom nav - primary 4 tabs + "עוד" opens drawer */}
         <nav className="hfos-bottomnav" style={{
-          display:'none', position:'sticky', bottom:0, background: t.color.bgElevated,
-          borderTop:`1px solid ${t.color.border}`, padding: '8px 4px', gap: 4, justifyContent:'space-around',
+          display:'none', position:'fixed', bottom:0, left:0, right:0, background: t.color.bgElevated,
+          borderTop:`1px solid ${t.color.border}`, padding: '6px 4px', gap: 2, justifyContent:'space-around',
+          zIndex: 100, boxShadow: '0 -4px 16px rgba(0,0,0,.3)',
         }}>
-          {nav.slice(0, 5).map(item => (
+          {getPrimaryNav(nav, page).map(item => (
             <button key={item.key} onClick={() => setPage(item.key)} style={{
-              flex:1, padding:'8px 4px', border:'none', background:'transparent',
+              flex:1, padding:'6px 2px', border:'none', background:'transparent',
               color: page === item.key ? t.color.gold : t.color.textDim, cursor:'pointer',
-              display:'flex', flexDirection:'column', alignItems:'center', gap: 2, fontSize: 10,
+              display:'flex', flexDirection:'column', alignItems:'center', gap: 2, fontSize: 9,
+              fontFamily:'inherit',
             }}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
               <span>{item.label}</span>
             </button>
           ))}
+          <button onClick={() => setMobileOpen(true)} style={{
+            flex:1, padding:'6px 2px', border:'none', background:'transparent',
+            color: t.color.textDim, cursor:'pointer',
+            display:'flex', flexDirection:'column', alignItems:'center', gap: 2, fontSize: 9,
+            fontFamily:'inherit',
+          }}>
+            <span style={{ fontSize: 20 }}>⋯</span>
+            <span>עוד</span>
+          </button>
         </nav>
       </main>
       <ResponsiveStyle />
@@ -152,9 +163,9 @@ function NavItem({ item, active, onClick }) {
 
 function TopBar({ page, isAdmin, onMenu }) {
   return (
-    <header style={{
+    <header className="hfos-topbar" style={{
       display:'flex', alignItems:'center', justifyContent:'space-between',
-      padding: '18px 24px', borderBottom: `1px solid ${t.color.border}`,
+      padding: '14px 20px', borderBottom: `1px solid ${t.color.border}`,
       background: `${t.color.bgElevated}aa`, backdropFilter:'blur(10px)', position:'sticky', top: 0, zIndex: 50,
     }}>
       <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
@@ -162,18 +173,20 @@ function TopBar({ page, isAdmin, onMenu }) {
           display:'none', background:'transparent', border:`1px solid ${t.color.border}`,
           color: t.color.text, padding:'6px 10px', borderRadius: t.radius.sm, cursor:'pointer', fontFamily:'inherit',
         }}>☰</button>
-        <div>
-          <div style={{ fontSize: t.font.xl, fontWeight: 700 }}>{page?.label}</div>
-          <div style={{ fontSize: t.font.xs, color: t.color.textDim, letterSpacing: 1 }}>{isAdmin ? 'CONSOLE' : 'APP'}</div>
+        <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+          {page?.icon && <span style={{ fontSize: 20 }}>{page.icon}</span>}
+          <div>
+            <div style={{ fontSize: t.font.lg, fontWeight: 700 }}>{page?.label}</div>
+          </div>
         </div>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
         <button style={{
           background: t.color.bgSoft, border:`1px solid ${t.color.border}`, borderRadius: t.radius.pill,
-          padding:'6px 14px', color: t.color.text, cursor:'pointer', fontFamily:'inherit', fontSize: t.font.sm,
+          padding:'5px 12px', color: t.color.text, cursor:'pointer', fontFamily:'inherit', fontSize: t.font.xs,
           display:'flex', alignItems:'center', gap: 6,
         }}>
-          <span style={{ width: 8, height: 8, background: t.color.success, borderRadius:'50%' }} />
+          <span style={{ width: 7, height: 7, background: t.color.success, borderRadius:'50%' }} />
           מחובר
         </button>
       </div>
@@ -189,8 +202,25 @@ function ResponsiveStyle() {
         .hfos-bottomnav { display: flex !important; }
         .hfos-mobile-overlay { display: block !important; }
         .hfos-menu-btn { display: inline-block !important; }
-        .hfos-content { padding: 16px !important; padding-bottom: 90px !important; }
+        .hfos-content { padding: 14px !important; padding-bottom: 100px !important; }
       }
     `}</style>
   )
+}
+
+// Choose 4 primary items for the mobile bottom nav.
+// Always includes the current page so the user sees where they are.
+function getPrimaryNav(nav, currentPage) {
+  // For member app, prioritize daily-use pages
+  const priorityMember = ['home', 'train', 'nutrition', 'mind']
+  const priorityAdmin  = ['overview', 'members', 'schedule', 'alerts']
+  const isAdmin = nav[0]?.key === 'overview'
+  const priority = isAdmin ? priorityAdmin : priorityMember
+  const primary = nav.filter(n => priority.includes(n.key))
+  // Ensure current page is visible even if not in priority list
+  if (!primary.find(n => n.key === currentPage)) {
+    const curr = nav.find(n => n.key === currentPage)
+    if (curr) primary[3] = curr
+  }
+  return primary.slice(0, 4)
 }
