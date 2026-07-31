@@ -11,6 +11,7 @@ const MEMBER_NAV = [
   { key:'nutrition', label:'תזונה',    icon:'🥗' },
   { key:'mind',      label:'מנטלי',    icon:'🧠' },
   { key:'habits',    label:'הרגלים',   icon:'🎯' },
+  { key:'calendar',  label:'יומן',     icon:'📅' },
   { key:'profile',   label:'פרופיל',   icon:'👤' },
 ]
 

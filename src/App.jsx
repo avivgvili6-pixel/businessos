@@ -13,6 +13,7 @@ import { Rehab } from './modules/member/rehab/Rehab'
 import { Nutrition } from './modules/member/nutrition/Nutrition'
 import { Mind } from './modules/member/mind/Mind'
 import { Habits } from './modules/member/habits/Habits'
+import { Calendar } from './modules/member/calendar/Calendar'
 import { Profile } from './modules/member/profile/Profile'
 
 // admin
@@ -41,6 +42,7 @@ function AppRouter() {
     nutrition: <Nutrition />,
     mind:      <Mind />,
     habits:    <Habits />,
+    calendar:  <Calendar />,
     profile:   <Profile />,
   }
   const adminPages = {

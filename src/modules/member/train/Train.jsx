@@ -8,6 +8,7 @@ import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescripti
 import { todayKey, DAYS_HE } from '../../../utils/date'
 import { QuickBuilder } from './QuickBuilder'
 import { PdfImporter } from './PdfImporter'
+import { workoutEvent, googleCalendarUrl } from '../../../utils/calendar'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
@@ -50,7 +51,13 @@ function MyPlan() {
         />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
           {plan.sessions.map((s, i) => (
-            <Card key={i} hover style={{ cursor:'pointer', padding: 18 }} onClick={() => setSession(s)}>
+            <Card key={i} hover style={{ padding: 18, position:'relative' }}>
+              <button onClick={(e) => { e.stopPropagation(); const day = new Date(); day.setDate(day.getDate() + i); day.setHours(18,0,0,0); window.open(googleCalendarUrl(workoutEvent({ session: s, date: day, plan })), '_blank') }} title="הוסף ליומן Google" style={{
+                position:'absolute', top: 12, left: 12, background: t.color.bgSoft, border:`1px solid ${t.color.border}`,
+                borderRadius: t.radius.pill, color: t.color.gold, fontSize: 12, padding:'4px 10px',
+                cursor:'pointer', fontFamily:'inherit', fontWeight: 600, zIndex: 2,
+              }}>📅+</button>
+              <div onClick={() => setSession(s)} style={{ cursor:'pointer' }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{s.name}</div>
                 {s.wodType ? <Badge color={t.color.danger}>{s.wodType}</Badge> : <Badge>{DAYS_HE[(i+1) % 7]}</Badge>}
@@ -71,6 +78,7 @@ function MyPlan() {
                   </div>
                 ))}
                 {s.exercises.length > 4 && <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>+ {s.exercises.length - 4} נוספים</div>}
+              </div>
               </div>
             </Card>
           ))}
