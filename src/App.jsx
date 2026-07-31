@@ -38,7 +38,7 @@ import { PersonalRequests } from './modules/admin/personal-requests/PersonalRequ
 import { MemberPhotos } from './modules/admin/member-photos/MemberPhotos'
 
 function AppRouter() {
-  const { user, effectiveRole } = useAuth()
+  const { user, effectiveRole, loading } = useAuth()
   const { state, setRole } = useApp()
   const [page, setPage] = useState('home')
 
@@ -46,6 +46,16 @@ function AppRouter() {
   useEffect(() => {
     if (effectiveRole && state.role !== effectiveRole) setRole(effectiveRole)
   }, [effectiveRole, state.role])
+
+  // Wait for Supabase session hydration before deciding login/app view
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0d0d14', color: '#c8a84b', fontFamily: 'system-ui' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
+        <div style={{ fontSize: 14, letterSpacing: 2, opacity: 0.8 }}>טוען...</div>
+      </div>
+    </div>
+  )
 
   // Not logged in → login screen
   if (!user) return <LoginScreen />

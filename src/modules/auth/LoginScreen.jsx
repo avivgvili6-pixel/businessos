@@ -11,8 +11,8 @@ import { storage } from '../../utils/storage'
 //      via the admin panel using their real email.
 
 export function LoginScreen() {
-  const { login } = useAuth()
-  const [step, setStep] = useState('login') // login | coach-request | coach-pending
+  const { login, supabaseEnabled, loading } = useAuth()
+  const [step, setStep] = useState('login') // login | link-sent | coach-request | coach-pending
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState('')
@@ -31,7 +31,10 @@ export function LoginScreen() {
   const submit = async (e) => {
     e?.preventDefault?.()
     setError(''); setBusy(true)
-    try { await login(email, name) }
+    try {
+      const result = await login(email, name)
+      if (result?.magicLinkSent) setStep('link-sent')
+    }
     catch (err) { setError(err.message || 'שגיאה בכניסה') }
     finally { setBusy(false) }
   }
@@ -80,10 +83,34 @@ export function LoginScreen() {
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.02 }}>
             {step === 'login' && 'ברוכים הבאים'}
+            {step === 'link-sent' && 'קישור נשלח למייל'}
             {step === 'coach-request' && 'הרשמה כמאמן'}
             {step === 'coach-pending' && 'הבקשה נשלחה'}
           </h1>
         </div>
+
+        {step === 'link-sent' && (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%', background: t.color.gold, color: '#0d0d14',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
+              marginBottom: 16, boxShadow: t.shadow.glow,
+            }}>✉️</div>
+            <div style={{ marginBottom: 16, fontSize: t.font.md, color: t.color.text, lineHeight: 1.6 }}>
+              שלחנו קישור כניסה למייל:<br />
+              <b style={{ color: t.color.gold }}>{email}</b>
+            </div>
+            <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.7, marginBottom: 16 }}>
+              📧 פתח את המייל ולחץ על הכפתור "כניסה" — יעביר אותך אוטומטית לאפליקציה.
+              <br />
+              <br />
+              💡 אם לא רואה — בדוק בספאם/קידום מכירות.
+              <br />
+              הקישור פעיל שעה אחת.
+            </div>
+            <Button variant="ghost" onClick={() => { setStep('login'); setEmail(''); setError('') }}>← מייל אחר</Button>
+          </div>
+        )}
 
         {step === 'login' && (
           <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
@@ -104,7 +131,9 @@ export function LoginScreen() {
             )}
 
             <Button type="submit" size="lg" disabled={busy || !email || !name} style={{ marginTop: 4 }}>
-              {busy ? 'נכנס...' : 'היכנס לפיילוט'}
+              {busy
+                ? (supabaseEnabled ? 'שולח קישור...' : 'נכנס...')
+                : (supabaseEnabled ? '✉️ שלח לי קישור כניסה' : 'היכנס לפיילוט')}
             </Button>
 
             <div style={{ textAlign: 'center', marginTop: 8 }}>
@@ -159,7 +188,9 @@ export function LoginScreen() {
           marginTop: 24, padding: 12, background: t.color.bgSoft,
           borderRadius: t.radius.md, fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5, textAlign: 'center',
         }}>
-          🔒 הפיילוט שומר הכל מקומית במכשיר - אין סיסמאות
+          {supabaseEnabled
+            ? '🔒 כניסה עם קישור למייל · ללא סיסמאות · הנתונים בענן ומסונכרנים בין מכשירים'
+            : '🔒 הפיילוט שומר הכל מקומית במכשיר - אין סיסמאות'}
         </div>
       </Card>
     </div>
