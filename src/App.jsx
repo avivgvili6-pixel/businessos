@@ -36,13 +36,13 @@ function AppRouter() {
   const { state, setRole } = useApp()
   const [page, setPage] = useState('home')
 
+  // Sync auth role → app role (must run every render regardless of user)
+  useEffect(() => {
+    if (user?.role && state.role !== user.role) setRole(user.role)
+  }, [user?.role, state.role])
+
   // Not logged in → login screen
   if (!user) return <LoginScreen />
-
-  // Sync auth role → app role (so Layout picks the correct nav)
-  useEffect(() => {
-    if (user.role && state.role !== user.role) setRole(user.role)
-  }, [user.role, state.role])
 
   // Member/coach that hasn't finished onboarding → run onboarding
   if (!state.onboarded && user.role === 'member') return <Onboarding />
