@@ -4,6 +4,7 @@ import { useApp } from '../../../store/AppStore'
 import { Card, Button, Input, Select, Badge, SectionHeader, Tabs, Modal, EmptyState, ProgressBar } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
 import { exercises, MUSCLE_GROUPS, EQUIPMENT, CATEGORIES, LEVELS, workoutSplits } from '../../../data/exercises'
+import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescription } from '../../../data/programs'
 import { todayKey, DAYS_HE } from '../../../utils/date'
 
 export function Train() {
@@ -11,15 +12,17 @@ export function Train() {
   return (
     <>
       <Tabs tabs={[
-        { key:'plan',    label:'התכנית שלי' },
-        { key:'library', label:'מאגר תרגילים' },
-        { key:'builder', label:'מחולל תכניות' },
-        { key:'history', label:'היסטוריה' },
+        { key:'plan',     label:'התכנית שלי' },
+        { key:'programs', label:'🌍 תכניות מוכרות' },
+        { key:'library',  label:'מאגר תרגילים' },
+        { key:'builder',  label:'מחולל מהיר' },
+        { key:'history',  label:'היסטוריה' },
       ]} active={tab} onChange={setTab} />
-      {tab === 'plan' && <MyPlan />}
-      {tab === 'library' && <Library />}
-      {tab === 'builder' && <Builder />}
-      {tab === 'history' && <History />}
+      {tab === 'plan'     && <MyPlan />}
+      {tab === 'programs' && <ProgramsLibrary />}
+      {tab === 'library'  && <Library />}
+      {tab === 'builder'  && <Builder />}
+      {tab === 'history'  && <History />}
     </>
   )
 }
@@ -39,17 +42,29 @@ function MyPlan() {
           subtitle={`${plan.split} · ${plan.days} ימים · ${plan.weeks} שבועות`}
           action={<Badge color={t.color.gold}>שבוע {plan.currentWeek || 1}</Badge>}
         />
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
           {plan.sessions.map((s, i) => (
             <Card key={i} hover style={{ cursor:'pointer', padding: 18 }} onClick={() => setSession(s)}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{s.name}</div>
-                <Badge>{DAYS_HE[(i+1) % 7]}</Badge>
+                {s.wodType ? <Badge color={t.color.danger}>{s.wodType}</Badge> : <Badge>{DAYS_HE[(i+1) % 7]}</Badge>}
               </div>
+              {s.prescription && (
+                <div style={{ padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 8, fontSize: t.font.xs, fontFamily:'Space Mono, monospace', whiteSpace:'pre-wrap' }}>
+                  {s.prescription}
+                </div>
+              )}
               <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 8 }}>{s.exercises.length} תרגילים</div>
-              <div style={{ display:'flex', gap: 4, flexWrap:'wrap' }}>
-                {s.exercises.slice(0, 4).map((e, j) => <Badge key={j} color={t.color.textDim}>{e.name}</Badge>)}
-                {s.exercises.length > 4 && <Badge color={t.color.textDim}>+{s.exercises.length - 4}</Badge>}
+              <div style={{ display:'grid', gap: 4 }}>
+                {s.exercises.slice(0, 4).map((e, j) => (
+                  <div key={j} style={{ display:'flex', justifyContent:'space-between', fontSize: t.font.xs }}>
+                    <span>{e.name}</span>
+                    <span style={{ color: t.color.gold, fontFamily:'Space Mono, monospace' }}>
+                      {e.intensity ? `${e.sets}×${e.reps} @ ${Math.round((Array.isArray(e.intensity) ? e.intensity[0] : e.intensity) * 100)}%` : `${e.sets}×${e.reps}`}
+                    </span>
+                  </div>
+                ))}
+                {s.exercises.length > 4 && <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>+ {s.exercises.length - 4} נוספים</div>}
               </div>
             </Card>
           ))}
@@ -106,9 +121,25 @@ function SessionRunner({ session, onClose, onFinish }) {
         {log.map((ex, i) => (
           <Card key={i} style={{ padding: 16 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
-              <div style={{ fontWeight: 700 }}>{ex.name}</div>
-              <Badge>{ex.sets.length}×{ex.reps || 8}</Badge>
+              <div>
+                <div style={{ fontWeight: 700 }}>{ex.name}</div>
+                {ex.format && <Badge color={ex.format === 'strength' ? t.color.gold : ex.format === 'metcon' ? t.color.danger : t.color.textDim} style={{ marginTop: 4 }}>{ex.format}</Badge>}
+              </div>
+              <div style={{ textAlign:'left' }}>
+                <Badge>{ex.sets.length}×{ex.reps || 8}</Badge>
+                {ex.intensity && (
+                  <div style={{ fontSize: t.font.xs, color: t.color.gold, marginTop: 4, fontFamily:'Space Mono, monospace' }}>
+                    @ {Math.round((Array.isArray(ex.intensity) ? ex.intensity[0] : ex.intensity) * 100)}%
+                    {ex.suggestedWeight ? ` = ${ex.suggestedWeight} ק״ג` : ''}
+                  </div>
+                )}
+              </div>
             </div>
+            {ex.prescription && !ex.sets.some(s => s.w) && (
+              <div style={{ padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 10, fontSize: t.font.xs, color: t.color.textDim, fontFamily:'Space Mono, monospace' }}>
+                📋 {ex.prescription}
+              </div>
+            )}
             <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr 1fr', gap: 8, alignItems:'center' }}>
               <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>סט</div>
               <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>משקל</div>
@@ -288,6 +319,185 @@ function buildPlan({ splitKey, weeks, level, goalKey }) {
     sessions,
     createdAt: new Date().toISOString(),
   }
+}
+
+function ProgramsLibrary() {
+  const { state, setPlan } = useApp()
+  const [selected, setSelected] = useState(null)
+  const [cat, setCat] = useState('all')
+  const oneRMs = state.profile.oneRMs || {}
+  const hasOneRMs = Object.keys(oneRMs).length > 0
+
+  const shown = cat === 'all'
+    ? Object.values(programs)
+    : programCategories.find(c => c.id === cat)?.programs.map(id => programs[id]) || []
+
+  const adopt = (prog) => {
+    // Materialize the program into a plan format that MyPlan can render.
+    const plan = {
+      name: prog.label,
+      programId: prog.id,
+      split: prog.schema,
+      days: prog.daysPerWeek,
+      weeks: prog.duration,
+      currentWeek: 1,
+      sessions: prog.sessions.map(s => ({
+        name: s.name,
+        wodType: s.wodType,
+        prescription: s.prescription,
+        exercises: (s.blocks || []).map(b => ({
+          id: b.lift || b.name,
+          name: b.lift ? KEY_LIFTS[b.lift]?.label : b.name,
+          sets: b.sets || 1,
+          reps: b.reps || 8,
+          intensity: b.intensity,
+          format: b.format,
+          prescription: b.prescription,
+          wodType: b.wodType,
+          suggestedWeight: b.lift ? computeWeight(b, oneRMs) : null,
+        })),
+      })),
+      createdAt: new Date().toISOString(),
+    }
+    setPlan(plan)
+    setSelected(null)
+    alert(`התכנית ${prog.label} אומצה. עבור לטאב "התכנית שלי"`)
+  }
+
+  return (
+    <div style={{ display:'grid', gap: 16 }}>
+      <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 24 }}>
+        <Badge>🌍 מאגר תכניות מהעולם</Badge>
+        <h2 style={{ marginTop: 10, fontSize: t.font.xxl, fontWeight: 800 }}>תכניות אמיתיות שעובדות</h2>
+        <div style={{ color: t.color.textDim, marginTop: 6 }}>
+          מ-Starting Strength ל-Wendler 5/3/1 ועד CrossFit ו-GVT - כל תכנית בנויה על אחוזים מ-1RM שלך.
+        </div>
+        {!hasOneRMs && (
+          <div style={{ marginTop: 14, padding: 12, background:`${t.color.warning}15`, borderRadius: t.radius.sm, border:`1px solid ${t.color.warning}` }}>
+            <div style={{ fontSize: t.font.sm, color: t.color.warning, fontWeight: 700 }}>⚠ עדיין לא הגדרת 1RM</div>
+            <div style={{ fontSize: t.font.sm, color: t.color.text, marginTop: 4 }}>
+              בלי 1RM נראה רק אחוזים ולא ק״ג. עבור ל-<b>פרופיל → יכולת מירבית</b> להזין ערכים.
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
+        <CatChip label="הכל" active={cat === 'all'} onClick={() => setCat('all')} />
+        {programCategories.map(c => (
+          <CatChip key={c.id} label={c.label} active={cat === c.id} onClick={() => setCat(c.id)} />
+        ))}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+        {shown.map(p => (
+          <Card key={p.id} hover style={{ padding: 20, cursor:'pointer' }} onClick={() => setSelected(p)}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: t.font.lg }}>{p.label}</div>
+                <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>{p.author} · {p.origin}</div>
+              </div>
+              <Badge color={t.color.gold}>{p.daysPerWeek}×/שב׳</Badge>
+            </div>
+            <div style={{ display:'flex', gap: 6, flexWrap:'wrap', marginBottom: 10 }}>
+              <Badge color={t.color.textDim}>{p.level}</Badge>
+              <Badge color={t.color.info}>{p.duration} שבועות</Badge>
+            </div>
+            <div style={{ fontSize: t.font.sm, color: t.color.gold, fontWeight: 600, marginBottom: 6 }}>{p.goal}</div>
+            <div style={{ fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5 }}>{p.schema}</div>
+          </Card>
+        ))}
+      </div>
+
+      <ProgramModal open={!!selected} onClose={() => setSelected(null)} program={selected} onAdopt={adopt} oneRMs={oneRMs} />
+    </div>
+  )
+}
+
+function CatChip({ label, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      padding:'8px 16px', borderRadius: t.radius.pill,
+      background: active ? t.color.gold : t.color.bgSoft,
+      color: active ? '#0d0d14' : t.color.textDim,
+      border:`1px solid ${active ? t.color.gold : t.color.border}`,
+      fontFamily:'inherit', cursor:'pointer', fontWeight: 600, fontSize: t.font.sm,
+    }}>{label}</button>
+  )
+}
+
+function ProgramModal({ open, onClose, program, onAdopt, oneRMs }) {
+  if (!program) return null
+  return (
+    <Modal open={open} onClose={onClose} title={program.label} width={760}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 10 }}>
+          <Badge color={t.color.gold}>{program.author}</Badge>
+          <Badge color={t.color.textDim}>{program.origin}</Badge>
+          <Badge color={t.color.info}>{program.level}</Badge>
+          <Badge color={t.color.success}>{program.daysPerWeek} ימים/שבוע · {program.duration} שבועות</Badge>
+        </div>
+        <div style={{ color: t.color.gold, fontWeight: 600, marginBottom: 6 }}>{program.goal}</div>
+        <div style={{ color: t.color.text, lineHeight: 1.6, marginBottom: 8 }}>{program.description}</div>
+        <div style={{ padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim }}>
+          <b style={{ color: t.color.text }}>סכימה:</b> {program.schema}
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gap: 12 }}>
+        {program.sessions.map((s, i) => (
+          <div key={i} style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, color: t.color.gold, fontSize: t.font.lg }}>{s.name}</div>
+              {s.wodType && <Badge color={t.color.danger}>{s.wodType}{s.timeCap ? ` · ${s.timeCap} דק׳` : ''}</Badge>}
+            </div>
+            {s.prescription && (
+              <div style={{ padding: 10, background: t.color.bg, borderRadius: t.radius.sm, marginBottom: 10, fontFamily:'Space Mono, monospace', fontSize: t.font.sm, whiteSpace:'pre-wrap' }}>
+                {s.prescription}
+              </div>
+            )}
+            {s.description && <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 10, fontStyle:'italic' }}>{s.description}</div>}
+            {(s.rxTime || s.rxRounds) && (
+              <div style={{ fontSize: t.font.xs, color: t.color.gold, marginBottom: 10 }}>
+                יעד ברמת RX: {s.rxTime || s.rxRounds}
+              </div>
+            )}
+            {s.blocks && s.blocks.length > 0 && (
+              <div style={{ display:'grid', gap: 6 }}>
+                {s.blocks.map((b, j) => (
+                  <div key={j} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding: 8, background: t.color.bg, borderRadius: t.radius.sm }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: t.font.sm }}>
+                        {b.lift ? KEY_LIFTS[b.lift]?.label : b.name}
+                      </div>
+                      {b.format && <Badge color={b.format === 'strength' ? t.color.gold : b.format === 'metcon' ? t.color.danger : t.color.textDim} style={{ marginTop: 4 }}>{b.format}</Badge>}
+                    </div>
+                    <div style={{ textAlign:'left', fontFamily:'Space Mono, monospace', fontSize: t.font.sm, color: t.color.gold }}>
+                      {formatPrescription(b, oneRMs)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {program.notes && program.notes.length > 0 && (
+        <div style={{ marginTop: 16, padding: 12, background: t.color.goldGlow, borderRadius: t.radius.sm, border:`1px solid ${t.color.gold}` }}>
+          <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 8 }}>📌 הוראות מנחות</div>
+          <div style={{ display:'grid', gap: 4 }}>
+            {program.notes.map((n, i) => <div key={i} style={{ fontSize: t.font.sm }}>• {n}</div>)}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:'flex', gap: 10, justifyContent:'flex-end', marginTop: 20 }}>
+        <Button variant="ghost" onClick={onClose}>סגור</Button>
+        <Button onClick={() => onAdopt(program)}>אמץ תכנית זו ✓</Button>
+      </div>
+    </Modal>
+  )
 }
 
 function buildInitialLog(session, priorLogs) {

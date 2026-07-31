@@ -16,6 +16,7 @@ const initialState = {
     goals: [], goalKey: 'recomp', targetPeriodWeeks: 12,
     dietKey: 'balanced',
     constraints: '',
+    oneRMs: {}, // { squat: 100, bench: 80, deadlift: 140, ohp: 55, ... }
   },
   plan: null,               // active workout plan
   workoutLogs: [],          // {date, sessionName, exercises:[{id,name,sets:[{w,r,rpe}]}] }
@@ -43,6 +44,7 @@ function reducer(state, action) {
     case 'SET_ROLE':       return { ...state, role: action.role }
     case 'SET_ONBOARDED':  return { ...state, onboarded: true, profile: { ...state.profile, ...action.profile } }
     case 'UPDATE_PROFILE': return { ...state, profile: { ...state.profile, ...action.patch } }
+    case 'SET_1RM':        return { ...state, profile: { ...state.profile, oneRMs: { ...(state.profile.oneRMs || {}), [action.lift]: action.value } } }
     case 'SET_PLAN':       return { ...state, plan: action.plan }
     case 'LOG_WORKOUT':    return { ...state, workoutLogs: [action.log, ...state.workoutLogs] }
     case 'LOG_MEAL': {
@@ -104,6 +106,7 @@ export function AppProvider({ children }) {
     setRole: (role) => dispatch({ type:'SET_ROLE', role }),
     completeOnboarding: (profile) => dispatch({ type:'SET_ONBOARDED', profile }),
     updateProfile: (patch) => dispatch({ type:'UPDATE_PROFILE', patch }),
+    set1RM: (lift, value) => dispatch({ type:'SET_1RM', lift, value: +value || 0 }),
     setPlan: (plan) => dispatch({ type:'SET_PLAN', plan }),
     logWorkout: (log) => dispatch({ type:'LOG_WORKOUT', log }),
     logMeal: (item, date) => dispatch({ type:'LOG_MEAL', item, date }),
