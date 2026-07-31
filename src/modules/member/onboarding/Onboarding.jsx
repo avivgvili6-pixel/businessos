@@ -17,10 +17,18 @@ export function Onboarding() {
     dietKey: 'balanced', constraints: '',
   })
   const [goalPhase, setGoalPhase] = useState('intro') // intro | wizard | done
+  const [error, setError] = useState(null)
 
-  const set = (patch) => setData(d => ({ ...d, ...patch }))
-  const next = () => setStep(s => Math.min(STEPS.length - 1, s + 1))
-  const prev = () => setStep(s => Math.max(0, s - 1))
+  const set = (patch) => { setData(d => ({ ...d, ...patch })); setError(null) }
+  const next = () => {
+    if (step === 2 && goalPhase === 'intro') {
+      setError('צריך לבחור אחת מהאופציות למטה: "בואו נבנה מטרה" או "דלג לעת עתה"')
+      return
+    }
+    setError(null)
+    setStep(s => Math.min(STEPS.length - 1, s + 1))
+  }
+  const prev = () => { setError(null); setStep(s => Math.max(0, s - 1)) }
   const finish = () => completeOnboarding(data)
 
   // Goal step is FULLSCREEN, not inside the card
@@ -73,10 +81,23 @@ export function Onboarding() {
           {step === 4 && <StepFinish data={data} />}
         </div>
 
+        {error && (
+          <div style={{
+            marginTop: 20, padding:'12px 16px',
+            background: `${t.color.warning}15`, border:`1px solid ${t.color.warning}`,
+            borderRadius: t.radius.md, color: t.color.warning,
+            fontSize: t.font.sm, fontWeight: 600,
+            display:'flex', alignItems:'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
         <div style={{ display:'flex', justifyContent:'space-between', marginTop: 28, gap: 12 }}>
           {step > 0 ? <Button variant="ghost" onClick={prev}>חזור</Button> : <span />}
           {step < STEPS.length - 1
-            ? <Button onClick={next} disabled={step === 2 && goalPhase === 'intro'}>המשך ←</Button>
+            ? <Button onClick={next}>המשך ←</Button>
             : <Button onClick={finish} icon="✨">בוא נתחיל</Button>}
         </div>
       </Card>

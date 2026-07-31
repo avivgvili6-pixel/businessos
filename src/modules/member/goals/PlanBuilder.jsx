@@ -88,15 +88,24 @@ const STRENGTHS = [
 export function PlanBuilder({ onDone, onCancel }) {
   const { setPlan, updateProfile, addHabit } = useApp()
   const [step, setStep] = useState(0) // 0..3 (3 steps + review)
+  const [error, setError] = useState(null)
   const [choices, setChoices] = useState({
     workoutStyle: null, workoutDays: null, location: null,
     dietStyle: null, meals: null, cooking: null,
     blockers: [], strengths: [],
   })
 
-  const set = (patch) => setChoices(c => ({ ...c, ...patch }))
-  const goNext = () => setStep(s => Math.min(3, s + 1))
-  const goBack = () => setStep(s => Math.max(0, s - 1))
+  const set = (patch) => { setChoices(c => ({ ...c, ...patch })); setError(null) }
+  const goNext = () => {
+    const missing = missingFields(step, choices)
+    if (missing.length) {
+      setError(`כדי להמשיך צריך להשלים: ${missing.join(' · ')}`)
+      return
+    }
+    setError(null)
+    setStep(s => Math.min(3, s + 1))
+  }
+  const goBack = () => { setError(null); setStep(s => Math.max(0, s - 1)) }
 
   const adopt = () => {
     // Adopt workout plan
@@ -145,13 +154,6 @@ export function PlanBuilder({ onDone, onCancel }) {
     onDone?.()
   }
 
-  const stepValid = [
-    choices.workoutStyle && choices.workoutDays && choices.location,
-    choices.dietStyle && choices.meals && choices.cooking,
-    choices.blockers.length > 0 && choices.strengths.length > 0,
-    true,
-  ][step]
-
   return (
     <div style={{ display: 'grid', gap: 20 }}>
       {/* Header */}
@@ -179,19 +181,61 @@ export function PlanBuilder({ onDone, onCancel }) {
       {step === 2 && <StepMental choices={choices} set={set} />}
       {step === 3 && <StepReview choices={choices} />}
 
+      {/* Inline error - what's missing */}
+      {error && (
+        <div style={{
+          padding: '12px 16px',
+          background: `${t.color.warning}15`,
+          border: `1px solid ${t.color.warning}`,
+          borderRadius: t.radius.md,
+          color: t.color.warning,
+          fontSize: t.font.sm,
+          fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
         <Button variant="ghost" onClick={step === 0 ? onCancel : goBack}>
           {step === 0 ? 'בטל' : '→ חזור'}
         </Button>
         {step < 3 ? (
-          <Button onClick={goNext} disabled={!stepValid}>המשך ←</Button>
+          <Button onClick={goNext}>המשך ←</Button>
         ) : (
           <Button onClick={adopt} size="lg" icon="🚀">אמץ הכל וצא לדרך!</Button>
         )}
       </div>
     </div>
   )
+}
+
+// Returns list of missing-field labels for the current step
+function missingFields(step, c) {
+  if (step === 0) {
+    const miss = []
+    if (!c.workoutStyle) miss.push('סגנון אימון')
+    if (!c.workoutDays) miss.push('כמה ימים בשבוע')
+    if (!c.location) miss.push('איפה מתאמנים')
+    return miss
+  }
+  if (step === 1) {
+    const miss = []
+    if (!c.dietStyle) miss.push('סוג תזונה')
+    if (!c.meals) miss.push('כמה ארוחות')
+    if (!c.cooking) miss.push('בישול')
+    return miss
+  }
+  if (step === 2) {
+    const miss = []
+    if (!c.blockers.length) miss.push('לפחות חסם אחד')
+    if (!c.strengths.length) miss.push('לפחות חוזקה אחת')
+    return miss
+  }
+  return []
 }
 
 // ─── Step 1: Workout ────────────────────────

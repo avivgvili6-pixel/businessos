@@ -207,6 +207,14 @@ function PhaseTemplate({ direction, onPick, onBack }) {
 
 // ─── Phase: Why ────────────────────────────────────────
 function PhaseWhy({ why, setWhy, onNext, onBack }) {
+  const [err, setErr] = useState(null)
+  const handleNext = () => {
+    if (!why.trim()) {
+      setErr('צריך לבחור אחת מהאופציות למעלה, או לכתוב בעצמך למה זה חשוב לך')
+      return
+    }
+    setErr(null); onNext()
+  }
   return (
     <>
       <Card>
@@ -216,7 +224,7 @@ function PhaseWhy({ why, setWhy, onNext, onBack }) {
         />
         <div style={{ display:'grid', gap: 8, marginTop: 14 }}>
           {WHY_PROMPTS.map((prompt, i) => (
-            <button key={i} onClick={() => setWhy(prompt)} style={{
+            <button key={i} onClick={() => { setWhy(prompt); setErr(null) }} style={{
               padding: 14, background: why === prompt ? t.color.goldGlow : t.color.bgSoft,
               border: `1px solid ${why === prompt ? t.color.gold : t.color.border}`,
               borderRadius: t.radius.md, color: why === prompt ? t.color.gold : t.color.text,
@@ -226,12 +234,13 @@ function PhaseWhy({ why, setWhy, onNext, onBack }) {
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>או תכתוב במילים שלך:</div>
-          <Input value={why} onChange={e => setWhy(e.target.value)} placeholder="כי..." />
+          <Input value={why} onChange={e => { setWhy(e.target.value); setErr(null) }} placeholder="כי..." />
         </div>
       </Card>
+      {err && <ErrBanner text={err} />}
       <div style={{ display:'flex', justifyContent:'space-between' }}>
         <Button variant="ghost" onClick={onBack}>→ חזור</Button>
-        <Button onClick={onNext} disabled={!why.trim()}>המשך ←</Button>
+        <Button onClick={handleNext}>המשך ←</Button>
       </div>
     </>
   )
@@ -356,11 +365,35 @@ function PhaseWeekly({ template, value, setValue, onNext, onBack }) {
           })}
         </div>
       </Card>
+      {value.length < 2 && (
+        <ErrBanner text={`צריך לבחור לפחות 2 מיני-מטרות. סימנת ${value.length}`} soft />
+      )}
       <div style={{ display:'flex', justifyContent:'space-between' }}>
         <Button variant="ghost" onClick={onBack}>→ חזור</Button>
-        <Button onClick={onNext} disabled={value.length < 2}>המשך ← ({value.length}/3+)</Button>
+        <Button onClick={() => {
+          if (value.length < 2) return  // banner already visible
+          onNext()
+        }}>המשך ← ({value.length}/2+)</Button>
       </div>
     </>
+  )
+}
+
+// Reusable inline error banner used across the wizard steps
+function ErrBanner({ text, soft = false }) {
+  return (
+    <div style={{
+      padding:'12px 16px',
+      background: soft ? `${t.color.info}15` : `${t.color.warning}15`,
+      border: `1px solid ${soft ? t.color.info : t.color.warning}`,
+      borderRadius: t.radius.md,
+      color: soft ? t.color.info : t.color.warning,
+      fontSize: t.font.sm, fontWeight: 600,
+      display:'flex', alignItems:'center', gap: 10,
+    }}>
+      <span style={{ fontSize: 18 }}>{soft ? 'ℹ️' : '⚠️'}</span>
+      <span>{text}</span>
+    </div>
   )
 }
 
