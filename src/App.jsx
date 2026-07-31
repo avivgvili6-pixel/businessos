@@ -32,19 +32,20 @@ import { Settings } from './modules/admin/settings/Settings'
 import { CoachRequests } from './modules/admin/coach-requests/CoachRequests'
 
 function AppRouter() {
-  const { user } = useAuth()
+  const { user, effectiveRole } = useAuth()
   const { state, setRole } = useApp()
   const [page, setPage] = useState('home')
 
-  // Sync auth role → app role (must run every render regardless of user)
+  // Sync auth's effective role → app role (must run every render regardless of user)
   useEffect(() => {
-    if (user?.role && state.role !== user.role) setRole(user.role)
-  }, [user?.role, state.role])
+    if (effectiveRole && state.role !== effectiveRole) setRole(effectiveRole)
+  }, [effectiveRole, state.role])
 
   // Not logged in → login screen
   if (!user) return <LoginScreen />
 
-  // Member/coach that hasn't finished onboarding → run onboarding
+  // Member (not admin) that hasn't finished onboarding → run onboarding.
+  // Admin using view-as skips onboarding gate.
   if (!state.onboarded && user.role === 'member') return <Onboarding />
 
   const memberPages = {
@@ -73,8 +74,10 @@ function AppRouter() {
     settings:  <Settings />,
   }
 
-  const pages = user.role === 'admin' ? adminPages : memberPages
-  const defaultPage = user.role === 'admin' ? 'overview' : 'home'
+  // Which pages to render depends on the effective role (respects view-as)
+  const isAdminView = effectiveRole === 'admin'
+  const pages = isAdminView ? adminPages : memberPages
+  const defaultPage = isAdminView ? 'overview' : 'home'
   const validPage = pages[page] ? page : defaultPage
 
   return (

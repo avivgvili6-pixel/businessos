@@ -32,10 +32,18 @@ const ADMIN_NAV = [
 
 export function Shell({ page, setPage, children }) {
   const { state } = useApp()
-  const { user, logout } = useAuth()
-  const isAdmin = user?.role === 'admin'
-  const nav = isAdmin ? ADMIN_NAV : MEMBER_NAV
+  const { user, logout, viewAs, setViewAs, effectiveRole } = useAuth()
+  const isAdmin = user?.role === 'admin' // real admin
+  const isAdminView = effectiveRole === 'admin' // currently viewing admin console
+  const nav = isAdminView ? ADMIN_NAV : MEMBER_NAV
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const switchView = (role) => {
+    setViewAs(role)
+    // Reset to the default page for the new view
+    setPage(role === 'admin' ? 'overview' : 'home')
+    setMobileOpen(false)
+  }
 
   return (
     <div style={{ display:'flex', minHeight:'100vh', background: t.color.bg, color: t.color.text, direction:'rtl' }}>
@@ -45,8 +53,9 @@ export function Shell({ page, setPage, children }) {
         padding: t.space.lg, display:'flex', flexDirection:'column', gap: t.space.md,
         position:'sticky', top: 0, height: '100vh',
       }}>
-        <BrandBlock isAdmin={isAdmin} />
+        <BrandBlock isAdmin={isAdminView} />
         <UserBlock user={user} onLogout={logout} />
+        {isAdmin && <ViewAsSwitcher effectiveRole={effectiveRole} onSwitch={switchView} />}
         <nav style={{ display:'flex', flexDirection:'column', gap: 4, marginTop: 12 }}>
           {nav.map(item => (
             <NavItem key={item.key} item={item} active={page === item.key} onClick={() => setPage(item.key)} />
@@ -67,8 +76,9 @@ export function Shell({ page, setPage, children }) {
             width: 260, background: t.color.bgElevated, height:'100%', padding: t.space.lg,
             display:'flex', flexDirection:'column', gap: t.space.md,
           }}>
-            <BrandBlock isAdmin={isAdmin} />
+            <BrandBlock isAdmin={isAdminView} />
             <UserBlock user={user} onLogout={() => { logout(); setMobileOpen(false) }} />
+            {isAdmin && <ViewAsSwitcher effectiveRole={effectiveRole} onSwitch={switchView} />}
             {nav.map(item => (
               <NavItem key={item.key} item={item} active={page === item.key} onClick={() => { setPage(item.key); setMobileOpen(false) }} />
             ))}
@@ -126,6 +136,56 @@ function BrandBlock({ isAdmin }) {
         <div style={{ fontWeight: 800, letterSpacing: .5 }}>Holistic FIT</div>
         <div style={{ fontSize: 10, color: t.color.textDim, letterSpacing: 1 }}>{isAdmin ? 'ADMIN CONSOLE' : 'MEMBER APP'}</div>
       </div>
+    </div>
+  )
+}
+
+function ViewAsSwitcher({ effectiveRole, onSwitch }) {
+  const roles = [
+    { key: 'admin',  label: 'מנהל',    icon: '⚙️', color: t.color.gold },
+    { key: 'coach',  label: 'מאמן',   icon: '🧑‍🏫', color: t.color.info },
+    { key: 'member', label: 'מתאמן',  icon: '👤', color: t.color.success },
+  ]
+  const isViewingOther = effectiveRole !== 'admin'
+  return (
+    <div>
+      <div style={{
+        fontSize: 9, letterSpacing: 1.5, color: t.color.textDim,
+        fontFamily: 'Space Mono, monospace', marginBottom: 6, paddingRight: 4,
+      }}>
+        {isViewingOther ? '👁 צפייה כ־' : 'VIEW AS'}
+      </div>
+      <div style={{ display: 'flex', background: t.color.bgSoft, borderRadius: t.radius.md, padding: 3, gap: 2 }}>
+        {roles.map(r => {
+          const active = effectiveRole === r.key
+          return (
+            <button
+              key={r.key}
+              onClick={() => onSwitch(r.key)}
+              title={`צפה כ־${r.label}`}
+              style={{
+                flex: 1, padding: '6px 4px', border: 'none', cursor: 'pointer',
+                background: active ? r.color : 'transparent',
+                color: active ? '#0d0d14' : t.color.textDim,
+                fontWeight: 700, borderRadius: t.radius.sm, fontFamily: 'inherit', fontSize: 11,
+                transition: t.transition, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{r.icon}</span>
+              <span>{r.label}</span>
+            </button>
+          )
+        })}
+      </div>
+      {isViewingOther && (
+        <div style={{
+          marginTop: 6, padding: '4px 8px', background: t.color.goldGlow,
+          border: `1px solid ${t.color.gold}`, borderRadius: t.radius.sm,
+          fontSize: 10, color: t.color.gold, textAlign: 'center',
+        }}>
+          חזור למנהל ל-view רגיל
+        </div>
+      )}
     </div>
   )
 }

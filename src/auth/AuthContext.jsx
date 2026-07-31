@@ -17,6 +17,9 @@ function writeCoachList(list) { storage.set(COACH_LIST_KEY, list) }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => storage.get('user'))
+  // Admin-only "view as" - lets admin preview member/coach experience.
+  // Not persisted (session only) so it can't leak to other tabs/sessions.
+  const [viewAs, setViewAsState] = useState(null)
 
   // On mount, check URL for ?coach=email invite param → whitelist locally
   useEffect(() => {
@@ -64,7 +67,16 @@ export function AuthProvider({ children }) {
     return nextUser
   }
 
-  const logout = () => setUser(null)
+  const logout = () => { setUser(null); setViewAsState(null) }
+
+  // Only admin can set viewAs
+  const setViewAs = (role) => {
+    if (user?.role !== 'admin') return
+    setViewAsState(role === 'admin' ? null : role)
+  }
+
+  // The role the app should currently render as (respects viewAs)
+  const effectiveRole = (user?.role === 'admin' && viewAs) ? viewAs : user?.role
 
   // Admin-only: whitelist a coach email so they get coach access when they log in
   const inviteCoach = (email) => {
@@ -80,7 +92,10 @@ export function AuthProvider({ children }) {
   const listCoaches = () => readCoachList()
 
   return (
-    <AuthCtx.Provider value={{ user, login, logout, inviteCoach, revokeCoach, listCoaches }}>
+    <AuthCtx.Provider value={{
+      user, login, logout, inviteCoach, revokeCoach, listCoaches,
+      viewAs, setViewAs, effectiveRole,
+    }}>
       {children}
     </AuthCtx.Provider>
   )
