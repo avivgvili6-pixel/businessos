@@ -23,6 +23,26 @@
       select { appearance: none; -webkit-appearance: none; }
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 2px; }
+
+      /* Suppress Chrome/Safari autofill styling that overrides our dark inputs.
+         Without this, saved emails render on WHITE background with red hints
+         and a stray '{}' autofill glyph — which looked like a real error. */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px #1a1a24 inset !important;
+        -webkit-text-fill-color: #e8e3d8 !important;
+        caret-color: #c8a84b;
+        transition: background-color 5000s ease-in-out 0s !important;
+      }
+      /* Chrome on Android sometimes injects a data-list arrow / autofill icon
+         that renders as a small '{}' glyph. Hide it. */
+      input::-webkit-list-button,
+      input::-webkit-calendar-picker-indicator,
+      input::-webkit-inner-spin-button { display: none !important; opacity: 0; }
+      input::-webkit-contacts-auto-fill-button,
+      input::-webkit-credentials-auto-fill-button { visibility: hidden !important; display: none !important; pointer-events: none !important; position: absolute !important; right: 0; }
     </style>
   </head>
   <body>
