@@ -4,11 +4,13 @@ import { useApp } from '../../../store/AppStore'
 import { Card, Button, Badge, SectionHeader, EmptyState, ProgressBar, Modal, Input, Ring } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
 import { GoalBuilder } from './GoalBuilder'
+import { PlanBuilder } from './PlanBuilder'
 import { DIRECTIONS } from '../../../data/goals'
 
 export function Goals() {
   const { state, removeGoal, checkinGoal } = useApp()
   const [building, setBuilding] = useState(false)
+  const [buildingPlan, setBuildingPlan] = useState(false)
   const [checkinFor, setCheckinFor] = useState(null)
   const [checkinValue, setCheckinValue] = useState('')
   const [checkinNote, setCheckinNote] = useState('')
@@ -17,6 +19,9 @@ export function Goals() {
 
   if (building) {
     return <GoalBuilder onDone={() => setBuilding(false)} />
+  }
+  if (buildingPlan) {
+    return <PlanBuilder onDone={() => { setBuildingPlan(false); alert('🎉 התכנית ההוליסטית שלך נשמרה! עבור ל"אימונים" לראות את התכנית') }} onCancel={() => setBuildingPlan(false)} />
   }
 
   if (!active) {
@@ -149,6 +154,37 @@ export function Goals() {
           <SectionHeader title="⚠ המכשולים שהזהרת מהם" subtitle="שים לב אליהם בשבוע הקרוב" />
           <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
             {active.barriers.map(id => <Badge key={id} color={t.color.warning}>{id}</Badge>)}
+          </div>
+        </Card>
+      )}
+
+      {/* BIG bridge CTA - the "now what?" answer */}
+      {!state.plan && (
+        <Card style={{ padding: 24, background: `linear-gradient(135deg, ${t.color.goldGlow} 0%, ${t.color.bgElevated} 100%)`, border: `1px solid ${t.color.gold}` }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 48 }}>🚀</div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ fontWeight: 800, fontSize: t.font.xl, color: t.color.gold, marginBottom: 6 }}>
+                יש לך מטרה - עכשיו איך משיגים אותה?
+              </div>
+              <div style={{ color: t.color.textDim, fontSize: t.font.sm, lineHeight: 1.5 }}>
+                בואי נבנה יחד תכנית הוליסטית - אימונים + תזונה + מעטפת מנטלית - הכל מותאם אישית תוך 2 דקות
+              </div>
+            </div>
+            <Button size="lg" onClick={() => setBuildingPlan(true)}>בנה לי תכנית ✨</Button>
+          </div>
+        </Card>
+      )}
+
+      {state.plan && (
+        <Card style={{ padding: 16, background: `${t.color.success}10`, border: `1px solid ${t.color.success}` }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 28 }}>✅</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700 }}>יש לך תכנית פעילה: {state.plan.name}</div>
+              <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>עבור ל״אימונים״ כדי להתחיל</div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setBuildingPlan(true)}>בנה תכנית מחדש</Button>
           </div>
         </Card>
       )}

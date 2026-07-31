@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './store/AppStore'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { Shell } from './components/layout/Layout'
 import { InstallPrompt } from './components/layout/InstallPrompt'
+import { FloatingAssistant } from './components/assistant/FloatingAssistant'
 import { LoginScreen } from './modules/auth/LoginScreen'
 import { Onboarding } from './modules/member/onboarding/Onboarding'
 
@@ -86,6 +87,9 @@ function AppRouter() {
         {pages[validPage]}
       </Shell>
       <InstallPrompt />
+      {!isAdminView && (
+        <FloatingAssistant onOpenMentalCoach={() => setPage('mind')} />
+      )}
     </>
   )
 }
