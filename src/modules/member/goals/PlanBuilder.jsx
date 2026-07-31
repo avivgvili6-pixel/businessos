@@ -4,32 +4,19 @@ import { useApp } from '../../../store/AppStore'
 import { Card, Button, Badge } from '../../../components/ui/UI'
 import { programs, KEY_LIFTS, computeWeight } from '../../../data/programs'
 import { dietTemplates as DIET_TEMPLATES } from '../../../utils/calc'
+import { buildHybridPlan, STYLES } from '../../../utils/hybridPlan'
 
 // The Bridge: after user has a goal, build them a full holistic plan in
 // 3 clean steps. Keep it SIMPLE - big cards, few questions per step.
 // Order: Workouts → Nutrition → Mental (short) → Adopt everything
 
 const WORKOUT_STYLES = [
-  {
-    id: 'bodybuilding', icon: '💪', label: 'בודיבילדינג',
-    subtitle: 'מסת שריר, מראה חטוב, נפח גבוה',
-    programId: 'ppl_hypertrophy', color: '#c8a84b',
-  },
-  {
-    id: 'powerlifting', icon: '🏋️', label: 'כוח מירבי',
-    subtitle: 'סקוואט, בנץ, דדליפט - שיאים חדשים',
-    programId: 'wendler_531', color: '#e05a5a',
-  },
-  {
-    id: 'crossfit', icon: '🔥', label: 'CrossFit',
-    subtitle: 'MetCon, אינטנסיבי, מגוון',
-    programId: 'crossfit_wods', color: '#e0a05a',
-  },
-  {
-    id: 'bodyweight', icon: '🤸', label: 'משקל גוף',
-    subtitle: 'בבית, ללא ציוד, מתחילים',
-    programId: 'stronglifts_5x5', color: '#5ac889',
-  },
+  { id: 'bodybuilding', icon: '💪', label: 'בודיבילדינג', subtitle: 'מסת שריר, מראה חטוב, נפח גבוה', color: '#c8a84b' },
+  { id: 'powerlifting', icon: '🏋️', label: 'כוח מירבי', subtitle: 'סקוואט, בנץ׳, דדליפט - שיאים', color: '#e05a5a' },
+  { id: 'crossfit', icon: '🔥', label: 'CrossFit', subtitle: 'MetCon, אינטנסיבי, מגוון', color: '#e0a05a' },
+  { id: 'bodyweight', icon: '🤸', label: 'משקל גוף', subtitle: 'בבית, ללא ציוד', color: '#5ac889' },
+  { id: 'yoga', icon: '🧘', label: 'יוגה', subtitle: 'גמישות, איזון, שקט מנטלי', color: '#a05ae0' },
+  { id: 'endurance', icon: '🏃', label: 'סבולת', subtitle: 'ריצה, אירובי, בריאות לב', color: '#5aa0ff' },
 ]
 
 const DAYS_OPTIONS = [
@@ -90,7 +77,8 @@ export function PlanBuilder({ onDone, onCancel }) {
   const [step, setStep] = useState(0) // 0..3 (3 steps + review)
   const [error, setError] = useState(null)
   const [choices, setChoices] = useState({
-    workoutStyle: null, workoutDays: null, location: null,
+    workoutStyles: [],  // multi-select - order matters (first = primary)
+    workoutDays: null, location: null,
     dietStyle: null, meals: null, cooking: null,
     blockers: [], strengths: [],
   })
@@ -108,35 +96,14 @@ export function PlanBuilder({ onDone, onCancel }) {
   const goBack = () => { setError(null); setStep(s => Math.max(0, s - 1)) }
 
   const adopt = () => {
-    // Adopt workout plan
-    const chosenStyle = WORKOUT_STYLES.find(s => s.id === choices.workoutStyle)
-    if (chosenStyle) {
-      const prog = programs[chosenStyle.programId]
-      if (prog) {
-        setPlan({
-          name: prog.label,
-          programId: prog.id,
-          split: prog.schema,
-          days: prog.daysPerWeek,
-          weeks: prog.duration,
-          currentWeek: 1,
-          sessions: prog.sessions.map(s => ({
-            name: s.name,
-            wodType: s.wodType,
-            prescription: s.prescription,
-            exercises: (s.blocks || []).map(b => ({
-              id: b.lift || b.name,
-              name: b.lift ? KEY_LIFTS[b.lift]?.label : b.name,
-              sets: b.sets || 1,
-              reps: b.reps || 8,
-              intensity: b.intensity,
-              format: b.format,
-              prescription: b.prescription,
-            })),
-          })),
-          createdAt: new Date().toISOString(),
-        })
-      }
+    // Build hybrid plan from picked styles (1-3)
+    if (choices.workoutStyles?.length) {
+      const plan = buildHybridPlan({
+        styleIds: choices.workoutStyles,
+        days: choices.workoutDays || 3,
+        weeks: 12,
+      })
+      if (plan) setPlan({ ...plan, currentWeek: 1, createdAt: new Date().toISOString() })
     }
     // Adopt diet
     if (choices.dietStyle) updateProfile({ dietKey: choices.dietStyle })
@@ -217,7 +184,7 @@ export function PlanBuilder({ onDone, onCancel }) {
 function missingFields(step, c) {
   if (step === 0) {
     const miss = []
-    if (!c.workoutStyle) miss.push('סגנון אימון')
+    if (!c.workoutStyles?.length) miss.push('לפחות סגנון אימון אחד')
     if (!c.workoutDays) miss.push('כמה ימים בשבוע')
     if (!c.location) miss.push('איפה מתאמנים')
     return miss
@@ -238,17 +205,62 @@ function missingFields(step, c) {
   return []
 }
 
-// ─── Step 1: Workout ────────────────────────
+// ─── Step 1: Workout (multi-select styles) ────────────────────────
 function StepWorkout({ choices, set }) {
+  const toggleStyle = (id) => {
+    const cur = choices.workoutStyles || []
+    if (cur.includes(id)) {
+      set({ workoutStyles: cur.filter(s => s !== id) })
+    } else if (cur.length < 3) {
+      set({ workoutStyles: [...cur, id] })
+    }
+  }
+  const styles = choices.workoutStyles || []
+
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      <QuestionBlock title="איזה סגנון אימון מתאים לך?">
+      <QuestionBlock
+        title="איזה סגנון אימון מתאים לך?"
+        subtitle="אפשר לבחור עד 3 - הראשון שתבחר יהיה הסגנון הראשי (יותר ימי אימון)"
+      >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-          {WORKOUT_STYLES.map(s => (
-            <BigCard key={s.id} active={choices.workoutStyle === s.id} onClick={() => set({ workoutStyle: s.id })}
-              icon={s.icon} label={s.label} sub={s.subtitle} accent={s.color} />
-          ))}
+          {WORKOUT_STYLES.map(s => {
+            const idx = styles.indexOf(s.id)
+            const active = idx >= 0
+            const isPrimary = idx === 0
+            return (
+              <div key={s.id} onClick={() => toggleStyle(s.id)} style={{
+                padding: 16, borderRadius: t.radius.md, cursor: 'pointer',
+                background: active ? (isPrimary ? t.color.goldGlow : `${s.color}22`) : t.color.bgSoft,
+                border: `2px solid ${active ? (isPrimary ? t.color.gold : s.color) : t.color.border}`,
+                position: 'relative',
+                textAlign: 'center', transition: t.transition,
+              }}>
+                {active && (
+                  <div style={{
+                    position: 'absolute', top: 6, right: 6,
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: isPrimary ? t.color.gold : s.color,
+                    color: '#0d0d14', display: 'grid', placeItems: 'center',
+                    fontWeight: 900, fontSize: 12,
+                  }}>{isPrimary ? '★' : idx + 1}</div>
+                )}
+                <div style={{ fontSize: 32, marginBottom: 6 }}>{s.icon}</div>
+                <div style={{ fontWeight: 800, fontSize: t.font.md, marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.4 }}>{s.subtitle}</div>
+              </div>
+            )
+          })}
         </div>
+        {styles.length > 1 && (
+          <div style={{
+            marginTop: 12, padding: 12, background: `${t.color.info}15`,
+            border: `1px solid ${t.color.info}`, borderRadius: t.radius.sm,
+            fontSize: t.font.xs, color: t.color.info, textAlign: 'center', lineHeight: 1.5,
+          }}>
+            🔀 <b>תכנית משולבת ({styles.length} סגנונות)</b> — נחלק את הימים חכם ונשלב בין הסגנונות עם ימי מנוחה מתאימים
+          </div>
+        )}
       </QuestionBlock>
 
       <QuestionBlock title="כמה ימים בשבוע ריאלי לך?">
@@ -339,8 +351,12 @@ function StepMental({ choices, set }) {
 
 // ─── Step 4: Review + Adopt ────────────────────────
 function StepReview({ choices }) {
-  const workoutStyle = WORKOUT_STYLES.find(s => s.id === choices.workoutStyle)
-  const prog = workoutStyle && programs[workoutStyle.programId]
+  const pickedStyles = (choices.workoutStyles || []).map(id => WORKOUT_STYLES.find(s => s.id === id)).filter(Boolean)
+  const primaryStyle = pickedStyles[0]
+  const isHybrid = pickedStyles.length > 1
+  const planName = isHybrid
+    ? pickedStyles.map(s => s.label).join(' + ')
+    : primaryStyle?.label || '—'
   const diet = DIET_STYLES.find(o => o.v === choices.dietStyle)
 
   return (
@@ -355,9 +371,17 @@ function StepReview({ choices }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }} className="hfos-plan-grid">
         <SummaryCard color={t.color.gold} icon="💪" title="אימונים">
-          <div style={{ fontWeight: 700, fontSize: t.font.md }}>{prog?.label || workoutStyle?.label}</div>
+          <div style={{ fontWeight: 700, fontSize: t.font.md }}>{planName}</div>
           <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 4 }}>{choices.workoutDays} ימים בשבוע · {locationLabel(choices.location)}</div>
-          <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 6, lineHeight: 1.5 }}>{prog?.description?.slice(0, 100)}...</div>
+          {isHybrid && (
+            <div style={{ marginTop: 6, display:'flex', gap:4, flexWrap:'wrap' }}>
+              {pickedStyles.map((s,i) => (
+                <span key={s.id} style={{ fontSize: 11, background: i===0 ? t.color.gold : t.color.bgSoft, color: i===0 ? '#0d0d14' : t.color.text, padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                  {i===0 && '★ '}{s.icon} {s.label}
+                </span>
+              ))}
+            </div>
+          )}
         </SummaryCard>
 
         <SummaryCard color={t.color.info} icon="🥗" title="תזונה">

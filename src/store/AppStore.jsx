@@ -21,6 +21,7 @@ const initialState = {
     oneRMs: {}, // { squat: 100, bench: 80, deadlift: 140, ohp: 55, ... }
   },
   plan: null,               // active workout plan
+  plansArchive: [],         // [{id, name, programId, startedAt, archivedAt, weeksCompleted, totalWeeks, completionPct, snapshot}]
   workoutLogs: [],          // {date, sessionName, exercises:[{id,name,sets:[{w,r,rpe}]}] }
   mealLogs: {},             // { [dateKey]: [{foodId, grams}] }
   moodCheckins: [],         // {date, mood, energy, stress, sleepHours, note}
@@ -49,7 +50,55 @@ function reducer(state, action) {
     case 'SET_ONBOARDED':  return { ...state, onboarded: true, profile: { ...state.profile, ...action.profile } }
     case 'UPDATE_PROFILE': return { ...state, profile: { ...state.profile, ...action.patch } }
     case 'SET_1RM':        return { ...state, profile: { ...state.profile, oneRMs: { ...(state.profile.oneRMs || {}), [action.lift]: action.value } } }
-    case 'SET_PLAN':       return { ...state, plan: { ...action.plan, startedAt: action.plan?.startedAt || action.plan?.createdAt || new Date().toISOString(), difficultyByWeek: action.plan?.difficultyByWeek || {} } }
+    case 'SET_PLAN': {
+      const now = new Date().toISOString()
+      const newPlan = { ...action.plan, id: action.plan?.id || 'plan_' + Date.now(), startedAt: action.plan?.startedAt || action.plan?.createdAt || now, difficultyByWeek: action.plan?.difficultyByWeek || {} }
+      // Archive the existing plan (if any) with a snapshot
+      let archive = state.plansArchive || []
+      if (state.plan) {
+        const logsCount = (state.workoutLogs || []).filter(l => l.planId === state.plan.id || l.planId === state.plan.programId).length
+        const expectedTotal = (state.plan.days || 3) * (state.plan.weeks || 12)
+        const pct = expectedTotal > 0 ? Math.round((logsCount / expectedTotal) * 100) : 0
+        archive = [
+          {
+            id: state.plan.id || state.plan.programId,
+            name: state.plan.name,
+            programId: state.plan.programId,
+            style: state.plan.style,
+            startedAt: state.plan.startedAt,
+            archivedAt: now,
+            weeksScheduled: state.plan.weeks,
+            sessionsDone: logsCount,
+            sessionsExpected: expectedTotal,
+            completionPct: pct,
+            snapshot: state.plan,
+          },
+          ...archive,
+        ].slice(0, 20)  // keep last 20 plans
+      }
+      return { ...state, plan: newPlan, plansArchive: archive }
+    }
+    case 'RESUME_PLAN': {
+      // Bring an archived plan back to active - archive current if exists
+      const target = (state.plansArchive || []).find(p => p.id === action.id)
+      if (!target?.snapshot) return state
+      let archive = state.plansArchive.filter(p => p.id !== action.id)
+      const now = new Date().toISOString()
+      if (state.plan) {
+        const logsCount = (state.workoutLogs || []).filter(l => l.planId === state.plan.id || l.planId === state.plan.programId).length
+        const expectedTotal = (state.plan.days || 3) * (state.plan.weeks || 12)
+        const pct = expectedTotal > 0 ? Math.round((logsCount / expectedTotal) * 100) : 0
+        archive = [{
+          id: state.plan.id || state.plan.programId, name: state.plan.name, programId: state.plan.programId,
+          style: state.plan.style, startedAt: state.plan.startedAt, archivedAt: now,
+          weeksScheduled: state.plan.weeks, sessionsDone: logsCount, sessionsExpected: expectedTotal,
+          completionPct: pct, snapshot: state.plan,
+        }, ...archive].slice(0, 20)
+      }
+      return { ...state, plan: { ...target.snapshot, startedAt: now }, plansArchive: archive }
+    }
+    case 'REMOVE_ARCHIVED_PLAN':
+      return { ...state, plansArchive: (state.plansArchive || []).filter(p => p.id !== action.id) }
     case 'LOG_WORKOUT': {
       // Auto-tag with planId and planWeek so weekly-progression util can group by week
       let log = action.log
@@ -149,6 +198,8 @@ export function AppProvider({ children }) {
     },
     set1RM: (lift, value) => dispatch({ type:'SET_1RM', lift, value: +value || 0 }),
     setPlan: (plan) => dispatch({ type:'SET_PLAN', plan }),
+    resumePlan: (id) => dispatch({ type:'RESUME_PLAN', id }),
+    removeArchivedPlan: (id) => dispatch({ type:'REMOVE_ARCHIVED_PLAN', id }),
     setWeekDifficulty: (week, difficulty) => dispatch({ type:'SET_WEEK_DIFFICULTY', week, difficulty }),
     startNewCycle: () => dispatch({ type:'START_NEW_CYCLE' }),
     logWorkout: (log) => dispatch({ type:'LOG_WORKOUT', log }),

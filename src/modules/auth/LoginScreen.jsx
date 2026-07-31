@@ -4,25 +4,32 @@ import { useAuth, ADMIN_EMAILS } from '../../auth/AuthContext'
 import { Button, Card, Input, Badge } from '../../components/ui/UI'
 import { storage } from '../../utils/storage'
 
-// Login is 2-mode:
-//   1. Enter email + name → login (role auto-detected: admin/coach/member)
-//   2. If email is not admin/coach whitelist → member; offer "אני מאמן" flow
-//      that submits a request (stored locally as pending) - admin then invites
-//      via the admin panel using their real email.
+// 3-step login flow:
+//   1. chooser: 'existing' or 'new'
+//   2. login-form: email (+ name if new) → send magic link
+//   3. link-sent: confirmation
+// Also: coach-request / coach-pending side branch.
+// Remembers last email in localStorage so returning users get pre-filled.
+
+const LAST_EMAIL_KEY = 'hfos:last_email'
+const LAST_NAME_KEY = 'hfos:last_name'
 
 export function LoginScreen() {
-  const { login, supabaseEnabled, loading } = useAuth()
-  const [step, setStep] = useState('login') // login | link-sent | coach-request | coach-pending
-  const [email, setEmail] = useState('')
-  const [name, setName] = useState('')
+  const { login, supabaseEnabled } = useAuth()
+
+  // Auto-pick 'existing' if we have a remembered email
+  const rememberedEmail = storage.get(LAST_EMAIL_KEY) || ''
+  const rememberedName = storage.get(LAST_NAME_KEY) || ''
+  const [step, setStep] = useState(rememberedEmail ? 'existing' : 'chooser')
+  const [email, setEmail] = useState(rememberedEmail)
+  const [name, setName] = useState(rememberedName)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // Coach request form
+  // Coach request state
   const [specialty, setSpecialty] = useState('')
   const [experience, setExperience] = useState('')
   const [phone, setPhone] = useState('')
-  const [requestSent, setRequestSent] = useState(false)
 
   const normalizedEmail = (email || '').trim().toLowerCase()
   const emailIsAdmin = ADMIN_EMAILS.includes(normalizedEmail)
@@ -32,11 +39,16 @@ export function LoginScreen() {
     e?.preventDefault?.()
     setError(''); setBusy(true)
     try {
-      const result = await login(email, name)
+      const result = await login(email, name || email.split('@')[0])
+      // Remember for next time
+      if (normalizedEmail) storage.set(LAST_EMAIL_KEY, normalizedEmail)
+      if (name) storage.set(LAST_NAME_KEY, name)
       if (result?.magicLinkSent) setStep('link-sent')
+    } catch (err) {
+      setError(err.message || 'שגיאה בכניסה')
+    } finally {
+      setBusy(false)
     }
-    catch (err) { setError(err.message || 'שגיאה בכניסה') }
-    finally { setBusy(false) }
   }
 
   const submitCoachRequest = () => {
@@ -53,8 +65,13 @@ export function LoginScreen() {
     if (!requests.find(r => r.email === normalizedEmail)) {
       storage.set('coach-requests', [req, ...requests])
     }
-    setRequestSent(true)
     setStep('coach-pending')
+  }
+
+  const forgetMe = () => {
+    storage.remove(LAST_EMAIL_KEY)
+    storage.remove(LAST_NAME_KEY)
+    setEmail(''); setName(''); setStep('chooser')
   }
 
   return (
@@ -71,8 +88,9 @@ export function LoginScreen() {
         filter: 'blur(60px)', pointerEvents: 'none',
       }} />
 
-      <Card style={{ maxWidth: 480, width: '100%', padding: 40, position: 'relative', zIndex: 1 }} glow>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+      <Card style={{ maxWidth: 480, width: '100%', padding: 32, position: 'relative', zIndex: 1 }} glow>
+        {/* Logo + header */}
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{
             width: 60, height: 60, borderRadius: 14, background: t.color.gold,
             color: '#0d0d14', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -81,14 +99,111 @@ export function LoginScreen() {
           <div style={{ fontSize: 11, letterSpacing: 2, color: t.color.gold, fontFamily: 'Space Mono, monospace', marginBottom: 6 }}>
             HOLISTIC FITNESS OS
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.02 }}>
-            {step === 'login' && 'ברוכים הבאים'}
+          <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.02 }}>
+            {step === 'chooser' && 'ברוכים הבאים'}
+            {step === 'existing' && 'שמח לראות אותך שוב 👋'}
+            {step === 'new' && 'בואי נכיר ✨'}
             {step === 'link-sent' && 'קישור נשלח למייל'}
             {step === 'coach-request' && 'הרשמה כמאמן'}
             {step === 'coach-pending' && 'הבקשה נשלחה'}
           </h1>
         </div>
 
+        {/* CHOOSER: existing vs new */}
+        {step === 'chooser' && (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <button onClick={() => setStep('existing')} style={choiceCard(t, false)}>
+              <div style={{ fontSize: 40 }}>👋</div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2 }}>משתמש קיים</div>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>יש לי כבר חשבון — שלח קישור למייל</div>
+              </div>
+            </button>
+
+            <button onClick={() => setStep('new')} style={choiceCard(t, true)}>
+              <div style={{ fontSize: 40 }}>✨</div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2, color: t.color.gold }}>משתמש חדש</div>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>פעם ראשונה — אני נרשם/ת</div>
+              </div>
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <button onClick={() => setStep('coach-request')} style={{
+                background: 'none', border: 'none', color: t.color.gold, cursor: 'pointer',
+                fontSize: t.font.sm, textDecoration: 'underline', fontFamily: 'inherit',
+              }}>אני מאמן/ת — בקשת הצטרפות ←</button>
+            </div>
+          </div>
+        )}
+
+        {/* EXISTING USER: email only */}
+        {step === 'existing' && (
+          <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
+            <Input
+              label="מייל"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              autoFocus
+              required
+              error={error}
+            />
+
+            {normalizedEmail && (
+              <div style={{
+                padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
+                background: emailIsAdmin ? t.color.goldGlow : emailIsCoach ? '#5a9be015' : t.color.bgSoft,
+                border: `1px solid ${emailIsAdmin ? t.color.gold : emailIsCoach ? t.color.info : t.color.border}`,
+                color: emailIsAdmin ? t.color.gold : emailIsCoach ? t.color.info : t.color.textDim,
+              }}>
+                {emailIsAdmin && '🎯 מייל של מנהל'}
+                {!emailIsAdmin && emailIsCoach && '👨‍🏫 מייל של מאמן מאושר'}
+                {!emailIsAdmin && !emailIsCoach && '👤 מייל של מתאמן'}
+              </div>
+            )}
+
+            <Button type="submit" size="lg" disabled={busy || !email} style={{ marginTop: 4 }}>
+              {busy ? 'שולח...' : '✉️ שלח לי קישור כניסה'}
+            </Button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              <button type="button" onClick={() => setStep('chooser')} style={ghostBtn(t)}>→ חזור</button>
+              {rememberedEmail && (
+                <button type="button" onClick={forgetMe} style={ghostBtn(t)}>שכח אותי</button>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* NEW USER: name + email */}
+        {step === 'new' && (
+          <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
+            <Input label="איך קוראים לך?" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus required />
+            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required error={error} />
+
+            {normalizedEmail && (
+              <div style={{
+                padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
+                background: emailIsAdmin ? t.color.goldGlow : t.color.bgSoft,
+                border: `1px solid ${emailIsAdmin ? t.color.gold : t.color.border}`,
+                color: emailIsAdmin ? t.color.gold : t.color.textDim,
+              }}>
+                {emailIsAdmin ? '🎯 מייל של מנהל - תיכנס לקונסולת אדמין' : '👤 תיכנס כמתאמן'}
+              </div>
+            )}
+
+            <Button type="submit" size="lg" disabled={busy || !email || !name} style={{ marginTop: 4 }}>
+              {busy ? 'שולח...' : '✨ צור לי חשבון'}
+            </Button>
+
+            <button type="button" onClick={() => setStep('chooser')} style={{ ...ghostBtn(t), textAlign: 'right', margin: '4px 0 0' }}>→ חזור</button>
+          </form>
+        )}
+
+        {/* LINK SENT confirmation */}
         {step === 'link-sent' && (
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <div style={{
@@ -101,50 +216,15 @@ export function LoginScreen() {
               <b style={{ color: t.color.gold }}>{email}</b>
             </div>
             <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.7, marginBottom: 16 }}>
-              📧 פתח את המייל ולחץ על הכפתור "כניסה" — יעביר אותך אוטומטית לאפליקציה.
-              <br />
-              <br />
-              💡 אם לא רואה — בדוק בספאם/קידום מכירות.
-              <br />
-              הקישור פעיל שעה אחת.
+              📧 פתח את המייל ולחץ "כניסה" — יעביר אותך אוטומטית לאפליקציה.
+              <br /><br />
+              💡 לא רואה? בדוק בספאם/קידום מכירות. הקישור פעיל שעה.
             </div>
-            <Button variant="ghost" onClick={() => { setStep('login'); setEmail(''); setError('') }}>← מייל אחר</Button>
+            <Button variant="ghost" onClick={() => { setStep('chooser'); setError('') }}>← מייל אחר</Button>
           </div>
         )}
 
-        {step === 'login' && (
-          <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-            <Input label="שם" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
-            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required error={error} />
-
-            {normalizedEmail && (
-              <div style={{
-                padding: 12, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
-                background: emailIsAdmin ? t.color.goldGlow : emailIsCoach ? '#5a9be015' : t.color.bgSoft,
-                border: `1px solid ${emailIsAdmin ? t.color.gold : emailIsCoach ? t.color.info : t.color.border}`,
-                color: emailIsAdmin ? t.color.gold : emailIsCoach ? t.color.info : t.color.textDim,
-              }}>
-                {emailIsAdmin && '🎯 מייל של מנהל - תיכנס לקונסולת אדמין'}
-                {!emailIsAdmin && emailIsCoach && '👨‍🏫 מייל של מאמן מאושר - תיכנס לתצוגת מאמן'}
-                {!emailIsAdmin && !emailIsCoach && '👤 תיכנס כמתאמן - חוויית האפליקציה המלאה'}
-              </div>
-            )}
-
-            <Button type="submit" size="lg" disabled={busy || !email || !name} style={{ marginTop: 4 }}>
-              {busy
-                ? (supabaseEnabled ? 'שולח קישור...' : 'נכנס...')
-                : (supabaseEnabled ? '✉️ שלח לי קישור כניסה' : 'היכנס לפיילוט')}
-            </Button>
-
-            <div style={{ textAlign: 'center', marginTop: 8 }}>
-              <button type="button" onClick={() => setStep('coach-request')} style={{
-                background: 'none', border: 'none', color: t.color.gold, cursor: 'pointer',
-                fontSize: t.font.sm, textDecoration: 'underline', fontFamily: 'inherit',
-              }}>אני מאמן - רוצה להירשם ולקבל אישור ←</button>
-            </div>
-          </form>
-        )}
-
+        {/* COACH REQUEST */}
         {step === 'coach-request' && (
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ color: t.color.textDim, fontSize: t.font.sm, textAlign: 'center', marginBottom: 4 }}>
@@ -157,7 +237,7 @@ export function LoginScreen() {
             <Input label="שנות ניסיון" type="number" value={experience} onChange={e => setExperience(e.target.value)} placeholder="5" />
             {error && <div style={{ color: t.color.danger, fontSize: t.font.xs, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 10 }}>
-              <Button variant="ghost" onClick={() => setStep('login')} style={{ flex: 1 }}>→ חזור</Button>
+              <Button variant="ghost" onClick={() => setStep('chooser')} style={{ flex: 1 }}>→ חזור</Button>
               <Button onClick={submitCoachRequest} style={{ flex: 2 }}>שלח בקשה</Button>
             </div>
           </div>
@@ -178,9 +258,8 @@ export function LoginScreen() {
               📧 <b>{email}</b><br />
               🎯 {specialty}<br />
               {phone && <>📱 {phone}<br /></>}
-              המנהל יראה את הבקשה בקונסולת האדמין ויאשר.
             </div>
-            <Button variant="outline" onClick={() => setStep('login')}>חזור למסך הכניסה</Button>
+            <Button variant="outline" onClick={() => setStep('chooser')}>חזור למסך הכניסה</Button>
           </div>
         )}
 
@@ -195,4 +274,23 @@ export function LoginScreen() {
       </Card>
     </div>
   )
+}
+
+function choiceCard(t, gold) {
+  return {
+    display: 'flex', gap: 14, alignItems: 'center', textAlign: 'right',
+    padding: 20,
+    background: gold ? t.color.goldGlow : t.color.bgSoft,
+    border: `1px solid ${gold ? t.color.gold : t.color.border}`,
+    borderRadius: t.radius.md,
+    cursor: 'pointer', fontFamily: 'inherit',
+    color: t.color.text, transition: 'transform .15s',
+  }
+}
+function ghostBtn(t) {
+  return {
+    background: 'none', border: 'none', color: t.color.textDim,
+    fontSize: t.font.xs, cursor: 'pointer', fontFamily: 'inherit',
+    textDecoration: 'underline',
+  }
 }

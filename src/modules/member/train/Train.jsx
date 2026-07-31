@@ -12,6 +12,8 @@ import { ExerciseGuideButton } from './ExerciseGuide'
 import { workoutEvent, googleCalendarUrl, downloadICS } from '../../../utils/calendar'
 import { distributeWeek, weekDates, nextSundayOf } from '../../../utils/weekSchedule'
 import { WorkoutComplete } from '../../../components/celebration/WorkoutComplete'
+import { adjustmentFor, applyDemographicToExercise, adjustmentBadge, RESEARCH_REFS } from '../../../utils/demographicAdjustment'
+import { PlanBuilder } from '../goals/PlanBuilder'
 import {
   DIFFICULTY_LEVELS, DIFFICULTY_LABELS,
   detectStyle, currentWeekOf, weekCompletion, isPlanCycleComplete,
@@ -43,12 +45,17 @@ export function Train() {
 }
 
 function MyPlan() {
-  const { state, logWorkout, setWeekDifficulty, startNewCycle } = useApp()
+  const { state, logWorkout, setWeekDifficulty, startNewCycle, resumePlan, removeArchivedPlan } = useApp()
   const [session, setSession] = useState(null)
   const [celebration, setCelebration] = useState(null)
+  const [buildingPlan, setBuildingPlan] = useState(false)
+  const [showResearch, setShowResearch] = useState(false)
   const plan = state.plan
+  const archive = state.plansArchive || []
+  const demo = adjustmentFor({ sex: state.profile?.sex, age: state.profile?.age })
 
-  if (!plan) return <EmptyState icon="🏋️" title="עדיין אין תכנית פעילה" subtitle="בנה תכנית מותאמת לפי המטרה שלך במחולל התכניות" />
+  // Empty state with CTA + archive if exists
+  if (!plan) return <EmptyPlanScreen archive={archive} onBuildPlan={() => setBuildingPlan(true)} onResume={resumePlan} onRemove={removeArchivedPlan} building={buildingPlan} setBuilding={setBuildingPlan} />
 
   const style = detectStyle(plan)
   const currentWeek = currentWeekOf(plan, state.workoutLogs)
@@ -57,8 +64,19 @@ function MyPlan() {
   const difficulty = plan.difficultyByWeek?.[currentWeek] || 'medium'
   const profile = difficultyProfile(style, difficulty)
 
-  // Apply difficulty to each session for display
-  const displaySessions = plan.sessions.map(s => applyDifficultyToSession(s, style, difficulty, currentWeek))
+  // Apply BOTH difficulty AND demographic adjustment
+  const displaySessions = plan.sessions.map(s => {
+    const withDiff = applyDifficultyToSession(s, style, difficulty, currentWeek)
+    return {
+      ...withDiff,
+      exercises: (withDiff.exercises || []).map(e => applyDemographicToExercise(e, demo)),
+    }
+  })
+
+  // Inline plan builder replaces the whole view while active
+  if (buildingPlan) {
+    return <PlanBuilder onDone={() => setBuildingPlan(false)} onCancel={() => setBuildingPlan(false)} />
+  }
 
   return (
     <div style={{ display:'grid', gap: 16 }}>
@@ -87,7 +105,85 @@ function MyPlan() {
         </Card>
       )}
 
+      {/* Demographic adjustment badge */}
+      {demo && (state.profile?.sex || state.profile?.age) && (
+        <Card style={{ padding: 12, background: `${t.color.info}12`, border: `1px solid ${t.color.info}` }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 22 }}>🧬</span>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: t.font.sm, fontWeight: 700, color: t.color.info }}>מותאם לך: {adjustmentBadge(demo)}</div>
+              <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>{demo.focusHint}</div>
+              {demo.caution && <div style={{ fontSize: t.font.xs, color: t.color.warning, marginTop: 4 }}>⚠️ {demo.caution}</div>}
+              {demo.specialNotes.map((n, i) => <div key={i} style={{ fontSize: t.font.xs, color: t.color.gold, marginTop: 4 }}>{n.note}</div>)}
+            </div>
+            <button onClick={() => setShowResearch(true)} style={{
+              background: 'transparent', border: `1px solid ${t.color.info}`, color: t.color.info,
+              padding: '4px 10px', borderRadius: 12, cursor: 'pointer', fontSize: t.font.xs, fontFamily: 'inherit',
+            }}>❓ מקורות</button>
+          </div>
+        </Card>
+      )}
+
       <WeeklySchedule plan={{ ...plan, sessions: displaySessions }} onOpenSession={setSession} />
+
+      {/* Plans archive */}
+      {archive.length > 0 && (
+        <Card>
+          <SectionHeader title="התכניות הקודמות שלך" subtitle={`${archive.length} תכניות בארכיון`} />
+          <div style={{ display: 'grid', gap: 8 }}>
+            {archive.map(p => (
+              <div key={p.id} style={{
+                display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+                padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
+              }}>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ fontWeight: 700 }}>{p.name}</div>
+                  <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
+                    {p.sessionsDone}/{p.sessionsExpected} אימונים · <b style={{ color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning }}>{p.completionPct}%</b> · הסתיים {new Date(p.archivedAt).toLocaleDateString('he-IL')}
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { if (confirm('להחזיר את התכנית הזאת? התכנית הנוכחית תעבור לארכיון')) resumePlan(p.id) }}>🔄 חזור לתכנית</Button>
+                <button onClick={() => { if (confirm('למחוק לצמיתות?')) removeArchivedPlan(p.id) }} style={{
+                  background: 'transparent', border: 'none', color: t.color.textDim, cursor: 'pointer', fontSize: 18,
+                }}>🗑️</button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Build another plan */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <Button variant="outline" onClick={() => setBuildingPlan(true)}>✨ בנה תכנית חדשה (הנוכחית תעבור לארכיון)</Button>
+      </div>
+
+      {/* Research modal */}
+      {showResearch && (
+        <div onClick={() => setShowResearch(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 1000,
+          display: 'grid', placeItems: 'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            maxWidth: 560, width: '100%', maxHeight: '80vh', overflow: 'auto',
+            background: t.color.bgElevated, borderRadius: t.radius.lg, padding: 24, direction: 'rtl',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h2 style={{ fontSize: t.font.xl, fontWeight: 800 }}>🔬 מחקרים שההתאמה מבוססת עליהם</h2>
+              <button onClick={() => setShowResearch(false)} style={{
+                background: t.color.bgSoft, border: 'none', color: t.color.text,
+                width: 32, height: 32, borderRadius: '50%', cursor: 'pointer',
+              }}>✕</button>
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {RESEARCH_REFS.map(r => (
+                <div key={r.id} style={{ padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, lineHeight: 1.5 }}>
+                  📄 {r.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <SessionRunner session={session} onClose={() => setSession(null)} onFinish={(log) => {
         logWorkout({ ...log, date: new Date().toISOString() })
@@ -729,6 +825,56 @@ function History() {
           ))}
         </div>
       </Card>
+    </div>
+  )
+}
+
+// ─── Empty plan screen with CTA + archive display ────────────
+function EmptyPlanScreen({ archive, onBuildPlan, onResume, onRemove, building, setBuilding }) {
+  if (building) return <PlanBuilder onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <Card style={{ padding: 32, textAlign: 'center', background: `linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -30, left: -30, width: 200, height: 200, background: t.color.goldGlow, borderRadius: '50%', filter: 'blur(50px)' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 64, marginBottom: 12 }}>🏋️</div>
+          <h1 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 8 }}>
+            עדיין אין לך תכנית פעילה
+          </h1>
+          <p style={{ color: t.color.textDim, fontSize: t.font.md, lineHeight: 1.6, maxWidth: 460, margin: '0 auto 24px' }}>
+            בחר סגנון (או משלב), כמות ימים, וקבל תכנית מדעית מותאמת אליך תוך 2 דקות.
+          </p>
+          <Button size="lg" onClick={onBuildPlan} icon="✨">בנה לי תכנית עכשיו</Button>
+        </div>
+      </Card>
+
+      {archive.length > 0 && (
+        <Card>
+          <SectionHeader
+            title="התכניות הקודמות שלך"
+            subtitle="לחץ 'חזור לתכנית' כדי להמשיך מאחת מהן"
+          />
+          <div style={{ display: 'grid', gap: 8 }}>
+            {archive.map(p => (
+              <div key={p.id} style={{
+                display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+                padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
+              }}>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ fontWeight: 700 }}>{p.name}</div>
+                  <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
+                    {p.sessionsDone}/{p.sessionsExpected} אימונים · <b style={{ color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning }}>{p.completionPct}%</b>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => onResume(p.id)}>🔄 חזור</Button>
+                <button onClick={() => { if (confirm('למחוק לצמיתות?')) onRemove(p.id) }} style={{
+                  background: 'transparent', border: 'none', color: t.color.textDim, cursor: 'pointer', fontSize: 18,
+                }}>🗑️</button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   )
 }
