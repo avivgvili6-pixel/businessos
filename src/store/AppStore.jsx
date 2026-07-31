@@ -35,6 +35,7 @@ const initialState = {
   measurements: [],         // {date, weight, bodyFat?, waist?, chest?, hips?, arms?, thighs?, note?}
   progressPhotos: [],       // {id, date, dataUrl, angle: 'front'|'side'|'back', note?}
   personalRecords: [],      // {id, exercise, weight, reps, date, note?}
+  goals: [],                // {id, title, kind, metric, deadlineWeeks, why, barriers, weeklyActions, checkins, status}
   lastActiveDate: todayKey(),
 }
 
@@ -78,6 +79,9 @@ function reducer(state, action) {
     case 'REMOVE_PROGRESS_PHOTO': return { ...state, progressPhotos: state.progressPhotos.filter(p => p.id !== action.id) }
     case 'ADD_PR':         return { ...state, personalRecords: [action.pr, ...state.personalRecords] }
     case 'REMOVE_PR':      return { ...state, personalRecords: state.personalRecords.filter(p => p.id !== action.id) }
+    case 'SET_GOAL':       return { ...state, goals: [action.goal, ...(state.goals || []).filter(g => g.id !== action.goal.id && g.status === 'active').map(g => ({ ...g, status: 'archived' })), ...(state.goals || []).filter(g => g.status !== 'active')] }
+    case 'REMOVE_GOAL':    return { ...state, goals: (state.goals || []).filter(g => g.id !== action.id) }
+    case 'CHECKIN_GOAL':   return { ...state, goals: (state.goals || []).map(g => g.id === action.goalId ? { ...g, checkins: [{ date: new Date().toISOString(), value: action.value, note: action.note }, ...(g.checkins || [])] } : g) }
     case 'RESET':          return initialState
     default: return state
   }
@@ -129,6 +133,9 @@ export function AppProvider({ children }) {
     removeProgressPhoto: (id) => dispatch({ type:'REMOVE_PROGRESS_PHOTO', id }),
     addPR: (pr) => dispatch({ type:'ADD_PR', pr }),
     removePR: (id) => dispatch({ type:'REMOVE_PR', id }),
+    setGoal: (goal) => dispatch({ type:'SET_GOAL', goal }),
+    removeGoal: (id) => dispatch({ type:'REMOVE_GOAL', id }),
+    checkinGoal: (goalId, value, note) => dispatch({ type:'CHECKIN_GOAL', goalId, value, note }),
     reset: () => dispatch({ type:'RESET' }),
   }
 

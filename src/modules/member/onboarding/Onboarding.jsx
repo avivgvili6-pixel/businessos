@@ -3,8 +3,9 @@ import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Button, Card, Input, Select } from '../../../components/ui/UI'
 import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/calc'
+import { GoalBuilder } from '../goals/GoalBuilder'
 
-const STEPS = ['ברוכים הבאים','פרטים אישיים','מטרה וניסיון','תזונה','סיום']
+const STEPS = ['ברוכים הבאים','פרטים אישיים','מטרה חכמה','תזונה','סיום']
 
 export function Onboarding() {
   const { completeOnboarding } = useApp()
@@ -15,11 +16,30 @@ export function Onboarding() {
     goalKey: 'recomp', targetPeriodWeeks: 12,
     dietKey: 'balanced', constraints: '',
   })
+  const [goalPhase, setGoalPhase] = useState('intro') // intro | wizard | done
 
   const set = (patch) => setData(d => ({ ...d, ...patch }))
   const next = () => setStep(s => Math.min(STEPS.length - 1, s + 1))
   const prev = () => setStep(s => Math.max(0, s - 1))
   const finish = () => completeOnboarding(data)
+
+  // Goal step is FULLSCREEN, not inside the card
+  if (step === 2 && goalPhase === 'wizard') {
+    return (
+      <div style={{ minHeight:'100vh', background: t.color.bg, padding: t.space.lg, direction:'rtl', color: t.color.text }}>
+        <div style={{ maxWidth: 900, margin:'0 auto' }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 12, marginBottom: 24 }}>
+            <button onClick={() => setGoalPhase('intro')} style={{
+              background: t.color.bgSoft, border:`1px solid ${t.color.border}`, color: t.color.text,
+              padding:'8px 14px', borderRadius: t.radius.md, cursor:'pointer', fontFamily:'inherit',
+            }}>→ חזור</button>
+            <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>שלב 3/5 · מטרה חכמה</div>
+          </div>
+          <GoalBuilder embedded onDone={() => { setGoalPhase('done'); next() }} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -48,7 +68,7 @@ export function Onboarding() {
         <div style={{ minHeight: 340 }}>
           {step === 0 && <StepWelcome />}
           {step === 1 && <StepPersonal data={data} set={set} />}
-          {step === 2 && <StepGoal data={data} set={set} />}
+          {step === 2 && <StepGoalIntro onStartWizard={() => setGoalPhase('wizard')} onSkip={next} goalPhase={goalPhase} />}
           {step === 3 && <StepDiet data={data} set={set} />}
           {step === 4 && <StepFinish data={data} />}
         </div>
@@ -56,10 +76,32 @@ export function Onboarding() {
         <div style={{ display:'flex', justifyContent:'space-between', marginTop: 28, gap: 12 }}>
           {step > 0 ? <Button variant="ghost" onClick={prev}>חזור</Button> : <span />}
           {step < STEPS.length - 1
-            ? <Button onClick={next}>המשך ←</Button>
+            ? <Button onClick={next} disabled={step === 2 && goalPhase === 'intro'}>המשך ←</Button>
             : <Button onClick={finish} icon="✨">בוא נתחיל</Button>}
         </div>
       </Card>
+    </div>
+  )
+}
+
+function StepGoalIntro({ onStartWizard, onSkip, goalPhase }) {
+  return (
+    <div style={{ textAlign:'center', padding:'20px 0' }}>
+      <div style={{ fontSize: 56, marginBottom: 16 }}>{goalPhase === 'done' ? '✅' : '🎯'}</div>
+      <h2 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 10 }}>
+        {goalPhase === 'done' ? 'מטרה נבנתה בהצלחה' : 'עכשיו - המטרה הראשונה שלך'}
+      </h2>
+      <p style={{ color: t.color.textDim, fontSize: t.font.md, lineHeight: 1.6, maxWidth: 460, margin:'0 auto 24px' }}>
+        {goalPhase === 'done'
+          ? 'המטרה שלך מוגדרת ומדידה. תוכל לעקוב אחריה מהעמוד הראשי ולעדכן מדדים בקלות.'
+          : 'זה החלק הכי חשוב באונבורדינג. מטרה חכמה = ספציפית, מדידה, ובעלת דדליין. אם אתה לא בטוח - יש coaching שיעזור.'}
+      </p>
+      {goalPhase === 'intro' && (
+        <div style={{ display:'flex', gap: 10, justifyContent:'center', flexWrap:'wrap' }}>
+          <Button onClick={onStartWizard} icon="🎯">בואו נבנה מטרה</Button>
+          <Button variant="ghost" onClick={onSkip}>דלג לעכשיו</Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -98,28 +140,6 @@ function StepPersonal({ data, set }) {
   )
 }
 
-function StepGoal({ data, set }) {
-  return (
-    <div style={{ display:'grid', gap: 14 }}>
-      <Select label="מטרה עיקרית" value={data.goalKey} onChange={e => set({ goalKey: e.target.value })}>
-        {Object.entries(goalAdjustments).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-      </Select>
-      <Select label="ניסיון באימונים" value={data.experience} onChange={e => set({ experience: e.target.value })}>
-        <option value="מתחיל">מתחיל (0-1 שנה)</option>
-        <option value="בינוני">בינוני (1-3 שנים)</option>
-        <option value="מתקדם">מתקדם (3+ שנים)</option>
-      </Select>
-      <div>
-        <div style={{ fontSize:t.font.sm, color:t.color.textDim, marginBottom:8 }}>תקופת יעד: {data.targetPeriodWeeks} שבועות</div>
-        <input type="range" min="4" max="52" value={data.targetPeriodWeeks} onChange={e => set({ targetPeriodWeeks: +e.target.value })} style={{ width:'100%' }} />
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:t.font.xs, color:t.color.textMuted, marginTop:4 }}>
-          <span>4 שב׳</span><span>26 שב׳</span><span>52 שב׳</span>
-        </div>
-      </div>
-      <Input label="הגבלות/פציעות (אופציונלי)" placeholder="לדוגמה: כאבי גב תחתון" value={data.constraints} onChange={e => set({ constraints: e.target.value })} />
-    </div>
-  )
-}
 
 function StepDiet({ data, set }) {
   return (

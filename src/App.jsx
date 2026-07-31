@@ -7,6 +7,7 @@ import { Onboarding } from './modules/member/onboarding/Onboarding'
 // member
 import { Home } from './modules/member/home/Home'
 import { Insights } from './modules/member/insights/Insights'
+import { Goals } from './modules/member/goals/Goals'
 import { Progress } from './modules/member/progress/Progress'
 import { Train } from './modules/member/train/Train'
 import { Rehab } from './modules/member/rehab/Rehab'
@@ -35,6 +36,7 @@ function AppRouter() {
 
   const memberPages = {
     home:      <Home go={setPage} />,
+    goals:     <Goals />,
     insights:  <Insights go={setPage} />,
     progress:  <Progress />,
     train:     <Train />,

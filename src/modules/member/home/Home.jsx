@@ -43,6 +43,9 @@ export function Home({ go }) {
         </div>
       </Card>
 
+      {/* Goal widget - most important thing in the app */}
+      <GoalWidget state={state} go={go} />
+
       {/* Quick stats */}
       <div className="hfos-kpis" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
         <Card style={{ padding: 16 }}>
@@ -156,6 +159,47 @@ function MacroTile({ label, value, unit, color }) {
       <div style={{ fontSize: t.font.xl, fontWeight: 800, color }}>{value}</div>
       <div style={{ fontSize: t.font.xs, color: t.color.textMuted }}>{unit}</div>
     </div>
+  )
+}
+
+function GoalWidget({ state, go }) {
+  const goal = (state.goals || []).find(g => g.status === 'active')
+  if (!goal) {
+    return (
+      <Card style={{ padding: 20, background: t.color.goldGlow, border:`1px solid ${t.color.gold}`, cursor:'pointer' }} onClick={() => go('goals')}>
+        <div style={{ display:'flex', gap: 14, alignItems:'center' }}>
+          <div style={{ fontSize: 38 }}>🎯</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: t.font.lg, color: t.color.gold, marginBottom: 4 }}>
+              עדיין אין לך מטרה מדידה
+            </div>
+            <div style={{ color: t.color.textDim, fontSize: t.font.sm }}>
+              בואי נגדיר יחד תוך 3 דקות - נעזור אם לא בטוח.
+            </div>
+          </div>
+          <Button size="sm">בואו נבנה ←</Button>
+        </div>
+      </Card>
+    )
+  }
+  const daysSince = Math.floor((Date.now() - new Date(goal.startDate)) / (24*3600*1000))
+  const totalDays = goal.deadlineWeeks * 7
+  const pct = Math.min(100, Math.round((daysSince / totalDays) * 100))
+  const daysLeft = Math.max(0, totalDays - daysSince)
+  return (
+    <Card style={{ padding: 20, cursor:'pointer' }} hover onClick={() => go('goals')}>
+      <div style={{ display:'flex', gap: 14, alignItems:'center' }}>
+        <div style={{ fontSize: 38 }}>🎯</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display:'flex', gap: 8, alignItems:'center', marginBottom: 4 }}>
+            <Badge>המטרה שלך</Badge>
+            <span style={{ fontSize: t.font.xs, color: t.color.textDim }}>{daysLeft} ימים · {Math.ceil(daysLeft/7)} שב׳</span>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: t.font.md, marginBottom: 8, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{goal.title}</div>
+          <ProgressBar value={pct} max={100} color={pct >= 66 ? t.color.success : t.color.gold} />
+        </div>
+      </div>
+    </Card>
   )
 }
 

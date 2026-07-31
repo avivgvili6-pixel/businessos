@@ -4,6 +4,7 @@ import { useApp } from '../../store/AppStore'
 
 const MEMBER_NAV = [
   { key:'home',      label:'בית',      icon:'🏠' },
+  { key:'goals',     label:'מטרה',     icon:'🎯' },
   { key:'insights',  label:'תובנות',   icon:'✨' },
   { key:'progress',  label:'התקדמות',  icon:'📈' },
   { key:'train',     label:'אימונים',  icon:'💪' },
@@ -213,7 +214,7 @@ function ResponsiveStyle() {
 // Always includes the current page so the user sees where they are.
 function getPrimaryNav(nav, currentPage) {
   // For member app, prioritize daily-use pages
-  const priorityMember = ['home', 'train', 'nutrition', 'mind']
+  const priorityMember = ['home', 'goals', 'train', 'nutrition']
   const priorityAdmin  = ['overview', 'members', 'schedule', 'alerts']
   const isAdmin = nav[0]?.key === 'overview'
   const priority = isAdmin ? priorityAdmin : priorityMember
