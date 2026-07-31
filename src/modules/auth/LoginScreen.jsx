@@ -53,13 +53,25 @@ export function LoginScreen() {
       if (name) storage.set(LAST_NAME_KEY, name)
       if (result?.magicLinkSent) setStep('link-sent')
     } catch (err) {
-      // Normalize any error to a clean Hebrew string. Never trust raw err.message
-      // (Supabase / fetch failures can return "{}" or object-like text).
-      console.error('[Login] submit failed:', err)
-      const raw = err?.message ?? ''
-      const msg = raw && typeof raw === 'string' && !raw.match(/^[\{\[\]\}]+$/)
-        ? raw
-        : 'לא הצלחנו לשלוח את הקישור. נסה שוב או בדוק את החיבור לאינטרנט.'
+      // Log everything we can extract for on-device debugging
+      const debugInfo = {
+        message: err?.message,
+        name: err?.name,
+        code: err?.code,
+        status: err?.status,
+        stack: err?.stack?.slice(0, 200),
+        stringified: (() => { try { return JSON.stringify(err) } catch { return String(err) } })(),
+      }
+      console.error('[Login] submit failed:', debugInfo)
+
+      // Show the raw error message if we have one, otherwise fallback + code hint
+      let msg = err?.message
+      if (!msg || typeof msg !== 'string' || /^[\{\[\]\}]+$/.test(msg.trim())) {
+        const code = err?.code || err?.status
+        msg = code
+          ? `שגיאה: ${code}. נסה שוב או תיצור קשר עם התמיכה.`
+          : 'לא הצלחנו לשלוח את הקישור. פרטים נוספים בקונסולת הדפדפן.'
+      }
       setError(msg)
     } finally {
       setBusy(false)
