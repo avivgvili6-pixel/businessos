@@ -5,6 +5,7 @@ import { Onboarding } from './modules/member/onboarding/Onboarding'
 
 // member
 import { Home } from './modules/member/home/Home'
+import { Insights } from './modules/member/insights/Insights'
 import { Train } from './modules/member/train/Train'
 import { Nutrition } from './modules/member/nutrition/Nutrition'
 import { Mind } from './modules/member/mind/Mind'
@@ -30,6 +31,7 @@ function AppRouter() {
 
   const memberPages = {
     home:      <Home go={setPage} />,
+    insights:  <Insights go={setPage} />,
     train:     <Train />,
     nutrition: <Nutrition />,
     mind:      <Mind />,

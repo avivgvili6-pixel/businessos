@@ -3,6 +3,7 @@ import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Button, Input, Badge, SectionHeader, Tabs, EmptyState } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
+import { MentalChat } from './MentalChat'
 
 const MOOD_EMOJI = ['😞','😔','😐','🙂','😊','😄','🤩']
 const CBT_PROMPTS = [
@@ -14,15 +15,17 @@ const CBT_PROMPTS = [
 ]
 
 export function Mind() {
-  const [tab, setTab] = useState('checkin')
+  const [tab, setTab] = useState('chat')
   return (
     <>
       <Tabs tabs={[
+        { key:'chat',    label:'💬 שיחה' },
         { key:'checkin', label:'Check-in יומי' },
         { key:'journal', label:'יומן' },
         { key:'patterns',label:'דפוסים' },
         { key:'tools',   label:'כלים' },
       ]} active={tab} onChange={setTab} />
+      {tab === 'chat' && <MentalChat />}
       {tab === 'checkin' && <CheckIn />}
       {tab === 'journal' && <Journal />}
       {tab === 'patterns' && <Patterns />}

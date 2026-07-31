@@ -5,11 +5,14 @@ import { Card, Button, Ring, Stat, Badge, SectionHeader, ProgressBar } from '../
 import { Sparkline, BarChart } from '../../../components/charts/Charts'
 import { greeting, DAYS_SHORT_HE, todayKey } from '../../../utils/date'
 import { bmr, tdee, macros, goalAdjustments, dietTemplates, waterLiters } from '../../../utils/calc'
+import { runEngine, severityColor } from '../../../engine/adaptationEngine'
 
 export function Home({ go }) {
   const { state } = useApp()
   const { profile, habits, moodCheckins, mealLogs, workoutLogs } = state
   const first = profile.name?.split(' ')[0] || 'אלוף'
+  const insights = React.useMemo(() => runEngine(state), [state])
+  const topInsight = insights[0]
   const _bmr = bmr(profile)
   const _tdee = tdee(_bmr, profile.activity)
   const goalDelta = goalAdjustments[profile.goalKey]?.kcalDelta || 0
@@ -93,16 +96,29 @@ export function Home({ go }) {
             💧 מים מומלץ: {waterLiters(profile.weightKg, profile.activity)} ליטר · תזונה: {diet.label}
           </div>
         </Card>
-        <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgSoft} 100%)`, position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', top: -20, left: -20, width: 120, height: 120, background: t.color.goldGlow, borderRadius:'50%', filter:'blur(30px)' }} />
-          <Badge>💡 תובנת AI</Badge>
-          <div style={{ marginTop: 12, fontSize: t.font.lg, fontWeight: 600, lineHeight: 1.5 }}>
-            {aiInsight(state)}
+        <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgSoft} 100%)`, position:'relative', overflow:'hidden', cursor:'pointer' }} onClick={() => go('insights')}>
+          <div style={{ position:'absolute', top: -20, left: -20, width: 120, height: 120, background: topInsight ? `${severityColor(topInsight.severity)}22` : t.color.goldGlow, borderRadius:'50%', filter:'blur(30px)' }} />
+          <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
+            <Badge color={topInsight ? severityColor(topInsight.severity) : t.color.gold}>{topInsight?.icon || '💡'} תובנת המנוע</Badge>
+            {insights.length > 1 && <Badge color={t.color.textDim}>+{insights.length - 1} תובנות נוספות</Badge>}
           </div>
-          <div style={{ marginTop: 14, display:'flex', gap: 10, alignItems:'center' }}>
-            <Sparkline data={[62, 64, 63, 66, 68, 71, 72]} height={30} />
-            <Badge color={t.color.success}>+10% פרוגרסיה</Badge>
-          </div>
+          {topInsight ? (
+            <>
+              <div style={{ marginTop: 12, fontSize: t.font.lg, fontWeight: 700, lineHeight: 1.4 }}>{topInsight.title}</div>
+              <div style={{ marginTop: 6, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.6 }}>{topInsight.body}</div>
+              <div style={{ marginTop: 14, display:'flex', gap: 10, alignItems:'center' }}>
+                <Button size="sm" onClick={(e) => { e.stopPropagation(); go(topInsight.action?.target || 'insights') }}>{topInsight.action?.label || 'פתח תובנות'} ←</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ marginTop: 12, fontSize: t.font.lg, fontWeight: 600, lineHeight: 1.5 }}>הכל מסונכרן. המשך במה שאתה עושה - נותן לך תובנות ברגע שמשהו יתפוס תשומת לב.</div>
+              <div style={{ marginTop: 14, display:'flex', gap: 10, alignItems:'center' }}>
+                <Sparkline data={[62, 64, 63, 66, 68, 71, 72]} height={30} />
+                <Badge color={t.color.success}>מגמה חיובית</Badge>
+              </div>
+            </>
+          )}
         </Card>
       </div>
       <style>{`@media (max-width: 900px) { .hfos-grid-2 { grid-template-columns: 1fr !important; } }`}</style>
