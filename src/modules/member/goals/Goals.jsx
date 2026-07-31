@@ -7,7 +7,7 @@ import { GoalBuilder } from './GoalBuilder'
 import { PlanBuilder } from './PlanBuilder'
 import { DIRECTIONS } from '../../../data/goals'
 
-export function Goals() {
+export function Goals({ go }) {
   const { state, removeGoal, checkinGoal } = useApp()
   const [building, setBuilding] = useState(false)
   const [buildingPlan, setBuildingPlan] = useState(false)
@@ -169,14 +169,23 @@ export function Goals() {
       )}
 
       {state.plan && (
-        <Card style={{ padding: 16, background: `${t.color.success}10`, border: `1px solid ${t.color.success}` }}>
+        <Card
+          onClick={() => go?.('train')}
+          style={{
+            padding: 16, background: `${t.color.success}10`, border: `1px solid ${t.color.success}`,
+            cursor: 'pointer', transition: t.transition,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = `${t.color.success}22` }}
+          onMouseLeave={e => { e.currentTarget.style.background = `${t.color.success}10` }}
+        >
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ fontSize: 28 }}>✅</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700 }}>יש לך תכנית פעילה: {state.plan.name}</div>
-              <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>עבור ל״אימונים״ כדי להתחיל</div>
+              <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>לחץ כאן → מעביר אותך ישירות לאימונים 💪</div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setBuildingPlan(true)}>בנה תכנית מחדש</Button>
+            <div style={{ fontSize: 24, color: t.color.success }}>←</div>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setBuildingPlan(true) }}>בנה תכנית מחדש</Button>
           </div>
         </Card>
       )}

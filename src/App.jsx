@@ -66,7 +66,7 @@ function AppRouter() {
 
   const memberPages = {
     home:      <Home go={setPage} />,
-    goals:     <Goals />,
+    goals:     <Goals go={setPage} />,
     insights:  <Insights go={setPage} />,
     progress:  <Progress />,
     train:     <Train />,
