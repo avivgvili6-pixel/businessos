@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react'
 import { dataService } from '../services/dataService'
 import { todayKey } from '../utils/date'
+import { supabase, supabaseEnabled } from '../lib/supabase'
+import { upsertProfile, markOnboarded } from '../services/supabaseSync'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -130,8 +132,21 @@ export function AppProvider({ children }) {
   const api = {
     state,
     setRole: (role) => dispatch({ type:'SET_ROLE', role }),
-    completeOnboarding: (profile) => dispatch({ type:'SET_ONBOARDED', profile }),
-    updateProfile: (patch) => dispatch({ type:'UPDATE_PROFILE', patch }),
+    completeOnboarding: async (profile) => {
+      dispatch({ type:'SET_ONBOARDED', profile })
+      // Push profile to cloud so it's available on other devices
+      if (supabaseEnabled) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.id) markOnboarded(user.id, profile).catch(() => {})
+      }
+    },
+    updateProfile: async (patch) => {
+      dispatch({ type:'UPDATE_PROFILE', patch })
+      if (supabaseEnabled) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.id) upsertProfile(user.id, patch).catch(() => {})
+      }
+    },
     set1RM: (lift, value) => dispatch({ type:'SET_1RM', lift, value: +value || 0 }),
     setPlan: (plan) => dispatch({ type:'SET_PLAN', plan }),
     setWeekDifficulty: (week, difficulty) => dispatch({ type:'SET_WEEK_DIFFICULTY', week, difficulty }),

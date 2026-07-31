@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Badge, SectionHeader, EmptyState, Button } from '../../../components/ui/UI'
+import { listProgressPhotos, signedPhotoUrl } from '../../../services/supabaseSync'
+import { supabaseEnabled } from '../../../lib/supabase'
 
 // Admin view of member progress photos. Currently shows only the current
 // device's photos (localStorage limitation) - real cross-user sync
@@ -12,8 +14,41 @@ const ANGLE_LABEL = { front: 'חזית', side: 'צד', back: 'גב' }
 
 export function MemberPhotos() {
   const { state } = useApp()
-  const photos = state.progressPhotos || []
+  const [cloudPhotos, setCloudPhotos] = useState([])
+  const [loading, setLoading] = useState(supabaseEnabled)
   const [comparing, setComparing] = useState(null)
+
+  // Load photos from cloud (RLS filters: admin sees all, member sees own)
+  useEffect(() => {
+    if (!supabaseEnabled) return
+    let mounted = true
+    ;(async () => {
+      const rows = await listProgressPhotos()
+      // Resolve signed URLs for each
+      const withUrls = await Promise.all((rows || []).map(async r => ({
+        id: r.id,
+        date: r.date,
+        angle: r.angle,
+        note: r.note,
+        userId: r.user_id,
+        dataUrl: await signedPhotoUrl(r.storage_path),
+      })))
+      if (mounted) { setCloudPhotos(withUrls); setLoading(false) }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  const localPhotos = state.progressPhotos || []
+  const photos = supabaseEnabled ? cloudPhotos : localPhotos
+
+  if (loading) {
+    return (
+      <Card style={{ padding: 40, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+        <div style={{ color: t.color.textDim }}>טוען תמונות מהענן...</div>
+      </Card>
+    )
+  }
 
   if (!photos.length) {
     return (
@@ -25,15 +60,25 @@ export function MemberPhotos() {
             כשמתאמנים יעלו תמונות דרך "התקדמות → תמונות" — תוכל לצפות בהן כאן.
           </p>
         </Card>
-        <Card style={{ padding: 16, background: `${t.color.warning}12`, border: `1px solid ${t.color.warning}` }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 24 }}>⚠️</span>
-            <div style={{ flex: 1, fontSize: t.font.sm, color: t.color.text, lineHeight: 1.6 }}>
-              <b style={{ color: t.color.warning }}>מגבלה טכנית:</b> בגרסת הפיילוט הנוכחית תמונות נשמרות ב-localStorage של המכשיר של כל מתאמן.
-              כדי לראות תמונות של מתאמנים ממכשירים אחרים - נדרש backend (Supabase). בפיתוח.
+        {supabaseEnabled ? (
+          <Card style={{ padding: 16, background: `${t.color.info}12`, border: `1px solid ${t.color.info}` }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 24 }}>☁️</span>
+              <div style={{ flex: 1, fontSize: t.font.sm, color: t.color.text, lineHeight: 1.6 }}>
+                <b style={{ color: t.color.info }}>מסונכרן לענן:</b> ברגע שמתאמן יעלה תמונה — היא תופיע כאן אוטומטית מכל מכשיר.
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        ) : (
+          <Card style={{ padding: 16, background: `${t.color.warning}12`, border: `1px solid ${t.color.warning}` }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 24 }}>⚠️</span>
+              <div style={{ flex: 1, fontSize: t.font.sm, color: t.color.text, lineHeight: 1.6 }}>
+                <b style={{ color: t.color.warning }}>מקומי בלבד:</b> Supabase לא מחובר. תמונות נשמרות ב-localStorage של המכשיר.
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     )
   }

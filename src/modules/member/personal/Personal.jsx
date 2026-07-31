@@ -3,6 +3,7 @@ import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { useAuth } from '../../../auth/AuthContext'
 import { Card, Button, Input, Select, Badge, SectionHeader } from '../../../components/ui/UI'
+import { submitTrainingRequest } from '../../../services/supabaseSync'
 
 const COACH_EMAIL = 'israelgrip@gmail.com'
 
@@ -53,7 +54,7 @@ export function Personal() {
     return m
   }
 
-  const submit = () => {
+  const submit = async () => {
     const m = missing()
     if (m.length) {
       setError(`חסר: ${m.join(' · ')}`)
@@ -64,9 +65,12 @@ export function Personal() {
       id: 'req_' + Date.now(),
       submittedAt: new Date().toISOString(),
       status: 'new',
+      userId: user?.id || null,
       ...f,
     }
-    addTrainingRequest(request)
+    addTrainingRequest(request)  // keeps local copy for offline
+    // Fire-and-forget cloud sync so admin sees the request from their own device
+    try { await submitTrainingRequest(request) } catch (e) { /* silent - local copy still saved */ }
     openMail(request)
     setSubmitted(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })

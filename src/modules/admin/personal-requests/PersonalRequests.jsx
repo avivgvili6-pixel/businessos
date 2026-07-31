@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Button, Badge, SectionHeader, EmptyState } from '../../../components/ui/UI'
+import { listTrainingRequests, updateTrainingRequestStatus } from '../../../services/supabaseSync'
+import { supabaseEnabled } from '../../../lib/supabase'
 
 const STATUS_META = {
   new:       { label: 'חדשה',       color: '#c8a84b', icon: '🆕' },
@@ -14,8 +16,36 @@ export function PersonalRequests() {
   const { state, updateTrainingRequest } = useApp()
   const [statusFilter, setStatusFilter] = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [cloudRequests, setCloudRequests] = useState(null)
+  const [loading, setLoading] = useState(supabaseEnabled)
 
-  const requests = state.personalTrainingRequests || []
+  // Fetch cloud requests (real submissions from other devices)
+  useEffect(() => {
+    if (!supabaseEnabled) return
+    let mounted = true
+    listTrainingRequests().then(rows => {
+      if (!mounted) return
+      setCloudRequests(rows)
+      setLoading(false)
+    })
+    return () => { mounted = false }
+  }, [])
+
+  // Merge cloud + local, dedup by id (cloud wins)
+  const local = state.personalTrainingRequests || []
+  const cloud = cloudRequests || []
+  const seenIds = new Set(cloud.map(r => r.id))
+  const requests = [...cloud, ...local.filter(r => !seenIds.has(r.id))]
+
+  const setStatus = async (id, patch) => {
+    updateTrainingRequest(id, patch)  // local update
+    if (supabaseEnabled) {
+      await updateTrainingRequestStatus(id, patch)
+      // Refresh cloud copy
+      const rows = await listTrainingRequests()
+      setCloudRequests(rows)
+    }
+  }
   const filtered = statusFilter === 'all' ? requests : requests.filter(r => (r.status || 'new') === statusFilter)
 
   const counts = {
@@ -23,6 +53,15 @@ export function PersonalRequests() {
     new: requests.filter(r => (r.status || 'new') === 'new').length,
     contacted: requests.filter(r => r.status === 'contacted').length,
     scheduled: requests.filter(r => r.status === 'scheduled').length,
+  }
+
+  if (loading) {
+    return (
+      <Card style={{ padding: 40, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+        <div style={{ color: t.color.textDim }}>טוען בקשות מהענן...</div>
+      </Card>
+    )
   }
 
   if (!requests.length) {
@@ -135,14 +174,14 @@ export function PersonalRequests() {
                 >WhatsApp</Button>
                 <div style={{ flex: 1 }} />
                 {(r.status || 'new') === 'new' && (
-                  <Button size="sm" onClick={() => updateTrainingRequest(r.id, { status: 'contacted' })}>סמן כטופל</Button>
+                  <Button size="sm" onClick={() => setStatus(r.id, { status: 'contacted' })}>סמן כטופל</Button>
                 )}
                 {r.status === 'contacted' && (
-                  <Button size="sm" onClick={() => updateTrainingRequest(r.id, { status: 'scheduled' })}>תיאמתי אימון ✓</Button>
+                  <Button size="sm" onClick={() => setStatus(r.id, { status: 'scheduled' })}>תיאמתי אימון ✓</Button>
                 )}
                 {r.status !== 'declined' && (
                   <Button variant="ghost" size="sm" onClick={() => {
-                    if (confirm('לסמן את הבקשה כדחויה?')) updateTrainingRequest(r.id, { status: 'declined' })
+                    if (confirm('לסמן את הבקשה כדחויה?')) setStatus(r.id, { status: 'declined' })
                   }}>דחה</Button>
                 )}
               </div>

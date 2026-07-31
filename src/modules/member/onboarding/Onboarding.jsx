@@ -4,11 +4,14 @@ import { useApp } from '../../../store/AppStore'
 import { Button, Card, Input, Select } from '../../../components/ui/UI'
 import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/calc'
 import { GoalBuilder } from '../goals/GoalBuilder'
+import { useAuth } from '../../../auth/AuthContext'
+import { uploadProgressPhoto } from '../../../services/supabaseSync'
 
 const STEPS = ['ברוכים הבאים','פרטים אישיים','מטרה חכמה','תזונה','תמונת התחלה','סיום']
 
 export function Onboarding() {
   const { completeOnboarding, addProgressPhoto } = useApp()
+  const { user } = useAuth()
   const [step, setStep] = useState(0)
   const [data, setData] = useState({
     name: '', age: 30, sex: 'male', heightCm: 175, weightKg: 75,
@@ -78,7 +81,7 @@ export function Onboarding() {
           {step === 1 && <StepPersonal data={data} set={set} />}
           {step === 2 && <StepGoalIntro onStartWizard={() => setGoalPhase('wizard')} onSkip={next} goalPhase={goalPhase} />}
           {step === 3 && <StepDiet data={data} set={set} />}
-          {step === 4 && <StepPhoto onUpload={addProgressPhoto} onNext={next} />}
+          {step === 4 && <StepPhoto onUpload={addProgressPhoto} userId={user?.id} onNext={next} />}
           {step === 5 && <StepFinish data={data} />}
         </div>
 
@@ -184,16 +187,18 @@ function StepDiet({ data, set }) {
   )
 }
 
-function StepPhoto({ onUpload, onNext }) {
+function StepPhoto({ onUpload, userId, onNext }) {
   const [angle, setAngle] = useState('front')
   const [uploaded, setUploaded] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileRef = React.useRef(null)
 
   const handle = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setUploading(true)
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       onUpload({
         id: 'photo_' + Date.now(),
         date: new Date().toISOString(),
@@ -201,7 +206,10 @@ function StepPhoto({ onUpload, onNext }) {
         angle,
         note: 'תמונת התחלה',
       })
+      // Fire-and-forget cloud upload; local copy is already saved.
+      try { await uploadProgressPhoto({ userId, file, angle, note: 'תמונת התחלה' }) } catch (_) {}
       setUploaded(true)
+      setUploading(false)
     }
     reader.readAsDataURL(file)
   }
@@ -236,7 +244,9 @@ function StepPhoto({ onUpload, onNext }) {
             ))}
           </div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handle} style={{ display: 'none' }} />
-          <Button size="lg" icon="📷" onClick={() => fileRef.current?.click()}>צלם/בחר תמונה</Button>
+          <Button size="lg" icon="📷" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            {uploading ? 'מעלה...' : 'צלם/בחר תמונה'}
+          </Button>
         </>
       )}
 

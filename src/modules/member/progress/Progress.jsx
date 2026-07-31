@@ -1,6 +1,8 @@
 import React, { useState, useRef, useMemo } from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
+import { useAuth } from '../../../auth/AuthContext'
+import { uploadProgressPhoto } from '../../../services/supabaseSync'
 import { Card, Button, Input, Select, Badge, SectionHeader, Tabs, Modal, EmptyState } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
 import { bmi } from '../../../utils/calc'
@@ -210,6 +212,7 @@ function Measurements() {
 
 function ProgressPhotos() {
   const { state, addProgressPhoto, removeProgressPhoto } = useApp()
+  const { user } = useAuth()
   const [angle, setAngle] = useState('front')
   const [compareOpen, setCompareOpen] = useState(false)
   const fileRef = useRef(null)
@@ -218,13 +221,15 @@ function ProgressPhotos() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       addProgressPhoto({
         id: 'photo_' + Date.now(),
         date: new Date().toISOString(),
         dataUrl: reader.result,
         angle,
       })
+      // Fire-and-forget cloud upload (localStorage copy already saved above)
+      try { await uploadProgressPhoto({ userId: user?.id, file, angle }) } catch (_) {}
     }
     reader.readAsDataURL(file)
     e.target.value = '' // reset
