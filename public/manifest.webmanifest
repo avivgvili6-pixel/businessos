@@ -1,0 +1,22 @@
+{
+  "name": "Holistic Fitness OS",
+  "short_name": "Holistic FIT",
+  "description": "אפליקציה הוליסטית למתחם כושר - אימונים, תזונה, מנטלי, שיקום, והתקדמות",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d14",
+  "theme_color": "#c8a84b",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='90' fill='%23c8a84b'/><text y='.87em' font-size='340' x='90' fill='%230d0d14' font-weight='900' font-family='Heebo,sans-serif'>H</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"]
+}

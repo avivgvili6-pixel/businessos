@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { AppProvider, useApp } from './store/AppStore'
 import { Shell } from './components/layout/Layout'
+import { InstallPrompt } from './components/layout/InstallPrompt'
 import { Onboarding } from './modules/member/onboarding/Onboarding'
 
 // member
 import { Home } from './modules/member/home/Home'
 import { Insights } from './modules/member/insights/Insights'
+import { Progress } from './modules/member/progress/Progress'
 import { Train } from './modules/member/train/Train'
 import { Rehab } from './modules/member/rehab/Rehab'
 import { Nutrition } from './modules/member/nutrition/Nutrition'
@@ -33,6 +35,7 @@ function AppRouter() {
   const memberPages = {
     home:      <Home go={setPage} />,
     insights:  <Insights go={setPage} />,
+    progress:  <Progress />,
     train:     <Train />,
     rehab:     <Rehab />,
     nutrition: <Nutrition />,
@@ -56,9 +59,12 @@ function AppRouter() {
   const validPage = pages[page] ? page : (isAdmin ? 'overview' : 'home')
 
   return (
-    <Shell page={validPage} setPage={setPage}>
-      {pages[validPage]}
-    </Shell>
+    <>
+      <Shell page={validPage} setPage={setPage}>
+        {pages[validPage]}
+      </Shell>
+      <InstallPrompt />
+    </>
   )
 }
 

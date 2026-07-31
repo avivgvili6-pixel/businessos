@@ -5,6 +5,7 @@ import { useApp } from '../../store/AppStore'
 const MEMBER_NAV = [
   { key:'home',      label:'בית',      icon:'🏠' },
   { key:'insights',  label:'תובנות',   icon:'✨' },
+  { key:'progress',  label:'התקדמות',  icon:'📈' },
   { key:'train',     label:'אימונים',  icon:'💪' },
   { key:'rehab',     label:'שיקום',    icon:'🩹' },
   { key:'nutrition', label:'תזונה',    icon:'🥗' },

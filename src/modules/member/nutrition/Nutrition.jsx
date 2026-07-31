@@ -10,6 +10,7 @@ import { bloodMarkers, statusForValue } from '../../../data/bloodMarkers'
 import { todayKey } from '../../../utils/date'
 import { MealPlanner } from './MealPlanner'
 import { FoodPickerPro } from './FoodPickerPro'
+import { recipes } from '../../../data/recipes'
 
 export function Nutrition() {
   const [tab, setTab] = useState('today')
@@ -18,6 +19,7 @@ export function Nutrition() {
       <Tabs tabs={[
         { key:'today',   label:'היום' },
         { key:'planner', label:'📅 תכנון שבועי' },
+        { key:'recipes', label:'📖 מרשמים' },
         { key:'calc',    label:'מחשבון' },
         { key:'diets',   label:'תבניות דיאטה' },
         { key:'foods',   label:'מאגר מזון' },
@@ -25,6 +27,7 @@ export function Nutrition() {
       ]} active={tab} onChange={setTab} />
       {tab === 'today'   && <Today />}
       {tab === 'planner' && <MealPlanner />}
+      {tab === 'recipes' && <Recipes />}
       {tab === 'calc'    && <Calculator />}
       {tab === 'diets'   && <Diets />}
       {tab === 'foods'   && <FoodsLib />}
@@ -310,6 +313,112 @@ function MiniMacro({ label, val, color }) {
       <div style={{ fontSize: t.font.sm, fontWeight: 700, color }}>{val}</div>
       <div style={{ fontSize: 9, color: t.color.textMuted }}>{label}</div>
     </div>
+  )
+}
+
+function Recipes() {
+  const [q, setQ] = useState('')
+  const [tag, setTag] = useState('')
+  const [selected, setSelected] = useState(null)
+
+  const allTags = [...new Set(recipes.flatMap(r => r.tags))]
+  const filtered = recipes.filter(r =>
+    (!q || r.name.includes(q)) &&
+    (!tag || r.tags.includes(tag))
+  )
+
+  return (
+    <div style={{ display:'grid', gap: 16 }}>
+      <Card style={{ padding: 16 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap: 10 }}>
+          <Input placeholder="🔍 חפש מרשם..." value={q} onChange={e => setQ(e.target.value)} />
+          <Select value={tag} onChange={e => setTag(e.target.value)}>
+            <option value="">כל הקטגוריות</option>
+            {allTags.map(x => <option key={x} value={x}>{x}</option>)}
+          </Select>
+        </div>
+      </Card>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+        {filtered.map(r => (
+          <Card key={r.id} hover style={{ padding: 18, cursor:'pointer' }} onClick={() => setSelected(r)}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: t.font.lg, lineHeight: 1.3, flex: 1 }}>{r.name}</div>
+              <Badge color={t.color.gold}>⏱ {r.timeMin}׳</Badge>
+            </div>
+            <div style={{ display:'flex', gap: 4, flexWrap:'wrap', marginBottom: 12 }}>
+              {r.tags.slice(0, 3).map(x => <Badge key={x} color={t.color.textDim}>{x}</Badge>)}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6, textAlign:'center' }}>
+              <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
+                <div style={{ fontWeight: 700, color: t.color.gold, fontSize: t.font.sm }}>{r.kcal}</div>
+                <div style={{ fontSize: 9, color: t.color.textMuted }}>קק״ל</div>
+              </div>
+              <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
+                <div style={{ fontWeight: 700, color: t.color.info, fontSize: t.font.sm }}>{r.p}</div>
+                <div style={{ fontSize: 9, color: t.color.textMuted }}>חלבון</div>
+              </div>
+              <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
+                <div style={{ fontWeight: 700, fontSize: t.font.sm }}>{r.c}</div>
+                <div style={{ fontSize: 9, color: t.color.textMuted }}>פחמ׳</div>
+              </div>
+              <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
+                <div style={{ fontWeight: 700, color: t.color.warning, fontSize: t.font.sm }}>{r.f}</div>
+                <div style={{ fontSize: 9, color: t.color.textMuted }}>שומן</div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected ? `📖 ${selected.name}` : ''} width={640}>
+        {selected && <RecipeContent recipe={selected} />}
+      </Modal>
+    </div>
+  )
+}
+
+function RecipeContent({ recipe }) {
+  return (
+    <>
+      <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 14 }}>
+        {recipe.tags.map(x => <Badge key={x} color={t.color.textDim}>{x}</Badge>)}
+        <Badge color={t.color.gold}>⏱ {recipe.timeMin} דק׳</Badge>
+        <Badge color={t.color.info}>{recipe.servings} מנות</Badge>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+        {[{l:'קק״ל',v:recipe.kcal,c:t.color.gold},{l:'חלבון',v:recipe.p,c:t.color.info},{l:'פחמ׳',v:recipe.c,c:t.color.text},{l:'שומן',v:recipe.f,c:t.color.warning}].map((s, i) => (
+          <div key={i} style={{ padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm, textAlign:'center' }}>
+            <div style={{ fontSize: t.font.xl, fontWeight: 800, color: s.c }}>{s.v}</div>
+            <div style={{ fontSize: 10, color: t.color.textMuted }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>🧾 מרכיבים</div>
+        <div style={{ display:'grid', gap: 6 }}>
+          {recipe.ingredients.map((ing, i) => (
+            <div key={i} style={{ display:'flex', justifyContent:'space-between', padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
+              <span>{ing.name}</span><span style={{ color: t.color.gold, fontWeight: 600 }}>{ing.grams} ג׳</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>👨‍🍳 שלבי הכנה</div>
+        {recipe.steps.map((step, i) => (
+          <div key={i} style={{ display:'flex', gap: 12, padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 6 }}>
+            <div style={{ width: 24, height: 24, borderRadius:'50%', background: t.color.gold, color:'#0d0d14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 800, flexShrink: 0, fontSize: 12 }}>{i + 1}</div>
+            <div style={{ flex: 1, fontSize: t.font.sm, lineHeight: 1.6 }}>{step}</div>
+          </div>
+        ))}
+      </div>
+      {recipe.tip && (
+        <div style={{ padding: 12, background: t.color.goldGlow, borderRadius: t.radius.sm, border:`1px solid ${t.color.gold}` }}>
+          <b style={{ color: t.color.gold }}>💡 טיפ:</b> {recipe.tip}
+        </div>
+      )}
+    </>
   )
 }
 

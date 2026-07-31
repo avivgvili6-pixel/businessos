@@ -31,6 +31,9 @@ const initialState = {
   wearable: null,           // last synced snapshot
   customFoods: [],          // user-created foods {id, name, cat, kcal, p, c, f, barcode?}
   rehabPrograms: [],        // active rehab {id, area, startedAt, painLog:[], sessions:[]}
+  measurements: [],         // {date, weight, bodyFat?, waist?, chest?, hips?, arms?, thighs?, note?}
+  progressPhotos: [],       // {id, date, dataUrl, angle: 'front'|'side'|'back', note?}
+  personalRecords: [],      // {id, exercise, weight, reps, date, note?}
   lastActiveDate: todayKey(),
 }
 
@@ -67,6 +70,12 @@ function reducer(state, action) {
     case 'LOG_REHAB_PAIN': return { ...state, rehabPrograms: state.rehabPrograms.map(p => p.id === action.programId ? { ...p, painLog: [{ date: new Date().toISOString(), pain: action.pain, note: action.note }, ...p.painLog] } : p) }
     case 'LOG_REHAB_SESSION': return { ...state, rehabPrograms: state.rehabPrograms.map(p => p.id === action.programId ? { ...p, sessions: [{ date: new Date().toISOString(), week: action.week }, ...p.sessions] } : p) }
     case 'STOP_REHAB':     return { ...state, rehabPrograms: state.rehabPrograms.filter(p => p.id !== action.id) }
+    case 'ADD_MEASUREMENT': return { ...state, measurements: [action.m, ...state.measurements] }
+    case 'REMOVE_MEASUREMENT': return { ...state, measurements: state.measurements.filter((_,i) => i !== action.index) }
+    case 'ADD_PROGRESS_PHOTO': return { ...state, progressPhotos: [action.photo, ...state.progressPhotos] }
+    case 'REMOVE_PROGRESS_PHOTO': return { ...state, progressPhotos: state.progressPhotos.filter(p => p.id !== action.id) }
+    case 'ADD_PR':         return { ...state, personalRecords: [action.pr, ...state.personalRecords] }
+    case 'REMOVE_PR':      return { ...state, personalRecords: state.personalRecords.filter(p => p.id !== action.id) }
     case 'RESET':          return initialState
     default: return state
   }
@@ -111,6 +120,12 @@ export function AppProvider({ children }) {
     logRehabPain: (programId, pain, note) => dispatch({ type:'LOG_REHAB_PAIN', programId, pain, note }),
     logRehabSession: (programId, week) => dispatch({ type:'LOG_REHAB_SESSION', programId, week }),
     stopRehab: (id) => dispatch({ type:'STOP_REHAB', id }),
+    addMeasurement: (m) => dispatch({ type:'ADD_MEASUREMENT', m }),
+    removeMeasurement: (index) => dispatch({ type:'REMOVE_MEASUREMENT', index }),
+    addProgressPhoto: (photo) => dispatch({ type:'ADD_PROGRESS_PHOTO', photo }),
+    removeProgressPhoto: (id) => dispatch({ type:'REMOVE_PROGRESS_PHOTO', id }),
+    addPR: (pr) => dispatch({ type:'ADD_PR', pr }),
+    removePR: (id) => dispatch({ type:'REMOVE_PR', id }),
     reset: () => dispatch({ type:'RESET' }),
   }
 
