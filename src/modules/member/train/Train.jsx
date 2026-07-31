@@ -62,12 +62,46 @@ function MyPlan() {
 }
 
 function SessionRunner({ session, onClose, onFinish }) {
-  const [log, setLog] = useState(() => (session?.exercises || []).map(e => ({ ...e, sets: Array.from({length: e.sets||3}, () => ({ w:'', r:'', rpe:'' })) })))
-  React.useEffect(() => { if (session) setLog(session.exercises.map(e => ({ ...e, sets: Array.from({length: e.sets||3}, () => ({ w:'', r:'', rpe:'' })) }))) }, [session])
+  const { state } = useApp()
+  const [log, setLog] = useState(() => buildInitialLog(session, state.workoutLogs))
+  const [restRemaining, setRestRemaining] = useState(0)
+  const [restTotal, setRestTotal] = useState(90)
+  const timerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    if (session) setLog(buildInitialLog(session, state.workoutLogs))
+  }, [session])
+
+  React.useEffect(() => {
+    if (restRemaining <= 0) return
+    timerRef.current = setInterval(() => setRestRemaining(r => r - 1), 1000)
+    return () => clearInterval(timerRef.current)
+  }, [restRemaining])
+
+  const startRest = (seconds = 90) => { setRestTotal(seconds); setRestRemaining(seconds) }
+  const skipRest = () => setRestRemaining(0)
+
   if (!session) return null
 
   return (
     <Modal open={!!session} onClose={onClose} title={`אימון: ${session.name}`} width={720}>
+      {restRemaining > 0 && (
+        <div style={{
+          position:'sticky', top: 0, zIndex: 10, marginBottom: 12, padding: 14,
+          background:`linear-gradient(90deg, ${t.color.gold}22 0%, ${t.color.gold}44 ${100 - (restRemaining/restTotal)*100}%, ${t.color.bgSoft} ${100 - (restRemaining/restTotal)*100}%)`,
+          border:`1px solid ${t.color.gold}`, borderRadius: t.radius.md,
+          display:'flex', alignItems:'center', gap: 12,
+        }}>
+          <div style={{ fontSize: 24 }}>⏱️</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>מנוחה</div>
+            <div style={{ fontSize: t.font.xxl, fontWeight: 800, color: t.color.gold, fontFamily:'Space Mono, monospace' }}>
+              {Math.floor(restRemaining/60)}:{String(restRemaining%60).padStart(2,'0')}
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={skipRest}>דלג</Button>
+        </div>
+      )}
       <div style={{ display:'grid', gap: 14 }}>
         {log.map((ex, i) => (
           <Card key={i} style={{ padding: 16 }}>
@@ -83,11 +117,22 @@ function SessionRunner({ session, onClose, onFinish }) {
               {ex.sets.map((s, j) => (
                 <React.Fragment key={j}>
                   <div style={{ color: t.color.gold, fontWeight: 700 }}>{j+1}</div>
-                  <Input value={s.w} onChange={e => updateSet(i, j, 'w', e.target.value)} placeholder="ק״ג" />
+                  <Input value={s.w} onChange={e => updateSet(i, j, 'w', e.target.value)} placeholder={ex.suggestedWeight ? `${ex.suggestedWeight}` : 'ק״ג'} />
                   <Input value={s.r} onChange={e => updateSet(i, j, 'r', e.target.value)} placeholder={String(ex.reps || 8)} />
-                  <Input value={s.rpe} onChange={e => updateSet(i, j, 'rpe', e.target.value)} placeholder="1-10" />
+                  <div style={{ display:'flex', gap: 4 }}>
+                    <Input value={s.rpe} onChange={e => updateSet(i, j, 'rpe', e.target.value)} placeholder="1-10" />
+                    <button type="button" onClick={() => startRest(90)} title="התחל מנוחה 90ש׳" style={{
+                      background: t.color.bgSoft, border:`1px solid ${t.color.border}`, color: t.color.gold,
+                      borderRadius: t.radius.sm, cursor:'pointer', padding:'0 10px', fontSize: 16,
+                    }}>⏱</button>
+                  </div>
                 </React.Fragment>
               ))}
+              {ex.suggestedWeight && !ex.sets.some(s => s.w) && (
+                <div style={{ gridColumn: '1 / -1', fontSize: t.font.xs, color: t.color.textDim, marginTop: 4 }}>
+                  💡 באימון האחרון: <b style={{ color: t.color.gold }}>{ex.suggestedWeight} ק״ג</b> · המלצה להעלות 2.5 ק״ג אם ה-RPE היה מתחת ל-8
+                </div>
+              )}
             </div>
           </Card>
         ))}
@@ -243,6 +288,33 @@ function buildPlan({ splitKey, weeks, level, goalKey }) {
     sessions,
     createdAt: new Date().toISOString(),
   }
+}
+
+function buildInitialLog(session, priorLogs) {
+  if (!session) return []
+  return session.exercises.map(e => {
+    const lastEntry = findLastEntry(priorLogs, e.id || e.name)
+    const suggestedWeight = lastEntry ? topWeight(lastEntry) : null
+    return {
+      ...e,
+      suggestedWeight,
+      sets: Array.from({ length: e.sets || 3 }, () => ({ w: '', r: '', rpe: '' })),
+    }
+  })
+}
+
+function findLastEntry(logs, exId) {
+  for (const log of logs) {
+    for (const ex of log.exercises || []) {
+      if (ex.id === exId || ex.name === exId) return ex
+    }
+  }
+  return null
+}
+
+function topWeight(ex) {
+  const w = (ex.sets || []).map(s => +s.w).filter(x => !isNaN(x) && x > 0)
+  return w.length ? Math.max(...w) : null
 }
 
 function History() {

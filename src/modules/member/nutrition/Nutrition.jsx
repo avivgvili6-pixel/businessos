@@ -8,6 +8,7 @@ import { foods } from '../../../data/foods'
 import { dietInfo } from '../../../data/dietTemplates'
 import { bloodMarkers, statusForValue } from '../../../data/bloodMarkers'
 import { todayKey } from '../../../utils/date'
+import { MealPlanner } from './MealPlanner'
 
 export function Nutrition() {
   const [tab, setTab] = useState('today')
@@ -15,16 +16,18 @@ export function Nutrition() {
     <>
       <Tabs tabs={[
         { key:'today',   label:'היום' },
+        { key:'planner', label:'📅 תכנון שבועי' },
         { key:'calc',    label:'מחשבון' },
         { key:'diets',   label:'תבניות דיאטה' },
         { key:'foods',   label:'מאגר מזון' },
         { key:'blood',   label:'בדיקות דם' },
       ]} active={tab} onChange={setTab} />
-      {tab === 'today' && <Today />}
-      {tab === 'calc'  && <Calculator />}
-      {tab === 'diets' && <Diets />}
-      {tab === 'foods' && <FoodsLib />}
-      {tab === 'blood' && <BloodTest />}
+      {tab === 'today'   && <Today />}
+      {tab === 'planner' && <MealPlanner />}
+      {tab === 'calc'    && <Calculator />}
+      {tab === 'diets'   && <Diets />}
+      {tab === 'foods'   && <FoodsLib />}
+      {tab === 'blood'   && <BloodTest />}
     </>
   )
 }

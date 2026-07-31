@@ -94,24 +94,31 @@ function RiskBadge({ risk }) {
 
 function MemberDrawer({ member, onClose }) {
   if (!member) return null
+  // synthesize trends from member data (deterministic per member for stable demo)
+  const seed = member.id.charCodeAt(1) || 3
+  const rand = (i) => Math.abs(Math.sin(seed * 12.9898 + i * 78.233)) % 1
+  const weightSeries = Array.from({ length: 12 }, (_, i) => +(member.weightKg + (rand(i)-0.5)*3).toFixed(1))
+  const adherenceSeries = Array.from({ length: 8 }, (_, i) => Math.min(100, Math.max(30, member.adherence + Math.round((rand(i+5)-0.5)*20))))
+  const moodSeries = Array.from({ length: 14 }, (_, i) => Math.min(10, Math.max(2, Math.round(member.mood + (rand(i+10)-0.5)*3))))
+  const strengthSeries = Array.from({ length: 8 }, (_, i) => Math.round(80 + i*4 + rand(i+20)*6))
+
   return (
-    <Modal open={!!member} onClose={onClose} title={member.name} width={720}>
+    <Modal open={!!member} onClose={onClose} title={member.name} width={860}>
       <div style={{ display:'grid', gap: 16 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10, textAlign:'center' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 10, textAlign:'center' }} className="hfos-member-stats">
           <MiniStat label="גיל" value={member.age} />
           <MiniStat label="משקל" value={`${member.weightKg}ק״ג`} />
           <MiniStat label="דבקות" value={`${member.adherence}%`} />
           <MiniStat label="מצב רוח" value={`${member.mood}/10`} />
+          <MiniStat label="אימונים/שב׳" value={member.sessionsThisWeek} />
         </div>
 
-        <Card style={{ background: t.color.bgSoft, padding: 14 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
-            <div style={{ fontWeight: 600 }}>קורלציות אחרונות</div>
-            <RiskBadge risk={member.risk} />
-          </div>
-          <Sparkline data={[65,68,72,70,74,71,73,76,74]} height={40} />
-          <div style={{ marginTop: 8, fontSize: t.font.xs, color: t.color.textDim }}>מגמת דבקות · 9 שבועות אחרונים</div>
-        </Card>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12 }} className="hfos-member-charts">
+          <TrendCard title="משקל" data={weightSeries} unit="ק״ג" color={t.color.gold} sub="12 שבועות" />
+          <TrendCard title="דבקות" data={adherenceSeries} unit="%" color={t.color.success} sub="8 שבועות" />
+          <TrendCard title="מצב-רוח" data={moodSeries} unit="/10" color={t.color.info} sub="14 ימים" />
+          <TrendCard title="ביצועי כוח (סקוואט)" data={strengthSeries} unit="ק״ג" color={t.color.purple} sub="8 שבועות" />
+        </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 }}>
           <SummaryRow label="מטרה"        value={member.goal} />
@@ -120,14 +127,60 @@ function MemberDrawer({ member, onClose }) {
           <SummaryRow label="Check-in אחרון" value={member.lastCheckin} />
         </div>
 
-        <div style={{ display:'flex', gap: 10, justifyContent:'flex-end' }}>
+        <Card style={{ background: t.color.bgSoft, padding: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 8, display:'flex', alignItems:'center', gap: 8 }}>
+            <Badge color={t.color.gold}>🧠 המלצת המנוע</Badge>
+          </div>
+          <div style={{ fontSize: t.font.sm, color: t.color.text, lineHeight: 1.6 }}>
+            {coachRecommendation(member)}
+          </div>
+        </Card>
+
+        <div style={{ display:'flex', gap: 10, justifyContent:'flex-end', flexWrap:'wrap' }}>
           <Button variant="ghost">📧 שלח הודעה</Button>
+          <Button variant="ghost">📅 קבע פגישה</Button>
           <Button variant="outline">📋 עדכן תכנית</Button>
           <Button>👁️ צפה כמתאמן</Button>
         </div>
       </div>
+      <style>{`
+        @media (max-width: 700px) {
+          .hfos-member-stats { grid-template-columns: 1fr 1fr !important; }
+          .hfos-member-charts { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </Modal>
   )
+}
+
+function TrendCard({ title, data, unit, color, sub }) {
+  const last = data[data.length - 1]
+  const first = data[0]
+  const delta = last - first
+  const pct = first ? Math.round((delta / first) * 100) : 0
+  const positive = delta >= 0
+  return (
+    <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
+        <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{title}</div>
+        <Badge color={positive ? t.color.success : t.color.warning}>
+          {positive ? '↗' : '↘'} {pct}%
+        </Badge>
+      </div>
+      <div style={{ fontSize: t.font.xxl, fontWeight: 800, color, marginBottom: 6 }}>
+        {last}<span style={{ fontSize: t.font.sm, color: t.color.textDim }}> {unit}</span>
+      </div>
+      <Sparkline data={data} height={40} color={color} />
+      <div style={{ fontSize: 10, color: t.color.textMuted, marginTop: 4 }}>{sub}</div>
+    </div>
+  )
+}
+
+function coachRecommendation(m) {
+  if (m.risk === 'high') return `${m.name} בסיכון נטישה. דבקות ${m.adherence}%, ${m.sessionsThisWeek} אימונים השבוע. המלצה: שיחת טלפון אישית ובחינת סיבות (עומס עבודה? פציעה? תזונה?). מומלץ להציע 2 שבועות של תכנית מקוצרת (30 דק׳ × 3 בשבוע) לחזרה הדרגתית.`
+  if (m.risk === 'medium') return `${m.name} מראה סימני האטה. שווה Check-in אישי בפגישה הבאה - לוודא שהמטרות עדיין רלוונטיות ושהתכנית לא נשחקה. שקול הכנסת אתגר חדש (מדד PR חדש) לחידוש מוטיבציה.`
+  if (m.adherence >= 85) return `ביצועים מצוינים - דבקות גבוהה ומצב-רוח יציב. הזדמנות לפרוגרסיה: העלאת עומס בתרגילי מפתח, או הוספת יום אימון חמישי. שווה להזמין בסוף החודש כמודל להשראה למתאמנים חדשים.`
+  return `${m.name} על מסלול טוב. המשך במה שעובד. פגישה חודשית להערכת התקדמות תספיק.`
 }
 
 function MiniStat({ label, value }) {

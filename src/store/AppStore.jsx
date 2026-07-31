@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react'
-import { storage } from '../utils/storage'
+import { dataService } from '../services/dataService'
 import { todayKey } from '../utils/date'
 
 const AppCtx = createContext(null)
@@ -65,7 +65,10 @@ function reducer(state, action) {
 }
 
 function init() {
-  const saved = storage.get('state')
+  // sync init from local cache - async backend hydration happens in useEffect
+  const saved = (typeof window !== 'undefined')
+    ? JSON.parse(localStorage.getItem('hfos:state') || 'null')
+    : null
   return saved ? { ...initialState, ...saved } : initialState
 }
 
@@ -76,7 +79,7 @@ export function AppProvider({ children }) {
   const firstRender = React.useRef(true)
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return }
-    storage.set('state', state)
+    dataService.setState(state)
   }, [state])
 
   const api = {
