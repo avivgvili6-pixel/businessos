@@ -130,15 +130,15 @@ function Today() {
  )}
 
  <Card>
- <SectionHeader title="ארוחות היום"action={<Button onClick={() => setPickerOpen(true)}>+ הוסף</Button>} />
- {!meals.length && <EmptyState icon=" "title="עדיין לא רשמת ארוחות"subtitle="לחץ הוסף כדי לתעד את הראשונה"/>}
+ <SectionHeader title={isRTL ? 'ארוחות היום' : 'Meals today'} action={<Button onClick={() => setPickerOpen(true)}>+ {isRTL ? 'הוסף' : 'Add'}</Button>} />
+ {!meals.length && <EmptyState icon=" "title={isRTL ? 'עדיין לא רשמת ארוחות' : 'No meals logged yet'} subtitle={isRTL ? 'לחץ הוסף כדי לתעד את הראשונה' : 'Tap Add to log your first meal'} />}
  <div style={{ display:'grid', gap: 8 }}>
  {meals.map((m, i) => (
  <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
  <div>
- <div style={{ fontWeight: 600 }}>{m.name} <span style={{ color: t.color.textDim, fontWeight: 400 }}>· {m.grams}ג׳</span></div>
+ <div style={{ fontWeight: 600 }}>{m.name} <span style={{ color: t.color.textDim, fontWeight: 400 }}>· {m.grams}{isRTL ? 'ג׳' : 'g'}</span></div>
  <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
- {Math.round(m.kcal)} קק״ל · {Math.round(m.p)}ח׳ · {Math.round(m.c)}פ׳ · {Math.round(m.f)}ש׳
+ {Math.round(m.kcal)} {isRTL ? 'קק״ל' : 'kcal'} · {Math.round(m.p)}{isRTL ? 'ח׳' : 'P'} · {Math.round(m.c)}{isRTL ? 'פ׳' : 'C'} · {Math.round(m.f)}{isRTL ? 'ש׳' : 'F'}
  </div>
  </div>
  <Button variant="ghost"size="sm"onClick={() => removeMeal(i)}> </Button>
@@ -166,6 +166,7 @@ function MacroRow({ label, value, target, color, unit }) {
 }
 
 function FoodPicker({ open, onClose, onAdd }) {
+ const { isRTL } = useI18n()
  const [q, setQ] = useState('')
  const [grams, setGrams] = useState(100)
  const [selected, setSelected] = useState(null)
@@ -180,8 +181,8 @@ function FoodPicker({ open, onClose, onAdd }) {
  setSelected(null); setQ(''); setGrams(100)
  }
  return (
- <Modal open={open} onClose={onClose} title="הוסף מזון"width={620}>
- <Input placeholder=" חפש מזון..."value={q} onChange={e => setQ(e.target.value)} />
+ <Modal open={open} onClose={onClose} title={isRTL ? 'הוסף מזון' : 'Add food'} width={620}>
+ <Input placeholder={isRTL ? ' חפש מזון...' : ' Search food...'} value={q} onChange={e => setQ(e.target.value)} />
  <div style={{ maxHeight: 260, overflowY:'auto', marginTop: 12, display:'grid', gap: 6 }}>
  {list.map(f => (
  <div key={f.id} onClick={() => setSelected(f)} style={{
@@ -192,7 +193,7 @@ function FoodPicker({ open, onClose, onAdd }) {
  }}>
  <div>
  <div style={{ fontWeight: 600 }}>{f.name}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{f.kcal} קק״ל · {f.p}ח׳ · {f.c}פ׳ · {f.f}ש׳ / 100ג׳</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{f.kcal} {isRTL ? 'קק״ל' : 'kcal'} · {f.p}{isRTL ? 'ח׳' : 'P'} · {f.c}{isRTL ? 'פ׳' : 'C'} · {f.f}{isRTL ? 'ש׳' : 'F'} / 100{isRTL ? 'ג׳' : 'g'}</div>
  </div>
  <Badge color={t.color.textDim}>{f.cat}</Badge>
  </div>
@@ -200,8 +201,8 @@ function FoodPicker({ open, onClose, onAdd }) {
  </div>
  {selected && (
  <div style={{ display:'flex', gap: 10, alignItems:'end', marginTop: 12 }}>
- <Input type="number"label="גרם"value={grams} onChange={e => setGrams(+e.target.value || 0)} />
- <Button onClick={add}>הוסף ({Math.round(selected.kcal * grams/100)} קק״ל)</Button>
+ <Input type="number" label={isRTL ? 'גרם' : 'Grams'} value={grams} onChange={e => setGrams(+e.target.value || 0)} />
+ <Button onClick={add}>{isRTL ? 'הוסף' : 'Add'} ({Math.round(selected.kcal * grams/100)} {isRTL ? 'קק״ל' : 'kcal'})</Button>
  </div>
  )}
  </Modal>
@@ -210,6 +211,7 @@ function FoodPicker({ open, onClose, onAdd }) {
 
 function Calculator() {
  const { state, updateProfile } = useApp()
+ const { isRTL } = useI18n()
  const p = state.profile
  const _bmr = bmr(p)
  const _tdee = tdee(_bmr, p.activity)
@@ -221,39 +223,39 @@ function Calculator() {
  return (
  <div style={{ display:'grid', gap: 16 }}>
  <Card>
- <SectionHeader title="מחשבון קלוריות ומקרו"subtitle="Mifflin-St Jeor · מעודכן לפי הפרופיל שלך"/>
+ <SectionHeader title={isRTL ? 'מחשבון קלוריות ומקרו' : 'Calorie & macro calculator'} subtitle={isRTL ? 'Mifflin-St Jeor · מעודכן לפי הפרופיל שלך' : 'Mifflin-St Jeor · updated from your profile'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
- <Input type="number"label="משקל (ק״ג)"value={p.weightKg} onChange={e => updateProfile({ weightKg: +e.target.value })} />
- <Input type="number"label="גובה (ס״מ)"value={p.heightCm} onChange={e => updateProfile({ heightCm: +e.target.value })} />
- <Input type="number"label="גיל"value={p.age} onChange={e => updateProfile({ age: +e.target.value })} />
- <Select label="מין"value={p.sex} onChange={e => updateProfile({ sex: e.target.value })}>
- <option value="male">גבר</option><option value="female">אישה</option>
+ <Input type="number" label={isRTL ? 'משקל (ק״ג)' : 'Weight (kg)'} value={p.weightKg} onChange={e => updateProfile({ weightKg: +e.target.value })} />
+ <Input type="number" label={isRTL ? 'גובה (ס״מ)' : 'Height (cm)'} value={p.heightCm} onChange={e => updateProfile({ heightCm: +e.target.value })} />
+ <Input type="number" label={isRTL ? 'גיל' : 'Age'} value={p.age} onChange={e => updateProfile({ age: +e.target.value })} />
+ <Select label={isRTL ? 'מין' : 'Sex'} value={p.sex} onChange={e => updateProfile({ sex: e.target.value })}>
+ <option value="male">{isRTL ? 'גבר' : 'Male'}</option><option value="female">{isRTL ? 'אישה' : 'Female'}</option>
  </Select>
- <Select label="רמת פעילות"value={p.activity} onChange={e => updateProfile({ activity: e.target.value })}>
+ <Select label={isRTL ? 'רמת פעילות' : 'Activity level'} value={p.activity} onChange={e => updateProfile({ activity: e.target.value })}>
  {Object.entries(activityFactors).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
  </Select>
- <Select label="מטרה"value={p.goalKey} onChange={e => updateProfile({ goalKey: e.target.value })}>
+ <Select label={isRTL ? 'מטרה' : 'Goal'} value={p.goalKey} onChange={e => updateProfile({ goalKey: e.target.value })}>
  {Object.entries(goalAdjustments).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
  </Select>
- <Select label="תבנית תזונה"value={p.dietKey} onChange={e => updateProfile({ dietKey: e.target.value })}>
+ <Select label={isRTL ? 'תבנית תזונה' : 'Diet template'} value={p.dietKey} onChange={e => updateProfile({ dietKey: e.target.value })}>
  {Object.entries(dietTemplates).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
  </Select>
  </div>
  </Card>
 
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
- <ResultCard label="BMR"value={_bmr} unit="קק״ל"hint="שריפה במנוחה"/>
- <ResultCard label="TDEE"value={_tdee} unit="קק״ל"hint="הוצאה יומית כוללת"/>
- <ResultCard label="יעד קלוריות"value={kcalTarget} unit="קק״ל"hint={goal.label} highlight />
- <ResultCard label="BMI"value={bmi(p.weightKg, p.heightCm)} unit=""hint={bmiCategory(bmi(p.weightKg, p.heightCm))} />
+ <ResultCard label="BMR" value={_bmr} unit={isRTL ? 'קק״ל' : 'kcal'} hint={isRTL ? 'שריפה במנוחה' : 'Resting burn'} />
+ <ResultCard label="TDEE" value={_tdee} unit={isRTL ? 'קק״ל' : 'kcal'} hint={isRTL ? 'הוצאה יומית כוללת' : 'Total daily expenditure'} />
+ <ResultCard label={isRTL ? 'יעד קלוריות' : 'Calorie target'} value={kcalTarget} unit={isRTL ? 'קק״ל' : 'kcal'} hint={goal.label} highlight />
+ <ResultCard label="BMI" value={bmi(p.weightKg, p.heightCm)} unit="" hint={bmiCategory(bmi(p.weightKg, p.heightCm), isRTL)} />
  </div>
 
  <Card>
- <SectionHeader title="פילוח מקרו יומי"subtitle={`${diet.label} · ${diet.p}/${diet.c}/${diet.f}`} />
+ <SectionHeader title={isRTL ? 'פילוח מקרו יומי' : 'Daily macro breakdown'} subtitle={`${diet.label} · ${diet.p}/${diet.c}/${diet.f}`} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12 }}>
- <BigMacro label="חלבון"grams={m.protein} pct={diet.p} color={t.color.info} />
- <BigMacro label="פחמימות"grams={m.carbs} pct={diet.c} color={t.color.gold} />
- <BigMacro label="שומן"grams={m.fat} pct={diet.f} color={t.color.warning} />
+ <BigMacro label={isRTL ? 'חלבון' : 'Protein'} grams={m.protein} pct={diet.p} color={t.color.info} />
+ <BigMacro label={isRTL ? 'פחמימות' : 'Carbs'} grams={m.carbs} pct={diet.c} color={t.color.gold} />
+ <BigMacro label={isRTL ? 'שומן' : 'Fat'} grams={m.fat} pct={diet.f} color={t.color.warning} />
  </div>
  </Card>
  </div>
@@ -271,27 +273,29 @@ function ResultCard({ label, value, unit, hint, highlight }) {
 }
 
 function BigMacro({ label, grams, pct, color }) {
+ const { isRTL } = useI18n()
  return (
  <div style={{ textAlign:'center', padding: 20, background: t.color.bgSoft, borderRadius: t.radius.md }}>
  <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>{label}</div>
  <div style={{ fontSize: t.font.hero, fontWeight: 900, color, lineHeight: 1 }}>{grams}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textMuted, marginTop: 4 }}>גרם · {pct}%</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textMuted, marginTop: 4 }}>{isRTL ? 'גרם' : 'grams'} · {pct}%</div>
  </div>
  )
 }
 
-function bmiCategory(v) {
- if (v < 18.5) return 'תת-משקל'
- if (v < 25) return 'תקין'
- if (v < 30) return 'עודף'
- return 'השמנה'
+function bmiCategory(v, isRTL = true) {
+ if (v < 18.5) return isRTL ? 'תת-משקל' : 'Underweight'
+ if (v < 25) return isRTL ? 'תקין' : 'Normal'
+ if (v < 30) return isRTL ? 'עודף' : 'Overweight'
+ return isRTL ? 'השמנה' : 'Obese'
 }
 
 function Diets() {
  const { state, updateProfile } = useApp()
+ const { isRTL } = useI18n()
  return (
  <div style={{ display:'grid', gap: 16 }}>
- <SectionHeader title="תבניות דיאטה"subtitle="בחר את הסגנון שמתאים לך - נעדכן את יעדי המקרו אוטומטית"/>
+ <SectionHeader title={isRTL ? 'תבניות דיאטה' : 'Diet templates'} subtitle={isRTL ? 'בחר את הסגנון שמתאים לך - נעדכן את יעדי המקרו אוטומטית' : 'Pick the style that fits you — macro targets update automatically'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
  {Object.entries(dietTemplates).map(([k, v]) => {
  const info = dietInfo[k] || {}
@@ -300,18 +304,18 @@ function Diets() {
  <Card key={k} hover style={{ padding: 20, borderColor: active ? t.color.gold : t.color.border }}>
  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
  <div style={{ fontWeight: 700, fontSize: t.font.lg, color: active ? t.color.gold : t.color.text }}>{v.label}</div>
- {active && <Badge>פעיל</Badge>}
+ {active && <Badge>{isRTL ? 'פעיל' : 'Active'}</Badge>}
  </div>
  <div style={{ display:'flex', gap: 6, marginBottom: 10 }}>
- <Badge color={t.color.info}>{v.p}% ח׳</Badge>
- <Badge color={t.color.gold}>{v.c}% פ׳</Badge>
- <Badge color={t.color.warning}>{v.f}% ש׳</Badge>
+ <Badge color={t.color.info}>{v.p}% {isRTL ? 'ח׳' : 'P'}</Badge>
+ <Badge color={t.color.gold}>{v.c}% {isRTL ? 'פ׳' : 'C'}</Badge>
+ <Badge color={t.color.warning}>{v.f}% {isRTL ? 'ש׳' : 'F'}</Badge>
  </div>
  <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 10, lineHeight: 1.5 }}>{info.desc}</div>
  {info.good && <div style={{ fontSize: t.font.xs, color: t.color.success, marginBottom: 4 }}> {info.good}</div>}
  {info.caution && <div style={{ fontSize: t.font.xs, color: t.color.warning, marginBottom: 10 }}> {info.caution}</div>}
  <Button variant={active ? 'ghost':'outline'} size="sm"onClick={() => updateProfile({ dietKey: k })}>
- {active ? 'הוגדר כפעיל':'בחר תבנית'}
+ {active ? (isRTL ? 'הוגדר כפעיל' : 'Set as active') : (isRTL ? 'בחר תבנית' : 'Pick template')}
  </Button>
  </Card>
  )
@@ -322,6 +326,7 @@ function Diets() {
 }
 
 function FoodsLib() {
+ const { isRTL } = useI18n()
  const [q, setQ] = useState('')
  const [cat, setCat] = useState('')
  const cats = [...new Set(foods.map(f => f.cat))]
@@ -330,9 +335,9 @@ function FoodsLib() {
  <div style={{ display:'grid', gap: 16 }}>
  <Card style={{ padding: 16 }}>
  <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap: 10 }}>
- <Input placeholder=" חפש..."value={q} onChange={e => setQ(e.target.value)} />
+ <Input placeholder={isRTL ? ' חפש...' : ' Search...'} value={q} onChange={e => setQ(e.target.value)} />
  <Select value={cat} onChange={e => setCat(e.target.value)}>
- <option value="">כל הקטגוריות</option>{cats.map(c => <option key={c} value={c}>{c}</option>)}
+ <option value="">{isRTL ? 'כל הקטגוריות' : 'All categories'}</option>{cats.map(c => <option key={c} value={c}>{c}</option>)}
  </Select>
  </div>
  </Card>
@@ -344,12 +349,12 @@ function FoodsLib() {
  <Badge color={t.color.textDim}>{f.cat}</Badge>
  </div>
  <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6, textAlign:'center'}}>
- <MiniMacro label="קק״ל"val={f.kcal} color={t.color.gold} />
- <MiniMacro label="חלבון"val={f.p} color={t.color.info} />
- <MiniMacro label="פחמ׳"val={f.c} color={t.color.text} />
- <MiniMacro label="שומן"val={f.f} color={t.color.warning} />
+ <MiniMacro label={isRTL ? 'קק״ל' : 'kcal'} val={f.kcal} color={t.color.gold} />
+ <MiniMacro label={isRTL ? 'חלבון' : 'Protein'} val={f.p} color={t.color.info} />
+ <MiniMacro label={isRTL ? 'פחמ׳' : 'Carbs'} val={f.c} color={t.color.text} />
+ <MiniMacro label={isRTL ? 'שומן' : 'Fat'} val={f.f} color={t.color.warning} />
  </div>
- <div style={{ fontSize: 10, color: t.color.textMuted, textAlign:'center', marginTop: 6 }}>לכל 100 גרם</div>
+ <div style={{ fontSize: 10, color: t.color.textMuted, textAlign:'center', marginTop: 6 }}>{isRTL ? 'לכל 100 גרם' : 'per 100 g'}</div>
  </Card>
  ))}
  </div>
@@ -367,6 +372,7 @@ function MiniMacro({ label, val, color }) {
 }
 
 function Recipes() {
+ const { isRTL } = useI18n()
  const [q, setQ] = useState('')
  const [tag, setTag] = useState('')
  const [selected, setSelected] = useState(null)
@@ -381,9 +387,9 @@ function Recipes() {
  <div style={{ display:'grid', gap: 16 }}>
  <Card style={{ padding: 16 }}>
  <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap: 10 }}>
- <Input placeholder=" חפש מרשם..."value={q} onChange={e => setQ(e.target.value)} />
+ <Input placeholder={isRTL ? ' חפש מרשם...' : ' Search recipe...'} value={q} onChange={e => setQ(e.target.value)} />
  <Select value={tag} onChange={e => setTag(e.target.value)}>
- <option value="">כל הקטגוריות</option>
+ <option value="">{isRTL ? 'כל הקטגוריות' : 'All categories'}</option>
  {allTags.map(x => <option key={x} value={x}>{x}</option>)}
  </Select>
  </div>
@@ -394,7 +400,7 @@ function Recipes() {
  <Card key={r.id} hover style={{ padding: 18, cursor:'pointer'}} onClick={() => setSelected(r)}>
  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10 }}>
  <div style={{ fontWeight: 700, fontSize: t.font.lg, lineHeight: 1.3, flex: 1 }}>{r.name}</div>
- <Badge color={t.color.gold}>⏱ {r.timeMin}׳</Badge>
+ <Badge color={t.color.gold}>⏱ {r.timeMin}{isRTL ? '׳' : ' min'}</Badge>
  </div>
  <div style={{ display:'flex', gap: 4, flexWrap:'wrap', marginBottom: 12 }}>
  {r.tags.slice(0, 3).map(x => <Badge key={x} color={t.color.textDim}>{x}</Badge>)}
@@ -402,19 +408,19 @@ function Recipes() {
  <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6, textAlign:'center'}}>
  <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
  <div style={{ fontWeight: 700, color: t.color.gold, fontSize: t.font.sm }}>{r.kcal}</div>
- <div style={{ fontSize: 9, color: t.color.textMuted }}>קק״ל</div>
+ <div style={{ fontSize: 9, color: t.color.textMuted }}>{isRTL ? 'קק״ל' : 'kcal'}</div>
  </div>
  <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
  <div style={{ fontWeight: 700, color: t.color.info, fontSize: t.font.sm }}>{r.p}</div>
- <div style={{ fontSize: 9, color: t.color.textMuted }}>חלבון</div>
+ <div style={{ fontSize: 9, color: t.color.textMuted }}>{isRTL ? 'חלבון' : 'Protein'}</div>
  </div>
  <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
  <div style={{ fontWeight: 700, fontSize: t.font.sm }}>{r.c}</div>
- <div style={{ fontSize: 9, color: t.color.textMuted }}>פחמ׳</div>
+ <div style={{ fontSize: 9, color: t.color.textMuted }}>{isRTL ? 'פחמ׳' : 'Carbs'}</div>
  </div>
  <div style={{ padding: 6, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
  <div style={{ fontWeight: 700, color: t.color.warning, fontSize: t.font.sm }}>{r.f}</div>
- <div style={{ fontSize: 9, color: t.color.textMuted }}>שומן</div>
+ <div style={{ fontSize: 9, color: t.color.textMuted }}>{isRTL ? 'שומן' : 'Fat'}</div>
  </div>
  </div>
  </Card>
@@ -429,15 +435,16 @@ function Recipes() {
 }
 
 function RecipeContent({ recipe }) {
+ const { isRTL } = useI18n()
  return (
  <>
  <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 14 }}>
  {recipe.tags.map(x => <Badge key={x} color={t.color.textDim}>{x}</Badge>)}
- <Badge color={t.color.gold}>⏱ {recipe.timeMin} דק׳</Badge>
- <Badge color={t.color.info}>{recipe.servings} מנות</Badge>
+ <Badge color={t.color.gold}>⏱ {recipe.timeMin} {isRTL ? 'דק׳' : 'min'}</Badge>
+ <Badge color={t.color.info}>{recipe.servings} {isRTL ? 'מנות' : 'servings'}</Badge>
  </div>
  <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
- {[{l:'קק״ל',v:recipe.kcal,c:t.color.gold},{l:'חלבון',v:recipe.p,c:t.color.info},{l:'פחמ׳',v:recipe.c,c:t.color.text},{l:'שומן',v:recipe.f,c:t.color.warning}].map((s, i) => (
+ {[{l: isRTL ? 'קק״ל' : 'kcal',v:recipe.kcal,c:t.color.gold},{l: isRTL ? 'חלבון' : 'Protein',v:recipe.p,c:t.color.info},{l: isRTL ? 'פחמ׳' : 'Carbs',v:recipe.c,c:t.color.text},{l: isRTL ? 'שומן' : 'Fat',v:recipe.f,c:t.color.warning}].map((s, i) => (
  <div key={i} style={{ padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm, textAlign:'center'}}>
  <div style={{ fontSize: t.font.xl, fontWeight: 800, color: s.c }}>{s.v}</div>
  <div style={{ fontSize: 10, color: t.color.textMuted }}>{s.l}</div>
@@ -445,17 +452,17 @@ function RecipeContent({ recipe }) {
  ))}
  </div>
  <div style={{ marginBottom: 20 }}>
- <div style={{ fontWeight: 700, marginBottom: 10 }}> מרכיבים</div>
+ <div style={{ fontWeight: 700, marginBottom: 10 }}> {isRTL ? 'מרכיבים' : 'Ingredients'}</div>
  <div style={{ display:'grid', gap: 6 }}>
  {recipe.ingredients.map((ing, i) => (
  <div key={i} style={{ display:'flex', justifyContent:'space-between', padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
- <span>{ing.name}</span><span style={{ color: t.color.gold, fontWeight: 600 }}>{ing.grams} ג׳</span>
+ <span>{ing.name}</span><span style={{ color: t.color.gold, fontWeight: 600 }}>{ing.grams} {isRTL ? 'ג׳' : 'g'}</span>
  </div>
  ))}
  </div>
  </div>
  <div style={{ marginBottom: 14 }}>
- <div style={{ fontWeight: 700, marginBottom: 10 }}> שלבי הכנה</div>
+ <div style={{ fontWeight: 700, marginBottom: 10 }}> {isRTL ? 'שלבי הכנה' : 'Steps'}</div>
  {recipe.steps.map((step, i) => (
  <div key={i} style={{ display:'flex', gap: 12, padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 6 }}>
  <div style={{ width: 24, height: 24, borderRadius:'50%', background: t.color.gold, color:'#0d0d14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 800, flexShrink: 0, fontSize: 12 }}>{i + 1}</div>
@@ -465,7 +472,7 @@ function RecipeContent({ recipe }) {
  </div>
  {recipe.tip && (
  <div style={{ padding: 12, background: t.color.goldGlow, borderRadius: t.radius.sm, border:`1px solid ${t.color.gold}` }}>
- <b style={{ color: t.color.gold }}> טיפ:</b> {recipe.tip}
+ <b style={{ color: t.color.gold }}> {isRTL ? 'טיפ:' : 'Tip:'}</b> {recipe.tip}
  </div>
  )}
  </>
@@ -474,6 +481,7 @@ function RecipeContent({ recipe }) {
 
 function BloodTest() {
  const { state, addBlood } = useApp()
+ const { isRTL } = useI18n()
  const [values, setValues] = useState({})
  const last = state.bloodTests[0]
 
@@ -486,7 +494,7 @@ function BloodTest() {
  return (
  <div style={{ display:'grid', gap: 16 }}>
  <Card>
- <SectionHeader title="קורא בדיקות דם"subtitle="הזן ערכים ותקבל פרשנות תזונתית מותאמת"/>
+ <SectionHeader title={isRTL ? 'קורא בדיקות דם' : 'Blood test reader'} subtitle={isRTL ? 'הזן ערכים ותקבל פרשנות תזונתית מותאמת' : 'Enter values and get a tailored nutrition interpretation'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
  {bloodMarkers.map(m => (
  <Input key={m.id} label={`${m.name} (${m.unit})`} type="number"placeholder="—"
@@ -494,17 +502,17 @@ function BloodTest() {
  ))}
  </div>
  <div style={{ marginTop: 16, display:'flex', gap: 10, justifyContent:'flex-end'}}>
- <Button variant="ghost"onClick={() => setValues({})}>נקה</Button>
- <Button onClick={() => { addBlood({ date: new Date().toISOString(), values }); setValues({}) }}>נתח בדיקה</Button>
+ <Button variant="ghost"onClick={() => setValues({})}>{isRTL ? 'נקה' : 'Clear'}</Button>
+ <Button onClick={() => { addBlood({ date: new Date().toISOString(), values }); setValues({}) }}>{isRTL ? 'נתח בדיקה' : 'Analyze'}</Button>
  </div>
  </Card>
 
  {last && (
  <>
  <Card>
- <SectionHeader title="פרשנות אחרונה"subtitle={new Date(last.date).toLocaleDateString('he-IL')} />
+ <SectionHeader title={isRTL ? 'פרשנות אחרונה' : 'Latest analysis'} subtitle={new Date(last.date).toLocaleDateString(isRTL ? 'he-IL' : 'en-US')} />
  {flags.length === 0
- ? <EmptyState icon=" "title="כל הערכים בטווח התקין"subtitle="המשך כך!"/>
+ ? <EmptyState icon=" "title={isRTL ? 'כל הערכים בטווח התקין' : 'All values in normal range'} subtitle={isRTL ? 'המשך כך!' : 'Keep it up!'} />
  : (
  <div style={{ display:'grid', gap: 10 }}>
  {flags.map((f, i) => (
@@ -516,7 +524,7 @@ function BloodTest() {
  <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 6 }}>
  <div style={{ fontWeight: 700 }}>{f.marker.name}</div>
  <Badge color={f.status === 'high'? t.color.danger : t.color.warning}>
- {f.value} {f.marker.unit} · {f.status === 'high'? 'גבוה':'נמוך'}
+ {f.value} {f.marker.unit} · {f.status === 'high' ? (isRTL ? 'גבוה' : 'High') : (isRTL ? 'נמוך' : 'Low')}
  </Badge>
  </div>
  <div style={{ fontSize: t.font.sm, color: t.color.text, lineHeight: 1.5 }}>
@@ -528,7 +536,7 @@ function BloodTest() {
  )}
  </Card>
  <Card>
- <SectionHeader title="כל הערכים" />
+ <SectionHeader title={isRTL ? 'כל הערכים' : 'All values'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
  {analysis.map((a, i) => (
  <div key={i} style={{ padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
