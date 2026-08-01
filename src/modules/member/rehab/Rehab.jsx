@@ -158,6 +158,7 @@ function ActivePrograms() {
 
 function StartFlow({ onDone }) {
  const { startRehab } = useApp()
+ const { isRTL } = useI18n()
  const [area, setArea] = useState(null)
  const [answers, setAnswers] = useState({})
  const [step, setStep] = useState(0) // 0 = pick area, 1 = assessment, 2 = summary
@@ -168,7 +169,7 @@ function StartFlow({ onDone }) {
  area: area.id,
  startedAt: new Date().toISOString(),
  assessment: answers,
- painLog: answers.pain != null ? [{ date: new Date().toISOString(), pain: answers.pain, note:'התחלת תכנית'}] : [],
+ painLog: answers.pain != null ? [{ date: new Date().toISOString(), pain: answers.pain, note: isRTL ? 'התחלת תכנית' : 'Program start'}] : [],
  sessions: [],
  })
  onDone?.()
@@ -176,7 +177,7 @@ function StartFlow({ onDone }) {
 
  if (step === 0) return (
  <div>
- <SectionHeader title="בחר אזור לחיזוק / שיקום"subtitle="הפיזיו-AI ייבנה פרוטוקול 4-שבועות מותאם"/>
+ <SectionHeader title={isRTL ? 'בחר אזור לחיזוק / שיקום' : 'Pick an area to strengthen / rehab'} subtitle={isRTL ? 'הפיזיו-AI ייבנה פרוטוקול 4-שבועות מותאם' : 'The Physio-AI will build a tailored 4-week protocol'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
  {bodyAreas.map(a => (
  <Card key={a.id} hover style={{ padding: 20, cursor:'pointer', textAlign:'center'}} onClick={() => { setArea(a); setStep(1) }}>
@@ -194,11 +195,11 @@ function StartFlow({ onDone }) {
  if (step === 1) return (
  <div>
  <div style={{ marginBottom: 20, display:'flex', gap: 10, alignItems:'center'}}>
- <Button variant="ghost"size="sm"onClick={() => setStep(0)}>← חזור</Button>
+ <Button variant="ghost"size="sm"onClick={() => setStep(0)}>← {isRTL ? 'חזור' : 'Back'}</Button>
  <Badge color={t.color.gold}>{area.icon} {area.name}</Badge>
  </div>
  <Card>
- <SectionHeader title="הערכה קצרה"subtitle="שאלות שיעזרו לנו להתאים את התכנית"/>
+ <SectionHeader title={isRTL ? 'הערכה קצרה' : 'Short assessment'} subtitle={isRTL ? 'שאלות שיעזרו לנו להתאים את התכנית' : 'A few questions to tailor the program'} />
  <div style={{ display:'grid', gap: 20 }}>
  {assessmentQuestions.map(q => (
  <div key={q.id}>
@@ -216,7 +217,7 @@ function StartFlow({ onDone }) {
  )}
  {q.type === 'select'&& (
  <Select value={answers[q.id] || ''} onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}>
- <option value="">בחר...</option>
+ <option value="">{isRTL ? 'בחר...' : 'Choose...'}</option>
  {q.options.map(o => <option key={o} value={o}>{o}</option>)}
  </Select>
  )}
@@ -224,7 +225,7 @@ function StartFlow({ onDone }) {
  ))}
  </div>
  <div style={{ marginTop: 20, textAlign:'left'}}>
- <Button onClick={() => setStep(2)}>המשך לתצוגה מקדימה ←</Button>
+ <Button onClick={() => setStep(2)}>{isRTL ? 'המשך לתצוגה מקדימה ←' : 'Continue to preview ←'}</Button>
  </div>
  </Card>
  </div>
@@ -236,38 +237,38 @@ function StartFlow({ onDone }) {
  return (
  <div style={{ display:'grid', gap: 16 }}>
  <div style={{ display:'flex', gap: 10, alignItems:'center'}}>
- <Button variant="ghost"size="sm"onClick={() => setStep(1)}>← חזור</Button>
+ <Button variant="ghost"size="sm"onClick={() => setStep(1)}>← {isRTL ? 'חזור' : 'Back'}</Button>
  </div>
 
  {answers.pain >= 7 && (
  <Card style={{ padding: 16, background:`${t.color.danger}15`, borderColor: t.color.danger }}>
- <div style={{ fontWeight: 700, color: t.color.danger, marginBottom: 6 }}> כאב גבוה - שקול לפנות לרופא/פיזיותרפיסט לפני התחלת תכנית</div>
- <div style={{ fontSize: t.font.sm, color: t.color.text }}>סימנת כאב של {answers.pain}/10. אנחנו ממליצים לקבל אבחון מקצועי לפני עומס.</div>
+ <div style={{ fontWeight: 700, color: t.color.danger, marginBottom: 6 }}> {isRTL ? 'כאב גבוה - שקול לפנות לרופא/פיזיותרפיסט לפני התחלת תכנית' : 'High pain — consider seeing a doctor/physio before starting a program'}</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.text }}>{isRTL ? `סימנת כאב של ${answers.pain}/10. אנחנו ממליצים לקבל אבחון מקצועי לפני עומס.` : `You reported pain of ${answers.pain}/10. We recommend getting a professional assessment before loading.`}</div>
  </Card>
  )}
 
  <Card>
- <SectionHeader title={protocol?.title} subtitle={`${protocol?.duration} שבועות · פרוטוקול מתקדם`} />
+ <SectionHeader title={protocol?.title} subtitle={`${protocol?.duration} ${isRTL ? 'שבועות · פרוטוקול מתקדם' : 'weeks · progressive protocol'}`} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10, marginBottom: 20 }} className="hfos-weeks">
  {protocol?.weeks.map(w => (
  <div key={w.week} style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md }}>
- <div style={{ color: t.color.gold, fontWeight: 700, fontSize: t.font.sm, marginBottom: 6 }}>שבוע {w.week}</div>
+ <div style={{ color: t.color.gold, fontWeight: 700, fontSize: t.font.sm, marginBottom: 6 }}>{isRTL ? 'שבוע' : 'Week'} {w.week}</div>
  <div style={{ fontSize: t.font.xs, color: t.color.text, marginBottom: 8, minHeight: 30 }}>{w.focus}</div>
- <div style={{ fontSize: 10, color: t.color.textMuted }}>{w.exercises.length} תרגילים</div>
+ <div style={{ fontSize: 10, color: t.color.textMuted }}>{w.exercises.length} {isRTL ? 'תרגילים' : 'exercises'}</div>
  </div>
  ))}
  </div>
 
  <div style={{ padding: 14, background:`${t.color.warning}10`, borderRadius: t.radius.md, marginBottom: 14 }}>
- <div style={{ fontSize: t.font.xs, color: t.color.warning, fontWeight: 700, marginBottom: 6 }}> עצור והתייעץ עם רופא אם:</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.warning, fontWeight: 700, marginBottom: 6 }}> {isRTL ? 'עצור והתייעץ עם רופא אם:' : 'Stop and consult a doctor if:'}</div>
  <div style={{ fontSize: t.font.sm, color: t.color.text, lineHeight: 1.7 }}>
  {flags.slice(0, 4).map((f, i) => <div key={i}>• {f}</div>)}
  </div>
  </div>
 
  <div style={{ display:'flex', gap: 10, justifyContent:'flex-end'}}>
- <Button variant="ghost"onClick={() => setStep(1)}>שנה תשובות</Button>
- <Button onClick={commit}>התחל תכנית </Button>
+ <Button variant="ghost"onClick={() => setStep(1)}>{isRTL ? 'שנה תשובות' : 'Change answers'}</Button>
+ <Button onClick={commit}>{isRTL ? 'התחל תכנית ' : 'Start program'}</Button>
  </div>
  </Card>
  <style>{`@media (max-width: 700px) { .hfos-weeks { grid-template-columns: 1fr 1fr !important; } }`}</style>
