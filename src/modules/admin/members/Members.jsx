@@ -1,235 +1,662 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { t } from '../../../theme/tokens'
-import { Card, Button, Input, Select, Badge, SectionHeader, Modal, ProgressBar, EmptyState } from '../../../components/ui/UI'
+import { Card, Button, Input, Select, Modal, ProgressBar } from '../../../components/ui/UI'
 import { Sparkline } from '../../../components/charts/Charts'
-import { storage } from '../../../utils/storage'
+import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/components/primitives'
+import { useAuth } from '../../../auth/AuthContext'
+import { supabaseEnabled } from '../../../lib/supabase'
+import { listAllMembers, memberEngagementSummary } from '../../../services/supabaseSync'
+
+// Real admin roster — reads live from Supabase profiles table.
+// The old mockMembers demo is available behind a toggle for UI preview.
 
 export function Members() {
- const [q, setQ] = useState('')
- const [status, setStatus] = useState('')
- const [risk, setRisk] = useState('')
- const [selected, setSelected] = useState(null)
- const [showDemo, setShowDemo] = useState(false)
+  const { user } = useAuth()
+  const [q, setQ] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
+  const [selected, setSelected] = useState(null)
+  const [showDemo, setShowDemo] = useState(false)
+  const [demoMembers, setDemoMembers] = useState([])
 
- // Real members would come from a backend. For now, we show an honest empty
- // state and let the admin opt-in to sample data for UI preview.
- const [demoMembers, setDemoMembers] = useState([])
- useEffect(() => {
- if (showDemo && !demoMembers.length) {
- import('../../../data/mockUsers').then(m => setDemoMembers(m.mockMembers))
- }
- }, [showDemo])
+  // Real data from Supabase
+  const [live, setLive] = useState([])
+  const [engagement, setEngagement] = useState({ photos: {}, requests: {} })
+  const [loading, setLoading] = useState(supabaseEnabled)
+  const [error, setError] = useState('')
 
- const source = showDemo ? demoMembers : []
- const filtered = source.filter(m =>
- (!q || m.name.includes(q)) &&
- (!status || m.status === status) &&
- (!risk || m.risk === risk)
- )
+  useEffect(() => {
+    if (!supabaseEnabled) { setLoading(false); return }
+    let mounted = true
+    ;(async () => {
+      try {
+        const [members, eng] = await Promise.all([
+          listAllMembers(),
+          memberEngagementSummary(),
+        ])
+        if (!mounted) return
+        setLive(members)
+        setEngagement(eng)
+      } catch (err) {
+        console.error('[Members] load failed:', err)
+        if (mounted) setError(err.message || 'שגיאה בטעינת מתאמנים')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
 
- return (
- <div style={{ display:'grid', gap: 16 }}>
- <Card style={{ padding: 16 }}>
- <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap: 10 }} className="hfos-grid-members">
- <Input placeholder="חפש מתאמן..." value={q} onChange={e => setQ(e.target.value)} />
- <Select value={status} onChange={e => setStatus(e.target.value)}>
- <option value="">כל הסטטוסים</option>
- <option value="active">פעיל</option>
- <option value="paused">מושהה</option>
- </Select>
- <Select value={risk} onChange={e => setRisk(e.target.value)}>
- <option value="">כל הסיכונים</option>
- <option value="low">נמוך</option>
- <option value="medium">בינוני</option>
- <option value="high">גבוה</option>
- </Select>
- <Button icon="+">הוסף מתאמן</Button>
- </div>
- </Card>
+  useEffect(() => {
+    if (showDemo && !demoMembers.length) {
+      import('../../../data/mockUsers').then(m => setDemoMembers(m.mockMembers))
+    }
+  }, [showDemo])
 
- {!showDemo && (
- <Card style={{ padding: 20, background: `${t.color.info}10`, borderColor: t.color.info }}>
- <div style={{ display:'flex', gap: 12, alignItems:'center'}}>
- <div style={{ fontSize: 28 }}> </div>
- <div style={{ flex: 1 }}>
- <div style={{ fontWeight: 700, marginBottom: 4 }}>אין עדיין מתאמנים רשומים</div>
- <div style={{ color: t.color.textDim, fontSize: t.font.sm, lineHeight: 1.5 }}>
- כשמתאמנים ייצרו חשבון עם המייל שלהם, הם יופיעו כאן. כדי לראות איך זה נראה עם נתונים - הפעל תצוגת דמו.
- </div>
- </div>
- <Button variant="outline"size="sm"onClick={() => setShowDemo(true)}>הצג תצוגת דמו</Button>
- </div>
- </Card>
- )}
+  const normalized = useMemo(() => {
+    if (showDemo) return demoMembers
+    return live.map(m => normalizeMember(m, engagement))
+  }, [live, engagement, showDemo, demoMembers])
 
- {showDemo && (
- <div style={{ padding: 10, background: t.color.goldGlow, border: `1px solid ${t.color.gold}`, borderRadius: t.radius.md, fontSize: t.font.sm, color: t.color.gold, textAlign:'center'}}>
- תצוגת דמו פעילה - הנתונים כאן דמיוניים
- <button onClick={() => setShowDemo(false)} style={{ background:'none', border:'none', color: t.color.gold, marginRight: 12, cursor:'pointer', textDecoration:'underline', fontFamily:'inherit'}}>כבה</button>
- </div>
- )}
+  const filtered = normalized.filter(m =>
+    (!q || (m.name || '').toLowerCase().includes(q.toLowerCase()) || (m.email || '').toLowerCase().includes(q.toLowerCase())) &&
+    (!statusFilter || m.status === statusFilter) &&
+    (!roleFilter || m.role === roleFilter)
+  )
 
- <Card>
- <SectionHeader title={`מתאמנים (${filtered.length})`} />
- <div style={{ overflowX:'auto'}}>
- <table style={{ width:'100%', borderCollapse:'collapse', minWidth: 900 }}>
- <thead>
- <tr style={{ borderBottom:`1px solid ${t.color.border}` }}>
- {['שם','מטרה','מאמן','מנוי','דבקות','מצב-רוח','אימונים','סיכון','סטטוס'].map(h => (
- <th key={h} style={{ textAlign:'right', padding:'10px 12px', fontSize: t.font.xs, color: t.color.textDim, fontWeight: 500 }}>{h}</th>
- ))}
- </tr>
- </thead>
- <tbody>
- {filtered.map(m => (
- <tr key={m.id} onClick={() => setSelected(m)} style={{ borderBottom:`1px solid ${t.color.border}`, cursor:'pointer'}}
- onMouseEnter={e => e.currentTarget.style.background = t.color.bgSoft}
- onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
- <td style={{ padding: 12 }}>
- <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
- <div style={{ width: 32, height: 32, borderRadius:'50%', background: t.color.gold, color:'#0d0d14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 700, fontSize: 12 }}>{m.name[0]}</div>
- <div>
- <div style={{ fontWeight: 600 }}>{m.name}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{m.age} · הצטרף לפני {m.joinedDays} ימים</div>
- </div>
- </div>
- </td>
- <td style={{ padding: 12, fontSize: t.font.sm }}>{m.goal}</td>
- <td style={{ padding: 12, fontSize: t.font.sm }}>{m.coach}</td>
- <td style={{ padding: 12 }}><Badge color={m.plan === 'פרימיום'? t.color.gold : t.color.textDim}>{m.plan}</Badge></td>
- <td style={{ padding: 12, minWidth: 120 }}>
- <div style={{ fontSize: t.font.xs, marginBottom: 4, color: t.color.textDim }}>{m.adherence}%</div>
- <ProgressBar value={m.adherence} max={100} color={m.adherence >= 75 ? t.color.success : m.adherence >= 50 ? t.color.gold : t.color.danger} />
- </td>
- <td style={{ padding: 12, fontWeight: 700 }}>{m.mood}/10</td>
- <td style={{ padding: 12 }}>{m.sessionsThisWeek}</td>
- <td style={{ padding: 12 }}><RiskBadge risk={m.risk} /></td>
- <td style={{ padding: 12 }}><Badge color={m.status === 'active'? t.color.success : t.color.warning}>{m.status === 'active'? 'פעיל':'מושהה'}</Badge></td>
- </tr>
- ))}
- </tbody>
- </table>
- {!filtered.length && <EmptyState icon=" "title="לא נמצאו מתאמנים"/>}
- </div>
- </Card>
+  const counts = useMemo(() => ({
+    total: normalized.length,
+    active: normalized.filter(m => m.status === 'active').length,
+    coaches: normalized.filter(m => m.role === 'coach').length,
+    admins: normalized.filter(m => m.role === 'admin').length,
+  }), [normalized])
 
- <MemberDrawer member={selected} onClose={() => setSelected(null)} />
- <style>{`@media (max-width: 900px) { .hfos-grid-members { grid-template-columns: 1fr !important; } }`}</style>
- </div>
- )
+  // Copy the trainee signup link — the admin can share it with new members
+  const inviteLink = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+  const [copied, setCopied] = useState(false)
+  const copyInvite = () => {
+    navigator.clipboard?.writeText(inviteLink).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+
+      {/* ─── Sport-Refined header card: real-time counters + invite link ─── */}
+      <div style={{
+        position: 'relative',
+        borderRadius: t.radius.xl,
+        overflow: 'hidden',
+        border: `1px solid ${t.color.hairline}`,
+        background: `linear-gradient(180deg, transparent 20%, rgba(0,0,0,0.7) 100%), linear-gradient(160deg, ${t.color.panel2} 0%, ${t.color.charcoal} 100%)`,
+        padding: '24px 24px 24px',
+      }}>
+        <div style={{
+          position: 'absolute', top: '-30%', insetInlineEnd: '-20%',
+          width: 340, height: 340,
+          background: `radial-gradient(circle, ${t.color.wineGlow} 0%, transparent 55%)`,
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 2, marginBottom: 16 }}>
+          <Kicker>קונסולת מנהל</Kicker>
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 2, marginBottom: 20 }}>
+          <SectionHead size="h2" emphasis={counts.total ? `${counts.total} רשומים` : 'עדיין ריק'}>
+            המתאמנים שלך
+          </SectionHead>
+        </div>
+
+        {/* Live counters */}
+        <div style={{
+          position: 'relative', zIndex: 2,
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 1, background: t.color.border, borderRadius: t.radius.md, overflow: 'hidden',
+          marginBottom: 20,
+        }}>
+          <CountCell label="סה״כ" value={counts.total} />
+          <CountCell label="פעילים" value={counts.active} tone="wine" />
+          <CountCell label="מאמנים" value={counts.coaches} />
+          <CountCell label="מנהלים" value={counts.admins} />
+        </div>
+
+        {/* Invite link */}
+        <div style={{
+          position: 'relative', zIndex: 2,
+          display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+          padding: '12px 14px',
+          background: t.color.charcoal,
+          border: `1px solid ${t.color.border}`,
+          borderRadius: t.radius.md,
+        }}>
+          <Label color={t.color.silver3}>קישור הזמנה</Label>
+          <div style={{
+            flex: 1, minWidth: 200,
+            fontFamily: t.font.family.mono, fontSize: 12,
+            color: t.color.silver1, letterSpacing: '-0.005em',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            direction: 'ltr',
+          }}>{inviteLink}</div>
+          <SButton variant={copied ? 'quiet' : 'light'} size="sm" onClick={copyInvite}>
+            {copied ? 'הועתק' : 'העתק'}
+          </SButton>
+        </div>
+      </div>
+
+      {/* Setup notice / demo toggle */}
+      {!supabaseEnabled && (
+        <NoticeBanner tone="warn">
+          Supabase לא מוגדר במערכת (VITE_SUPABASE_URL חסר). המתאמנים לא יסונכרנו בין מכשירים. הפעל "תצוגת דמו" כדי לראות את המבנה עם נתונים לדוגמה.
+        </NoticeBanner>
+      )}
+      {supabaseEnabled && error && (
+        <NoticeBanner tone="danger">
+          שגיאה בטעינה מ-Supabase: {error}
+        </NoticeBanner>
+      )}
+      {supabaseEnabled && !loading && !error && normalized.length === 0 && !showDemo && (
+        <NoticeBanner tone="info">
+          אין עדיין רשומות של מתאמנים. שלח את קישור ההזמנה, ומיד שהמתאמנים נרשמים הם יופיעו כאן.
+        </NoticeBanner>
+      )}
+
+      {/* Filters + demo toggle */}
+      <div style={{
+        background: t.color.panel, border: `1px solid ${t.color.border}`,
+        borderRadius: t.radius.lg, padding: 14,
+      }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10,
+        }} className="hfos-grid-members">
+          <Input placeholder="חפש לפי שם או מייל…" value={q} onChange={e => setQ(e.target.value)} />
+          <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+            <option value="">כל התפקידים</option>
+            <option value="member">מתאמן</option>
+            <option value="coach">מאמן</option>
+            <option value="admin">מנהל</option>
+          </Select>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="">כל הסטטוסים</option>
+            <option value="active">פעיל</option>
+            <option value="onboarding">בתהליך</option>
+            <option value="idle">לא פעיל</option>
+          </Select>
+          <SButton
+            variant={showDemo ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={() => setShowDemo(v => !v)}
+          >
+            {showDemo ? 'כבה דמו' : 'תצוגת דמו'}
+          </SButton>
+        </div>
+      </div>
+
+      {/* Loading state */}
+      {loading && (
+        <div style={{
+          padding: 40, textAlign: 'center',
+          background: t.color.panel, border: `1px solid ${t.color.border}`,
+          borderRadius: t.radius.lg,
+        }}>
+          <Label color={t.color.silver2}>טוען מתאמנים מ-Supabase…</Label>
+        </div>
+      )}
+
+      {/* Members table */}
+      {!loading && filtered.length > 0 && (
+        <div style={{
+          background: t.color.panel, border: `1px solid ${t.color.border}`,
+          borderRadius: t.radius.lg, overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '14px 18px',
+            borderBottom: `1px solid ${t.color.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          }}>
+            <Kicker color="silver" dash={false}>{showDemo ? 'תצוגת דמו' : 'נתונים חיים'}</Kicker>
+            <Label color={t.color.silver3}>{filtered.length} מתוך {normalized.length}</Label>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+              <thead>
+                <tr>
+                  {['מתאמן', 'תפקיד', 'מטרה', 'סטטוס', 'תמונות', 'הצטרף'].map(h => (
+                    <th key={h} style={{
+                      textAlign: 'right', padding: '12px 16px',
+                      fontFamily: t.font.family.mono, fontSize: 10,
+                      letterSpacing: '0.24em', textTransform: 'uppercase',
+                      color: t.color.silver3, fontWeight: 400,
+                      borderBottom: `1px solid ${t.color.hairline}`,
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(m => (
+                  <MemberRow key={m.id} member={m} onOpen={() => setSelected(m)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <MemberDrawer member={selected} onClose={() => setSelected(null)} />
+      <style>{`@media (max-width: 900px) { .hfos-grid-members { grid-template-columns: 1fr !important; } }`}</style>
+    </div>
+  )
 }
 
-function RiskBadge({ risk }) {
- const map = { low:['נמוך', t.color.success], medium:['בינוני', t.color.warning], high:['גבוה', t.color.danger] }
- const [label, color] = map[risk] || ['—', t.color.textDim]
- return <Badge color={color}>{label}</Badge>
+// ─── Helpers ────────────────────────────────────────────────
+
+// Turn a raw Supabase profile row into the shape the UI expects.
+function normalizeMember(row, engagement) {
+  const photos = engagement.photos?.[row.id]?.count || 0
+  const lastActivity = engagement.photos?.[row.id]?.last || row.updated_at || row.created_at
+  const daysSinceActive = lastActivity ? daysBetween(new Date(lastActivity), new Date()) : null
+  const daysSinceJoin = row.created_at ? daysBetween(new Date(row.created_at), new Date()) : 0
+
+  // Simple status heuristic based on activity
+  let status = 'onboarding'
+  if (row.onboarded) status = 'active'
+  if (daysSinceActive !== null && daysSinceActive > 21) status = 'idle'
+
+  return {
+    id: row.id,
+    name: row.name || (row.email ? row.email.split('@')[0] : 'ללא שם'),
+    email: row.email || '',
+    role: row.role || 'member',
+    status,
+    onboarded: !!row.onboarded,
+    age: row.age,
+    sex: row.sex,
+    weightKg: row.weight_kg,
+    goal: goalLabel(row.goal_key),
+    joinedDays: daysSinceJoin,
+    lastActivityDays: daysSinceActive,
+    photosCount: photos,
+    createdAt: row.created_at,
+  }
 }
 
+function daysBetween(a, b) {
+  return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 86400000))
+}
+
+function goalLabel(key) {
+  const map = {
+    build_muscle: 'בניית שריר',
+    lose_weight: 'ירידה במשקל',
+    get_stronger: 'להתחזק',
+    endurance: 'סיבולת',
+    health: 'בריאות כללית',
+    performance: 'ביצועים',
+  }
+  return map[key] || (key ? key : '—')
+}
+
+// ─── Row component ─────────────────────────────────────────
+function MemberRow({ member, onOpen }) {
+  const initials = (member.name || '?').trim().slice(0, 1).toUpperCase()
+
+  return (
+    <tr
+      onClick={onOpen}
+      style={{
+        cursor: 'pointer',
+        borderBottom: `1px solid ${t.color.hairline}`,
+        transition: 'background .12s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = t.color.panel2}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      <td style={{ padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${t.color.wineLight}, ${t.color.wine})`,
+            color: t.color.white,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: t.font.family.display,
+            fontWeight: 600, fontSize: 13,
+            border: `1px solid rgba(255,255,255,0.08)`,
+            flexShrink: 0,
+          }}>{initials}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontFamily: t.font.family.display, fontSize: 14,
+              fontWeight: 600, color: t.color.white,
+              letterSpacing: '-0.01em', marginBottom: 2,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{member.name}</div>
+            {member.email && (
+              <div style={{
+                fontFamily: t.font.family.mono, fontSize: 10,
+                letterSpacing: '0.05em', color: t.color.silver3,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                direction: 'ltr', textAlign: 'left',
+              }}>{member.email}</div>
+            )}
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: '14px 16px' }}>
+        <RoleTag role={member.role} />
+      </td>
+      <td style={{
+        padding: '14px 16px', fontSize: 13, color: t.color.silver1,
+        letterSpacing: '-0.005em',
+      }}>{member.goal}</td>
+      <td style={{ padding: '14px 16px' }}>
+        <StatusTag status={member.status} />
+      </td>
+      <td style={{
+        padding: '14px 16px',
+        fontFamily: t.font.family.mono, fontSize: 11,
+        color: t.color.silver1, fontVariantNumeric: 'tabular-nums',
+      }}>{member.photosCount || '—'}</td>
+      <td style={{ padding: '14px 16px' }}>
+        <Label color={t.color.silver2}>
+          {member.joinedDays === 0 ? 'היום'
+            : member.joinedDays === 1 ? 'אתמול'
+            : `${member.joinedDays} ימים`}
+        </Label>
+      </td>
+    </tr>
+  )
+}
+
+function RoleTag({ role }) {
+  const map = {
+    admin: { label: 'מנהל', color: t.color.wineLight },
+    coach: { label: 'מאמן', color: t.color.silver1 },
+    member: { label: 'מתאמן', color: t.color.silver2 },
+  }
+  const cfg = map[role] || map.member
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '4px 10px',
+      background: 'transparent',
+      border: `1px solid ${cfg.color}`,
+      color: cfg.color,
+      borderRadius: t.radius.pill,
+      fontFamily: t.font.family.mono, fontSize: 9,
+      letterSpacing: '0.22em', textTransform: 'uppercase',
+    }}>{cfg.label}</span>
+  )
+}
+
+function StatusTag({ status }) {
+  const map = {
+    active: { label: 'פעיל', color: t.color.success },
+    onboarding: { label: 'בתהליך', color: t.color.silver1 },
+    idle: { label: 'לא פעיל', color: t.color.warning },
+    paused: { label: 'מושהה', color: t.color.warning },
+  }
+  const cfg = map[status] || map.onboarding
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      fontFamily: t.font.family.mono, fontSize: 10,
+      letterSpacing: '0.22em', textTransform: 'uppercase',
+      color: cfg.color,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.color }} />
+      {cfg.label}
+    </span>
+  )
+}
+
+function CountCell({ label, value, tone }) {
+  return (
+    <div style={{
+      padding: '14px 12px',
+      background: t.color.panel,
+      textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: t.font.family.mono, fontSize: 9,
+        letterSpacing: '0.24em', color: t.color.silver3,
+        textTransform: 'uppercase', marginBottom: 6,
+      }}>{label}</div>
+      <div style={{
+        fontFamily: t.font.family.display,
+        fontSize: 26, fontWeight: 600,
+        letterSpacing: '-0.03em', lineHeight: 1,
+        color: tone === 'wine' ? t.color.wineLight : t.color.white,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{value}</div>
+    </div>
+  )
+}
+
+function NoticeBanner({ tone, children }) {
+  const border = tone === 'danger' ? t.color.danger
+                : tone === 'warn'  ? t.color.warning
+                : tone === 'info'  ? t.color.wineLight
+                : t.color.border
+  return (
+    <div style={{
+      padding: '14px 16px',
+      background: t.color.panel,
+      border: `1px solid ${border}`,
+      borderRadius: t.radius.md,
+      color: t.color.silver1,
+      fontSize: 13, lineHeight: 1.5,
+      letterSpacing: '-0.005em',
+    }}>{children}</div>
+  )
+}
+
+// ─── Drawer for member detail ─────────────────────────────
 function MemberDrawer({ member, onClose }) {
- if (!member) return null
- // synthesize trends from member data (deterministic per member for stable demo)
- const seed = member.id.charCodeAt(1) || 3
- const rand = (i) => Math.abs(Math.sin(seed * 12.9898 + i * 78.233)) % 1
- const weightSeries = Array.from({ length: 12 }, (_, i) => +(member.weightKg + (rand(i)-0.5)*3).toFixed(1))
- const adherenceSeries = Array.from({ length: 8 }, (_, i) => Math.min(100, Math.max(30, member.adherence + Math.round((rand(i+5)-0.5)*20))))
- const moodSeries = Array.from({ length: 14 }, (_, i) => Math.min(10, Math.max(2, Math.round(member.mood + (rand(i+10)-0.5)*3))))
- const strengthSeries = Array.from({ length: 8 }, (_, i) => Math.round(80 + i*4 + rand(i+20)*6))
+  if (!member) return null
 
- return (
- <Modal open={!!member} onClose={onClose} title={member.name} width={860}>
- <div style={{ display:'grid', gap: 16 }}>
- <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 10, textAlign:'center'}} className="hfos-member-stats">
- <MiniStat label="גיל"value={member.age} />
- <MiniStat label="משקל"value={`${member.weightKg}ק״ג`} />
- <MiniStat label="דבקות"value={`${member.adherence}%`} />
- <MiniStat label="מצב רוח"value={`${member.mood}/10`} />
- <MiniStat label="אימונים/שב׳"value={member.sessionsThisWeek} />
- </div>
+  // Seed-based synthetic charts for demo members (no real workout log yet)
+  const seed = String(member.id).charCodeAt(1) || 3
+  const rand = (i) => Math.abs(Math.sin(seed * 12.9898 + i * 78.233)) % 1
+  const weight = member.weightKg || 75
+  const adherence = member.adherence || (member.status === 'active' ? 78 : 42)
+  const mood = member.mood || 7
+  const weightSeries = Array.from({ length: 12 }, (_, i) => +(weight + (rand(i)-0.5)*3).toFixed(1))
+  const adherenceSeries = Array.from({ length: 8 }, (_, i) => Math.min(100, Math.max(30, adherence + Math.round((rand(i+5)-0.5)*20))))
+  const moodSeries = Array.from({ length: 14 }, (_, i) => Math.min(10, Math.max(2, Math.round(mood + (rand(i+10)-0.5)*3))))
 
- <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12 }} className="hfos-member-charts">
- <TrendCard title="משקל"data={weightSeries} unit="ק״ג"color={t.color.gold} sub="12 שבועות"/>
- <TrendCard title="דבקות"data={adherenceSeries} unit="%"color={t.color.success} sub="8 שבועות"/>
- <TrendCard title="מצב-רוח"data={moodSeries} unit="/10"color={t.color.info} sub="14 ימים"/>
- <TrendCard title="ביצועי כוח (סקוואט)"data={strengthSeries} unit="ק״ג"color={t.color.purple} sub="8 שבועות"/>
- </div>
+  return (
+    <Modal open={!!member} onClose={onClose} title={member.name} width={800}>
+      <div style={{ display: 'grid', gap: 20 }}>
 
- <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 }}>
- <SummaryRow label="מטרה"value={member.goal} />
- <SummaryRow label="מנוי"value={member.plan} />
- <SummaryRow label="מאמן"value={member.coach} />
- <SummaryRow label="Check-in אחרון"value={member.lastCheckin} />
- </div>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'baseline', paddingBottom: 12,
+          borderBottom: `1px solid ${t.color.border}`,
+        }}>
+          <Kicker>{member.role === 'admin' ? 'מנהל' : member.role === 'coach' ? 'מאמן' : 'מתאמן'}</Kicker>
+          <Label color={t.color.silver2}>
+            {member.email || `נרשם לפני ${member.joinedDays} ימים`}
+          </Label>
+        </div>
 
- <Card style={{ background: t.color.bgSoft, padding: 14 }}>
- <div style={{ fontWeight: 600, marginBottom: 8, display:'flex', alignItems:'center', gap: 8 }}>
- <Badge color={t.color.gold}> המלצת המנוע</Badge>
- </div>
- <div style={{ fontSize: t.font.sm, color: t.color.text, lineHeight: 1.6 }}>
- {coachRecommendation(member)}
- </div>
- </Card>
+        {/* Meta stats */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 1, background: t.color.border, borderRadius: t.radius.md, overflow: 'hidden',
+        }} className="hfos-member-stats">
+          <MiniStat label="גיל" value={member.age || '—'} />
+          <MiniStat label="משקל" value={member.weightKg ? `${member.weightKg}` : '—'} unit={member.weightKg ? 'ק״ג' : ''} />
+          <MiniStat label="הצטרף" value={member.joinedDays} unit="יום" />
+          <MiniStat label="תמונות" value={member.photosCount || 0} />
+        </div>
 
- <div style={{ display:'flex', gap: 10, justifyContent:'flex-end', flexWrap:'wrap'}}>
- <Button variant="ghost"> שלח הודעה</Button>
- <Button variant="ghost"> קבע פגישה</Button>
- <Button variant="outline"> עדכן תכנית</Button>
- <Button> צפה כמתאמן</Button>
- </div>
- </div>
- <style>{`
- @media (max-width: 700px) {
- .hfos-member-stats { grid-template-columns: 1fr 1fr !important; }
- .hfos-member-charts { grid-template-columns: 1fr !important; }
- }
- `}</style>
- </Modal>
- )
+        {/* Trends (mock for now — real data once workout logs sync) */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10,
+        }} className="hfos-member-charts">
+          <TrendCard title="משקל" data={weightSeries} unit="ק״ג" sub="12 שבועות" />
+          <TrendCard title="דבקות" data={adherenceSeries} unit="%" sub="8 שבועות" />
+          <TrendCard title="מצב רוח" data={moodSeries} unit="/10" sub="14 ימים" />
+        </div>
+
+        {/* Summary rows */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
+        }}>
+          <SummaryRow label="מטרה" value={member.goal} />
+          <SummaryRow label="סטטוס" value={
+            <StatusTag status={member.status} />
+          } />
+          <SummaryRow label="מייל" value={member.email || '—'} mono />
+          <SummaryRow label="פעילות אחרונה" value={
+            member.lastActivityDays === null ? '—'
+            : member.lastActivityDays === 0 ? 'היום'
+            : `לפני ${member.lastActivityDays} ימים`
+          } />
+        </div>
+
+        {/* Recommendations */}
+        <div style={{
+          padding: 16, background: t.color.panel,
+          border: `1px solid ${t.color.border}`,
+          borderRadius: t.radius.lg,
+        }}>
+          <div style={{ marginBottom: 8 }}>
+            <Kicker color="wine">המלצת המנוע</Kicker>
+          </div>
+          <div style={{
+            fontSize: 14, color: t.color.silver1, lineHeight: 1.6,
+            letterSpacing: '-0.005em',
+          }}>
+            {coachRecommendation(member)}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap',
+          paddingTop: 8, borderTop: `1px solid ${t.color.border}`,
+        }}>
+          <SButton variant="ghost">שלח הודעה</SButton>
+          <SButton variant="ghost">קבע פגישה</SButton>
+          <SButton variant="light">צפה כמתאמן</SButton>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 700px) {
+          .hfos-member-stats { grid-template-columns: 1fr 1fr !important; }
+          .hfos-member-charts { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </Modal>
+  )
 }
 
-function TrendCard({ title, data, unit, color, sub }) {
- const last = data[data.length - 1]
- const first = data[0]
- const delta = last - first
- const pct = first ? Math.round((delta / first) * 100) : 0
- const positive = delta >= 0
- return (
- <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md }}>
- <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{title}</div>
- <Badge color={positive ? t.color.success : t.color.warning}>
- {positive ? '↗':'↘'} {pct}%
- </Badge>
- </div>
- <div style={{ fontSize: t.font.xxl, fontWeight: 800, color, marginBottom: 6 }}>
- {last}<span style={{ fontSize: t.font.sm, color: t.color.textDim }}> {unit}</span>
- </div>
- <Sparkline data={data} height={40} color={color} />
- <div style={{ fontSize: 10, color: t.color.textMuted, marginTop: 4 }}>{sub}</div>
- </div>
- )
+function TrendCard({ title, data, unit, sub }) {
+  const last = data[data.length - 1]
+  const first = data[0]
+  const delta = last - first
+  const pct = first ? Math.round((delta / first) * 100) : 0
+  const positive = delta >= 0
+  return (
+    <div style={{
+      padding: 16, background: t.color.panel,
+      border: `1px solid ${t.color.border}`,
+      borderRadius: t.radius.lg,
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'baseline', marginBottom: 10,
+      }}>
+        <Label color={t.color.silver2}>{title}</Label>
+        <span style={{
+          fontFamily: t.font.family.mono, fontSize: 10,
+          color: positive ? t.color.success : t.color.warning,
+          letterSpacing: '0.14em', fontVariantNumeric: 'tabular-nums',
+        }}>{positive ? '↑' : '↓'} {Math.abs(pct)}%</span>
+      </div>
+      <div style={{
+        fontFamily: t.font.family.display,
+        fontSize: 26, fontWeight: 500,
+        letterSpacing: '-0.03em', color: t.color.white,
+        fontVariantNumeric: 'tabular-nums',
+        marginBottom: 8, lineHeight: 1,
+      }}>
+        {last}
+        <span style={{
+          fontFamily: t.font.family.body, fontSize: 12,
+          color: t.color.silver2, marginInlineStart: 4, fontWeight: 500,
+          letterSpacing: '-0.01em',
+        }}>{unit}</span>
+      </div>
+      <Sparkline data={data} height={36} color={t.color.wineLight} />
+      <div style={{
+        fontFamily: t.font.family.mono, fontSize: 9,
+        color: t.color.silver3, marginTop: 6,
+        letterSpacing: '0.16em', textTransform: 'uppercase',
+      }}>{sub}</div>
+    </div>
+  )
 }
 
 function coachRecommendation(m) {
- if (m.risk === 'high') return `${m.name} בסיכון נטישה. דבקות ${m.adherence}%, ${m.sessionsThisWeek} אימונים השבוע. המלצה: שיחת טלפון אישית ובחינת סיבות (עומס עבודה? פציעה? תזונה?). מומלץ להציע 2 שבועות של תכנית מקוצרת (30 דק׳ × 3 בשבוע) לחזרה הדרגתית.`
- if (m.risk === 'medium') return `${m.name} מראה סימני האטה. שווה Check-in אישי בפגישה הבאה - לוודא שהמטרות עדיין רלוונטיות ושהתכנית לא נשחקה. שקול הכנסת אתגר חדש (מדד PR חדש) לחידוש מוטיבציה.`
- if (m.adherence >= 85) return `ביצועים מצוינים - דבקות גבוהה ומצב-רוח יציב. הזדמנות לפרוגרסיה: העלאת עומס בתרגילי מפתח, או הוספת יום אימון חמישי. שווה להזמין בסוף החודש כמודל להשראה למתאמנים חדשים.`
- return `${m.name} על מסלול טוב. המשך במה שעובד. פגישה חודשית להערכת התקדמות תספיק.`
+  if (m.status === 'idle') return `${m.name} לא פעיל ${m.lastActivityDays} ימים. שלח הודעה אישית — לפעמים מספיק "מה נשמע" כדי להחזיר. אם אין תגובה תוך שבוע, קבע פגישת ריענון.`
+  if (!m.onboarded) return `${m.name} טרם השלים את תהליך הרישום. שלח לו את הקישור שוב או עזור לו בשלבים הראשונים.`
+  if (m.photosCount === 0) return `${m.name} עדיין לא העלה תמונות התקדמות. הזכר לו — תמונות קדם/אחרי הן הכלי החזק ביותר לשמור מוטיבציה.`
+  return `${m.name} על מסלול טוב. המשך במה שעובד. פגישה חודשית להערכת התקדמות תספיק.`
 }
 
-function MiniStat({ label, value }) {
- return (
- <div style={{ padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md }}>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{label}</div>
- <div style={{ fontSize: t.font.lg, fontWeight: 700, color: t.color.gold }}>{value}</div>
- </div>
- )
+function MiniStat({ label, value, unit }) {
+  return (
+    <div style={{
+      padding: 14, background: t.color.panel, textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: t.font.family.mono, fontSize: 9,
+        letterSpacing: '0.24em', color: t.color.silver3,
+        textTransform: 'uppercase', marginBottom: 6,
+      }}>{label}</div>
+      <div style={{
+        fontFamily: t.font.family.display,
+        fontSize: 20, fontWeight: 600,
+        letterSpacing: '-0.025em', color: t.color.white,
+        fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+      }}>
+        {value}
+        {unit && <span style={{
+          fontFamily: t.font.family.body, fontSize: 11,
+          color: t.color.silver2, marginInlineStart: 3,
+          fontWeight: 500, letterSpacing: '-0.01em',
+        }}>{unit}</span>}
+      </div>
+    </div>
+  )
 }
 
-function SummaryRow({ label, value }) {
- return (
- <div style={{ padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{label}</div>
- <div style={{ fontWeight: 600 }}>{value}</div>
- </div>
- )
+function SummaryRow({ label, value, mono }) {
+  return (
+    <div style={{
+      padding: '12px 14px',
+      background: t.color.panel,
+      border: `1px solid ${t.color.border}`,
+      borderRadius: t.radius.md,
+    }}>
+      <div style={{ marginBottom: 4 }}>
+        <Label color={t.color.silver3}>{label}</Label>
+      </div>
+      <div style={{
+        fontFamily: mono ? t.font.family.mono : t.font.family.body,
+        fontSize: mono ? 12 : 14,
+        color: t.color.white,
+        fontWeight: mono ? 400 : 500,
+        letterSpacing: mono ? '0.02em' : '-0.005em',
+        direction: mono ? 'ltr' : 'inherit',
+        textAlign: mono ? 'left' : 'inherit',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{value}</div>
+    </div>
+  )
 }

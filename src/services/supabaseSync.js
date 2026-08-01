@@ -158,12 +158,46 @@ export async function listProgressPhotos(userId = null) {
 }
 
 // ─── ADMIN: MEMBERS LIST ────────────────────────────────────────────
+// Fetches all profiles. Tries to include email; if the `email` column is
+// missing (older schema), retries with just the core fields.
 export async function listAllMembers() {
   if (!supabaseEnabled) return []
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, name, role, onboarded, created_at, updated_at')
-    .order('created_at', { ascending: false })
+  const attemptSelect = async (cols) => {
+    return supabase.from('profiles').select(cols).order('created_at', { ascending: false })
+  }
+  let { data, error } = await attemptSelect('id, email, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at')
+  if (error && /column.*does not exist/i.test(error.message || '')) {
+    ({ data, error } = await attemptSelect('id, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+  }
   if (error) { console.warn('[supabaseSync] list members failed:', error.message); return [] }
   return data || []
+}
+
+// Aggregate — how many progress photos each member uploaded (proxy for engagement)
+export async function memberEngagementSummary() {
+  if (!supabaseEnabled) return { photos: {}, requests: {} }
+  const [photosRes, reqRes] = await Promise.all([
+    supabase.from('progress_photos').select('user_id, date'),
+    supabase.from('personal_training_requests').select('user_id, submitted_at, status'),
+  ])
+  const photos = {}
+  ;(photosRes.data || []).forEach(p => {
+    if (!p.user_id) return
+    if (!photos[p.user_id]) photos[p.user_id] = { count: 0, last: null }
+    photos[p.user_id].count += 1
+    if (!photos[p.user_id].last || new Date(p.date) > new Date(photos[p.user_id].last)) {
+      photos[p.user_id].last = p.date
+    }
+  })
+  const requests = {}
+  ;(reqRes.data || []).forEach(r => {
+    if (!r.user_id) return
+    if (!requests[r.user_id]) requests[r.user_id] = { count: 0, latestStatus: null, submittedAt: null }
+    requests[r.user_id].count += 1
+    if (!requests[r.user_id].submittedAt || new Date(r.submitted_at) > new Date(requests[r.user_id].submittedAt)) {
+      requests[r.user_id].submittedAt = r.submitted_at
+      requests[r.user_id].latestStatus = r.status
+    }
+  })
+  return { photos, requests }
 }
