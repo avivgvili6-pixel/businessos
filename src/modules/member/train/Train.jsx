@@ -21,6 +21,7 @@ import {
 import { CrossFitWod } from './crossfit/WodGenerator'
 import { BodybuildingHub } from './bodybuilding/BodybuildingHub'
 import { useI18n } from '../../../i18n/i18n'
+import { Kicker, SectionHead, Label, StatRow, Button as SButton, WeightDisplay } from '../../../design/components/primitives'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
@@ -1187,47 +1188,92 @@ function History() {
 function EmptyPlanScreen({ archive, onBuildPlan, onResume, onRemove, building, setBuilding }) {
   if (building) return <PlanBuilder onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <Card style={{ padding: 32, textAlign: 'center', background: `linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -30, left: -30, width: 200, height: 200, background: t.color.goldGlow, borderRadius: '50%', filter: 'blur(50px)' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 64, marginBottom: 12 }}>🏋️</div>
-          <h1 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 8 }}>
-            עדיין אין לך תכנית פעילה
-          </h1>
-          <p style={{ color: t.color.textDim, fontSize: t.font.md, lineHeight: 1.6, maxWidth: 460, margin: '0 auto 24px' }}>
-            בחר סגנון (או משלב), כמות ימים, וקבל תכנית מדעית מותאמת אליך תוך 2 דקות.
-          </p>
-          <Button size="lg" onClick={onBuildPlan} icon="✨">בנה לי תכנית עכשיו</Button>
+    <div style={{ display: 'grid', gap: 20 }}>
+      {/* Sport-Refined hero — warm charcoal + wine radial + Barlow display */}
+      <div style={{
+        position: 'relative',
+        borderRadius: t.radius.xl,
+        overflow: 'hidden',
+        border: `1px solid ${t.color.hairline}`,
+        background: `linear-gradient(180deg, transparent 25%, rgba(0,0,0,0.65) 100%), linear-gradient(160deg, ${t.color.panel2} 0%, ${t.color.charcoal} 100%)`,
+        padding: '32px 26px 30px',
+        minHeight: 260,
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      }}>
+        {/* radial wine glow */}
+        <div style={{
+          position: 'absolute', top: '-30%', insetInlineEnd: '-20%',
+          width: 340, height: 340,
+          background: `radial-gradient(circle, ${t.color.wineGlow} 0%, transparent 55%)`,
+          pointerEvents: 'none',
+        }} />
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <Kicker>מוכן להתחיל</Kicker>
         </div>
-      </Card>
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <SectionHead size="h1" emphasis="הבנייה מתחילה כאן." style={{ fontSize: 36, marginBottom: 10 }}>
+            עדיין אין תכנית פעילה,
+          </SectionHead>
+          <div style={{
+            color: t.color.silver1, fontSize: t.font.body, lineHeight: 1.55,
+            maxWidth: 480, marginBottom: 24, letterSpacing: '-0.005em',
+          }}>
+            בחר סגנון, ימים בשבוע וציוד — נבנה תכנית מדעית מותאמת אליך תוך 2 דקות. תמיד אפשר לשנות תוך כדי.
+          </div>
+          <SButton variant="light" onClick={onBuildPlan} size="lg">
+            בנה תכנית
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style={{ transform: 'rotate(180deg)' }}>
+              <path d="M2 1v10l8-5z"/>
+            </svg>
+          </SButton>
+        </div>
+      </div>
 
       {archive.length > 0 && (
-        <Card>
-          <SectionHeader
-            title="התכניות הקודמות שלך"
-            subtitle="לחץ 'חזור לתכנית' כדי להמשיך מאחת מהן"
-          />
-          <div style={{ display: 'grid', gap: 8 }}>
-            {archive.map(p => (
+        <div style={{
+          background: t.color.panel, border: `1px solid ${t.color.border}`,
+          borderRadius: t.radius.lg, padding: 20,
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+            paddingBottom: 10, marginBottom: 10, borderBottom: `1px solid ${t.color.border}`,
+          }}>
+            <Kicker color="silver" dash={false}>תכניות בארכיון</Kicker>
+            <Label color={t.color.silver3}>{archive.length}</Label>
+          </div>
+          <div style={{ display: 'grid', gap: 0 }}>
+            {archive.map((p, i) => (
               <div key={p.id} style={{
                 display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
-                padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
+                padding: '14px 4px',
+                borderTop: i === 0 ? 'none' : `1px solid ${t.color.hairline}`,
               }}>
                 <div style={{ flex: 1, minWidth: 180 }}>
-                  <div style={{ fontWeight: 700 }}>{p.name}</div>
-                  <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
-                    {p.sessionsDone}/{p.sessionsExpected} אימונים · <b style={{ color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning }}>{p.completionPct}%</b>
-                  </div>
+                  <div style={{
+                    fontFamily: t.font.family.display, fontSize: 16,
+                    fontWeight: t.font.weight.semi, color: t.color.white,
+                    letterSpacing: '-0.02em', marginBottom: 4,
+                  }}>{p.name}</div>
+                  <Label>
+                    {p.sessionsDone}/{p.sessionsExpected} אימונים
+                    <span style={{
+                      marginInlineStart: 8, color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.wineLight : t.color.warning,
+                    }}>· {p.completionPct}%</span>
+                  </Label>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => onResume(p.id)}>🔄 חזור</Button>
-                <button onClick={() => { if (confirm('למחוק לצמיתות?')) onRemove(p.id) }} style={{
-                  background: 'transparent', border: 'none', color: t.color.textDim, cursor: 'pointer', fontSize: 18,
-                }}>🗑️</button>
+                <SButton variant="ghost" size="sm" onClick={() => onResume(p.id)}>המשך</SButton>
+                <button
+                  onClick={() => { if (confirm('למחוק לצמיתות?')) onRemove(p.id) }}
+                  title="הסר"
+                  style={{
+                    background: 'transparent', border: 'none', color: t.color.silver3,
+                    cursor: 'pointer', fontSize: 18, padding: 6,
+                  }}
+                >×</button>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
     </div>
   )
@@ -1235,56 +1281,94 @@ function EmptyPlanScreen({ archive, onBuildPlan, onResume, onRemove, building, s
 
 // ─── Active plan summary (collapsed by default) ─────────────
 function ActivePlanSummary({ plan, overallPct, weekPct, currentWeek, totalWeeks, lastWorkoutDate, expanded, onToggle, onClose, onNewPlan }) {
-  const pctColor = overallPct >= 75 ? t.color.success : overallPct >= 40 ? t.color.gold : t.color.warning
   return (
-    <Card style={{ borderColor: t.color.gold, borderWidth: 2 }} glow>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-        {/* Progress ring */}
-        <div style={{
-          width: 60, height: 60, borderRadius: '50%',
-          background: `conic-gradient(${pctColor} ${overallPct * 3.6}deg, ${t.color.bgSoft} 0deg)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: '50%', background: t.color.bgCard,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: t.font.md, color: pctColor,
-          }}>{overallPct}%</div>
-        </div>
+    <div style={{
+      position: 'relative',
+      borderRadius: t.radius.xl,
+      overflow: 'hidden',
+      border: `1px solid ${t.color.hairline}`,
+      background: `linear-gradient(180deg, transparent 20%, rgba(0,0,0,0.75) 100%), linear-gradient(160deg, ${t.color.panel2} 0%, ${t.color.charcoal} 100%)`,
+      padding: '22px 22px 24px',
+    }}>
+      {/* wine radial */}
+      <div style={{
+        position: 'absolute', top: '-30%', insetInlineEnd: '-20%',
+        width: 340, height: 340,
+        background: `radial-gradient(circle, ${t.color.wineGlow} 0%, transparent 55%)`,
+        pointerEvents: 'none',
+      }} />
 
-        {/* Name + info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-            <Badge color={t.color.gold}>פעיל</Badge>
-            <b style={{ color: t.color.text, fontSize: t.font.lg }}>{plan.name}</b>
-          </div>
-          <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
-            שבוע {currentWeek}/{totalWeeks} · {weekPct}% השבוע
-            {lastWorkoutDate && <> · אימון אחרון: {lastWorkoutDate}</>}
-            {!lastWorkoutDate && <> · טרם התחלת</>}
-          </div>
-        </div>
-
-        {/* Close button */}
+      {/* Top row: kicker + close */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        position: 'relative', zIndex: 2, marginBottom: 20,
+      }}>
+        <Kicker>תכנית פעילה</Kicker>
         <button
           onClick={onClose}
           title="סגור תכנית"
           style={{
             background: 'transparent', border: `1px solid ${t.color.border}`,
-            color: t.color.textDim, borderRadius: '50%',
-            width: 36, height: 36, cursor: 'pointer', fontSize: 16,
+            color: t.color.silver2, borderRadius: '50%',
+            width: 30, height: 30, cursor: 'pointer', fontSize: 14, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
-        >✕</button>
+        >×</button>
+      </div>
+
+      {/* Title */}
+      <div style={{ position: 'relative', zIndex: 2, marginBottom: 14 }}>
+        <SectionHead size="h2" style={{ fontSize: 32 }}>{plan.name}</SectionHead>
+      </div>
+
+      {/* Meta strip */}
+      <div style={{
+        position: 'relative', zIndex: 2, marginBottom: 22,
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0,
+      }}>
+        <Label color={t.color.silver1}>שבוע {currentWeek} / {totalWeeks}</Label>
+        <span style={{ color: t.color.silver3, marginInline: 10 }}>·</span>
+        <Label color={t.color.silver1}>{weekPct}% השבוע</Label>
+        <span style={{ color: t.color.silver3, marginInline: 10 }}>·</span>
+        <Label color={t.color.silver1}>{overallPct}% סה״כ</Label>
+        {lastWorkoutDate && (
+          <>
+            <span style={{ color: t.color.silver3, marginInline: 10 }}>·</span>
+            <Label color={t.color.silver1}>אחרון: {lastWorkoutDate}</Label>
+          </>
+        )}
+      </div>
+
+      {/* Progress bar — full width, wine gradient */}
+      <div style={{
+        position: 'relative', zIndex: 2, marginBottom: 20,
+        height: 3, background: t.color.panel, borderRadius: 2, overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%', width: `${overallPct}%`,
+          background: `linear-gradient(90deg, ${t.color.wine}, ${t.color.wineLight})`,
+          borderRadius: 2,
+        }} />
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <Button variant="primary" onClick={onToggle} style={{ flex: 2, justifyContent: 'center', minWidth: 140 }}>
-          {expanded ? '▲ סגור מבט מלא' : '▼ פתח מבט מלא'}
-        </Button>
-        <Button variant="outline" onClick={onNewPlan}>✨ תכנית חדשה</Button>
+      <div style={{
+        position: 'relative', zIndex: 2,
+        display: 'flex', gap: 8, flexWrap: 'wrap',
+      }}>
+        <SButton
+          variant="light"
+          onClick={onToggle}
+          style={{ flex: 2, minWidth: 140 }}
+        >
+          {expanded ? 'סגור מבט' : 'פתח מבט'}
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: t.transition }}>
+            <path d="M2 3.5l3 3 3-3"/>
+          </svg>
+        </SButton>
+        <SButton variant="ghost" onClick={onNewPlan}>תכנית חדשה</SButton>
       </div>
-    </Card>
+    </div>
   )
 }
 

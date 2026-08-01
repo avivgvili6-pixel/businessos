@@ -8,6 +8,7 @@ import { bmr, tdee, macros, goalAdjustments, dietTemplates, waterLiters } from '
 import { runEngine, severityColor } from '../../../engine/adaptationEngine'
 import { DailyBoost } from '../../../components/notifications/DailyBoost'
 import { PhotoReminder } from '../../../components/reminders/PhotoReminder'
+import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/components/primitives'
 
 export function Home({ go }) {
   const { state } = useApp()
@@ -34,19 +35,44 @@ export function Home({ go }) {
       <DailyBoost userName={first} />
       <PhotoReminder go={go} />
 
-      {/* Hero */}
-      <Card className="hfos-hero" style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 24 }}>
-        <div className="hfos-hero-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap: 16 }}>
+      {/* Hero — Sport-Refined */}
+      <div className="hfos-hero" style={{
+        position: 'relative',
+        borderRadius: t.radius.xl,
+        overflow: 'hidden',
+        border: `1px solid ${t.color.hairline}`,
+        background: `linear-gradient(180deg, transparent 20%, rgba(0,0,0,0.7) 100%), linear-gradient(160deg, ${t.color.panel2} 0%, ${t.color.charcoal} 100%)`,
+        padding: '24px 24px 26px',
+      }}>
+        {/* wine radial */}
+        <div style={{
+          position: 'absolute', top: '-30%', insetInlineEnd: '-20%',
+          width: 340, height: 340,
+          background: `radial-gradient(circle, ${t.color.wineGlow} 0%, transparent 55%)`,
+          pointerEvents: 'none',
+        }} />
+
+        <div className="hfos-hero-row" style={{
+          position: 'relative', zIndex: 2,
+          display:'flex', justifyContent:'space-between', alignItems:'center', gap: 16,
+        }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginBottom: 4 }}>{greeting()}</div>
-            <h1 className="hfos-hero-title" style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, lineHeight: 1.2 }}>{first}, מוכן/ה?</h1>
-            <div style={{ color: t.color.textDim, fontSize: t.font.sm, lineHeight: 1.5 }}>{focusToday(state)}</div>
+            <div style={{ marginBottom: 10 }}>
+              <Kicker>{greeting()}</Kicker>
+            </div>
+            <SectionHead size="h1" emphasis="מוכן?" style={{ fontSize: 34, marginBottom: 10 }} className="hfos-hero-title">
+              {first},
+            </SectionHead>
+            <div style={{
+              color: t.color.silver1, fontSize: t.font.body, lineHeight: 1.5,
+              letterSpacing: '-0.005em', maxWidth: 380,
+            }}>{focusToday(state)}</div>
           </div>
           <Ring value={readiness} max={100} size={90} stroke={8}
-            color={readiness >= 75 ? t.color.success : readiness >= 50 ? t.color.gold : t.color.warning}
+            color={readiness >= 75 ? t.color.success : readiness >= 50 ? t.color.wineLight : t.color.warning}
             label={`${readiness}`} sublabel="READY" />
         </div>
-      </Card>
+      </div>
 
       {/* Goal widget - most important thing in the app */}
       <GoalWidget state={state} go={go} />
