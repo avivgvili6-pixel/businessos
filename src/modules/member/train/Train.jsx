@@ -6,7 +6,6 @@ import { Sparkline } from '../../../components/charts/Charts'
 import { exercises, MUSCLE_GROUPS, EQUIPMENT, CATEGORIES, LEVELS, workoutSplits } from '../../../data/exercises'
 import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescription } from '../../../data/programs'
 import { todayKey, DAYS_HE } from '../../../utils/date'
-import { QuickBuilder } from './QuickBuilder'
 import { PdfImporter } from './PdfImporter'
 import { ExerciseGuideButton } from './ExerciseGuide'
 import { workoutEvent, googleCalendarUrl, downloadICS } from '../../../utils/calendar'
@@ -20,24 +19,24 @@ import {
   applyDifficultyToSession, difficultyProfile,
 } from '../../../utils/weekProgression'
 import { CrossFitWod } from './crossfit/WodGenerator'
+import { useI18n } from '../../../i18n/i18n'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
+  const { t: tr } = useI18n()
   return (
     <>
       <Tabs tabs={[
-        { key:'plan',     label:'התכנית שלי' },
-        { key:'crossfit', label:'🔥 WOD' },
-        { key:'quick',    label:'⚡ אימון מהיר' },
-        { key:'programs', label:'🌍 תכניות מוכרות' },
-        { key:'import',   label:'📄 ייבוא PDF' },
-        { key:'library',  label:'מאגר תרגילים' },
-        { key:'builder',  label:'מחולל מלא' },
-        { key:'history',  label:'היסטוריה' },
+        { key:'plan',     label: tr('train.tab.plan') },
+        { key:'crossfit', label: tr('train.tab.crossfit') },
+        { key:'programs', label: tr('train.tab.programs') },
+        { key:'import',   label: tr('train.tab.import') },
+        { key:'library',  label: tr('train.tab.library') },
+        { key:'builder',  label: tr('train.tab.builder') },
+        { key:'history',  label: tr('train.tab.history') },
       ]} active={tab} onChange={setTab} />
       {tab === 'plan'     && <MyPlan />}
       {tab === 'crossfit' && <CrossFitWod />}
-      {tab === 'quick'    && <QuickBuilder />}
       {tab === 'programs' && <ProgramsLibrary />}
       {tab === 'import'   && <PdfImporter />}
       {tab === 'library'  && <Library />}

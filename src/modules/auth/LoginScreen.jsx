@@ -3,6 +3,7 @@ import { t } from '../../theme/tokens'
 import { useAuth, ADMIN_EMAILS } from '../../auth/AuthContext'
 import { Button, Card, Input } from '../../components/ui/UI'
 import { storage } from '../../utils/storage'
+import { useI18n } from '../../i18n/i18n'
 
 // Password-based login flow (magic-link removed for a faster experience):
 //   1. chooser: 'existing' or 'new' or coach-request
@@ -18,6 +19,7 @@ export function LoginScreen() {
     loginWithPassword, signupWithPassword, sendPasswordReset,
     updatePassword, passwordRecovery, supabaseEnabled,
   } = useAuth()
+  const { lang, setLang, t: tr, isRTL } = useI18n()
 
   const rememberedEmail = storage.get(LAST_EMAIL_KEY) || ''
   const rememberedName = storage.get(LAST_NAME_KEY) || ''
@@ -174,7 +176,7 @@ export function LoginScreen() {
     <div style={{
       minHeight: '100vh', background: t.color.bg,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: t.space.lg, direction: 'rtl', color: t.color.text,
+      padding: t.space.lg, direction: isRTL ? 'rtl' : 'ltr', color: t.color.text,
       position: 'relative', overflow: 'hidden',
     }}>
       <div style={{
@@ -183,6 +185,28 @@ export function LoginScreen() {
         background: `radial-gradient(closest-side, ${t.color.goldGlow} 0%, transparent 70%)`,
         filter: 'blur(60px)', pointerEvents: 'none',
       }} />
+
+      {/* Language switcher — pinned top-right (in RTL: left side visually) */}
+      <div style={{
+        position: 'absolute', top: 16,
+        [isRTL ? 'left' : 'right']: 16,
+        zIndex: 2, display: 'flex', background: t.color.bgSoft,
+        borderRadius: t.radius.pill, padding: 3, gap: 2,
+        border: `1px solid ${t.color.border}`,
+      }}>
+        {['he', 'en'].map(l => {
+          const active = lang === l
+          return (
+            <button key={l} onClick={() => setLang(l)} style={{
+              padding: '6px 14px', borderRadius: t.radius.pill,
+              background: active ? t.color.gold : 'transparent',
+              color: active ? '#0d0d14' : t.color.textDim,
+              border: 'none', fontFamily: 'inherit', fontWeight: 700, fontSize: t.font.xs,
+              cursor: 'pointer', letterSpacing: 0.5,
+            }}>{l === 'he' ? '🇮🇱 עברית' : '🇺🇸 English'}</button>
+          )
+        })}
+      </div>
 
       <Card style={{ maxWidth: 480, width: '100%', padding: 'clamp(20px, 5vw, 32px)', position: 'relative', zIndex: 1 }} glow>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -195,14 +219,14 @@ export function LoginScreen() {
             HOLISTIC FITNESS OS
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.02 }}>
-            {step === 'chooser' && 'ברוכים הבאים'}
-            {step === 'existing' && 'שמח לראות אותך שוב 👋'}
-            {step === 'new' && 'בואי נכיר ✨'}
-            {step === 'forgot' && '🔑 שכחת סיסמה?'}
-            {step === 'forgot-sent' && '📧 נשלח מייל איפוס'}
-            {step === 'reset-password' && '🔒 בחר/י סיסמה חדשה'}
-            {step === 'coach-request' && 'הרשמה כמאמן'}
-            {step === 'coach-pending' && 'הבקשה נשלחה'}
+            {step === 'chooser' && tr('login.welcome')}
+            {step === 'existing' && tr('login.welcome_back')}
+            {step === 'new' && tr('login.new_user_title')}
+            {step === 'forgot' && tr('login.forgot_title')}
+            {step === 'forgot-sent' && tr('login.forgot_sent_title')}
+            {step === 'reset-password' && tr('login.reset_title')}
+            {step === 'coach-request' && (isRTL ? 'הרשמה כמאמן' : 'Coach signup')}
+            {step === 'coach-pending' && (isRTL ? 'הבקשה נשלחה' : 'Request sent')}
           </h1>
         </div>
 
@@ -212,16 +236,16 @@ export function LoginScreen() {
             <button onClick={() => setStep('existing')} style={choiceCard(t, false)}>
               <div style={{ fontSize: 40 }}>👋</div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2 }}>משתמש קיים</div>
-                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>יש לי חשבון — כניסה עם סיסמה</div>
+                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2 }}>{tr('login.existing_user')}</div>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{tr('login.existing_desc')}</div>
               </div>
             </button>
 
             <button onClick={() => setStep('new')} style={choiceCard(t, true)}>
               <div style={{ fontSize: 40 }}>✨</div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2, color: t.color.gold }}>משתמש חדש</div>
-                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>אני נרשם/ת — סיסמה חדשה</div>
+                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2, color: t.color.gold }}>{tr('login.new_user')}</div>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{tr('login.new_desc')}</div>
               </div>
             </button>
 
@@ -229,7 +253,7 @@ export function LoginScreen() {
               <button onClick={() => setStep('coach-request')} style={{
                 background: 'none', border: 'none', color: t.color.gold, cursor: 'pointer',
                 fontSize: t.font.sm, textDecoration: 'underline', fontFamily: 'inherit',
-              }}>אני מאמן/ת — בקשת הצטרפות ←</button>
+              }}>{tr('login.coach_link')}</button>
             </div>
           </div>
         )}
@@ -238,7 +262,7 @@ export function LoginScreen() {
         {step === 'existing' && (
           <form onSubmit={submitLogin} noValidate style={{ display: 'grid', gap: 14 }}>
             <Input
-              label="מייל"
+              label={tr('login.email')}
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -249,9 +273,9 @@ export function LoginScreen() {
             />
             <div>
               <Input
-                label="סיסמה"
+                label={tr('login.password')}
                 type={showPassword ? 'text' : 'password'}
-                placeholder="הזן/י סיסמה"
+                placeholder={tr('login.password_placeholder')}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoComplete="current-password"
@@ -260,29 +284,29 @@ export function LoginScreen() {
                 error={error ? String(error) : ''}
               />
               <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
-                {showPassword ? '🙈 הסתר' : '👁 הצג סיסמה'}
+                {showPassword ? tr('login.hide_password') : tr('login.show_password')}
               </button>
             </div>
 
             {normalizedEmail && emailIsAdmin && (
-              <div style={adminBadge(t)}>🎯 מייל של מנהל · קונסולת אדמין</div>
+              <div style={adminBadge(t)}>{tr('login.admin_badge')}</div>
             )}
 
             <Button type="submit" size="lg" disabled={busy || !email || !password} style={{ marginTop: 4 }}>
-              {busy ? 'נכנס...' : '🚀 כניסה'}
+              {busy ? tr('login.entering') : tr('login.enter')}
             </Button>
 
             <div style={{ textAlign: 'center', marginTop: 2 }}>
               <button type="button" onClick={() => { setError(''); setPassword(''); setStep('forgot') }}
                 style={{ ...ghostBtn(t), color: t.color.gold, fontSize: t.font.sm }}>
-                🔑 שכחתי סיסמה / לא יצרתי סיסמה עדיין
+                {tr('login.forgot_link')}
               </button>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-              <button type="button" onClick={() => setStep('chooser')} style={ghostBtn(t)}>→ חזור</button>
+              <button type="button" onClick={() => setStep('chooser')} style={ghostBtn(t)}>{tr('login.back')}</button>
               {rememberedEmail && (
-                <button type="button" onClick={forgetMe} style={ghostBtn(t)}>שכח אותי</button>
+                <button type="button" onClick={forgetMe} style={ghostBtn(t)}>{tr('login.forget_me')}</button>
               )}
             </div>
           </form>
@@ -367,33 +391,33 @@ export function LoginScreen() {
         {/* NEW USER: name + email + password */}
         {step === 'new' && (
           <form onSubmit={submitSignup} noValidate style={{ display: 'grid', gap: 14 }}>
-            <Input label="איך קוראים לך?" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
-            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+            <Input label={tr('login.name')} placeholder={tr('login.name_placeholder')} value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
+            <Input label={tr('login.email')} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
             <div>
               <Input
-                label="סיסמה חדשה"
+                label={tr('login.new_password')}
                 type={showPassword ? 'text' : 'password'}
-                placeholder="לפחות 6 תווים"
+                placeholder={tr('login.new_password_placeholder')}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoComplete="new-password"
                 error={error ? String(error) : ''}
-                hint="שמור/י את הסיסמה — היא תשמש לכניסה הבאה"
+                hint={tr('login.password_hint')}
               />
               <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
-                {showPassword ? '🙈 הסתר' : '👁 הצג סיסמה'}
+                {showPassword ? tr('login.hide_password') : tr('login.show_password')}
               </button>
             </div>
 
             {normalizedEmail && emailIsAdmin && (
-              <div style={adminBadge(t)}>🎯 מייל של מנהל · תיכנס לקונסולת אדמין</div>
+              <div style={adminBadge(t)}>{tr('login.admin_badge')}</div>
             )}
 
             <Button type="submit" size="lg" disabled={busy || !email || !name || !password} style={{ marginTop: 4 }}>
-              {busy ? 'יוצר חשבון...' : '✨ צור לי חשבון'}
+              {busy ? tr('login.creating') : tr('login.create_account')}
             </Button>
 
-            <button type="button" onClick={() => setStep('chooser')} style={{ ...ghostBtn(t), textAlign: 'right', margin: '4px 0 0' }}>→ חזור</button>
+            <button type="button" onClick={() => setStep('chooser')} style={{ ...ghostBtn(t), textAlign: isRTL ? 'right' : 'left', margin: '4px 0 0' }}>{tr('login.back')}</button>
           </form>
         )}
 
@@ -440,9 +464,7 @@ export function LoginScreen() {
           marginTop: 24, padding: 12, background: t.color.bgSoft,
           borderRadius: t.radius.md, fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5, textAlign: 'center',
         }}>
-          {supabaseEnabled
-            ? '🔒 כניסה עם סיסמה · הנתונים בענן ומסונכרנים בין מכשירים'
-            : '🔒 הפיילוט שומר הכל מקומית במכשיר'}
+          {supabaseEnabled ? tr('login.footer_supabase') : tr('login.footer_local')}
         </div>
       </Card>
     </div>

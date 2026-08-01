@@ -9,6 +9,7 @@ import { MovementPicker } from './MovementPicker'
 import { WodDisplay } from './WodDisplay'
 import { WodTimer } from './WodTimer'
 import { BenchmarkList } from './BenchmarkList'
+import { useI18n } from '../../../../i18n/i18n'
 
 const INTENTS = [
   { key: 'general',    he: 'כללי',      icon: '📊', desc: 'אימון מאוזן' },
@@ -28,13 +29,14 @@ const LENGTHS = [
 
 export function CrossFitWod() {
   const [tab, setTab] = useState('generator')
+  const { t: tr } = useI18n()
   return (
     <div>
       <Tabs
         tabs={[
-          { key: 'generator',  label: '🎲 מחולל WOD' },
-          { key: 'benchmarks', label: '🏆 Benchmarks' },
-          { key: 'history',    label: '📜 היסטוריה' },
+          { key: 'generator',  label: tr('wod.tab.generator') },
+          { key: 'benchmarks', label: tr('wod.tab.benchmarks') },
+          { key: 'history',    label: tr('wod.tab.history') },
         ]}
         active={tab}
         onChange={setTab}

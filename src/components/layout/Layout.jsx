@@ -2,45 +2,48 @@ import React, { useState } from 'react'
 import { t } from '../../theme/tokens'
 import { useApp } from '../../store/AppStore'
 import { useAuth } from '../../auth/AuthContext'
+import { useI18n } from '../../i18n/i18n'
 
-const MEMBER_NAV = [
-  { key:'home',      label:'בית',      icon:'🏠' },
-  { key:'goals',     label:'מטרה',     icon:'🎯' },
-  { key:'insights',  label:'תובנות',   icon:'✨' },
-  { key:'progress',  label:'התקדמות',  icon:'📈' },
-  { key:'train',     label:'אימונים',  icon:'💪' },
-  { key:'rehab',     label:'שיקום',    icon:'🩹' },
-  { key:'nutrition', label:'תזונה',    icon:'🥗' },
-  { key:'mind',      label:'מנטלי',    icon:'🧠' },
-  { key:'habits',    label:'הרגלים',   icon:'🎯' },
-  { key:'calendar',  label:'יומן',     icon:'📅' },
-  { key:'ondemand',  label:'On-Demand', icon:'📺' },
-  { key:'store',     label:'חנות',     icon:'🛍️' },
-  { key:'personal',  label:'אימון אישי', icon:'💼' },
-  { key:'profile',   label:'פרופיל',   icon:'👤' },
+const MEMBER_NAV_KEYS = [
+  { key:'home',      i18n:'nav.home',      icon:'🏠' },
+  { key:'goals',     i18n:'nav.goals',     icon:'🎯' },
+  { key:'insights',  i18n:'nav.insights',  icon:'✨' },
+  { key:'progress',  i18n:'nav.progress',  icon:'📈' },
+  { key:'train',     i18n:'nav.train',     icon:'💪' },
+  { key:'rehab',     i18n:'nav.rehab',     icon:'🩹' },
+  { key:'nutrition', i18n:'nav.nutrition', icon:'🥗' },
+  { key:'mind',      i18n:'nav.mind',      icon:'🧠' },
+  { key:'habits',    i18n:'nav.habits',    icon:'🎯' },
+  { key:'calendar',  i18n:'nav.calendar',  icon:'📅' },
+  { key:'ondemand',  i18n:'nav.ondemand',  icon:'📺' },
+  { key:'store',     i18n:'nav.store',     icon:'🛍️' },
+  { key:'personal',  i18n:'nav.personal',  icon:'💼' },
+  { key:'profile',   i18n:'nav.profile',   icon:'👤' },
 ]
 
-const ADMIN_NAV = [
-  { key:'overview',  label:'סקירה',    icon:'📊' },
-  { key:'personal',  label:'בקשות אימון אישי', icon:'💼' },
-  { key:'photos',    label:'תמונות מתאמנים', icon:'📸' },
-  { key:'requests',  label:'בקשות מאמנים', icon:'📥' },
-  { key:'members',   label:'מתאמנים',  icon:'👥' },
-  { key:'team',      label:'צוות',     icon:'🧑‍🏫' },
-  { key:'schedule',  label:'לו״ז',     icon:'📅' },
-  { key:'content',   label:'תוכן',     icon:'📚' },
-  { key:'billing',   label:'תשלומים',  icon:'💳' },
-  { key:'analytics', label:'אנליטיקה', icon:'📈' },
-  { key:'alerts',    label:'התראות',   icon:'🚨' },
-  { key:'settings',  label:'הגדרות',   icon:'⚙️' },
+const ADMIN_NAV_KEYS = [
+  { key:'overview',  i18n:'nav.overview',          icon:'📊' },
+  { key:'personal',  i18n:'nav.personal_requests', icon:'💼' },
+  { key:'photos',    i18n:'nav.member_photos',     icon:'📸' },
+  { key:'requests',  i18n:'nav.coach_requests',    icon:'📥' },
+  { key:'members',   i18n:'nav.members',           icon:'👥' },
+  { key:'team',      i18n:'nav.team',              icon:'🧑‍🏫' },
+  { key:'schedule',  i18n:'nav.schedule',          icon:'📅' },
+  { key:'content',   i18n:'nav.content',           icon:'📚' },
+  { key:'billing',   i18n:'nav.billing',           icon:'💳' },
+  { key:'analytics', i18n:'nav.analytics',         icon:'📈' },
+  { key:'alerts',    i18n:'nav.alerts',            icon:'🚨' },
+  { key:'settings',  i18n:'nav.settings',          icon:'⚙️' },
 ]
 
 export function Shell({ page, setPage, children }) {
   const { state } = useApp()
   const { user, logout, viewAs, setViewAs, effectiveRole } = useAuth()
+  const { t: tr, isRTL } = useI18n()
   const isAdmin = user?.role === 'admin' // real admin
   const isAdminView = effectiveRole === 'admin' // currently viewing admin console
-  const nav = isAdminView ? ADMIN_NAV : MEMBER_NAV
+  const navKeys = isAdminView ? ADMIN_NAV_KEYS : MEMBER_NAV_KEYS
+  const nav = navKeys.map(n => ({ ...n, label: tr(n.i18n) }))
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const switchView = (role) => {
@@ -51,7 +54,7 @@ export function Shell({ page, setPage, children }) {
   }
 
   return (
-    <div style={{ display:'flex', minHeight:'100vh', background: t.color.bg, color: t.color.text, direction:'rtl' }}>
+    <div style={{ display:'flex', minHeight:'100vh', background: t.color.bg, color: t.color.text, direction: isRTL ? 'rtl' : 'ltr' }}>
       {/* Sidebar - desktop */}
       <aside className="hfos-sidebar" style={{
         width: 240, background: t.color.bgElevated, borderLeft:`1px solid ${t.color.border}`,
@@ -61,6 +64,7 @@ export function Shell({ page, setPage, children }) {
         <BrandBlock isAdmin={isAdminView} />
         <UserBlock user={user} onLogout={logout} />
         {isAdmin && <ViewAsSwitcher effectiveRole={effectiveRole} onSwitch={switchView} />}
+        <LanguageSwitcher />
         <nav style={{ display:'flex', flexDirection:'column', gap: 4, marginTop: 12 }}>
           {nav.map(item => (
             <NavItem key={item.key} item={item} active={page === item.key} onClick={() => setPage(item.key)} />
@@ -68,7 +72,7 @@ export function Shell({ page, setPage, children }) {
         </nav>
         <div style={{ marginTop:'auto', padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md, fontSize: t.font.xs, color: t.color.textDim }}>
           <div style={{ color:t.color.gold, fontWeight:700, marginBottom:4 }}>Holistic Fitness OS</div>
-          <div>גרסת שלד • v0.1</div>
+          <div>v0.1</div>
         </div>
       </aside>
 
@@ -84,6 +88,7 @@ export function Shell({ page, setPage, children }) {
             <BrandBlock isAdmin={isAdminView} />
             <UserBlock user={user} onLogout={() => { logout(); setMobileOpen(false) }} />
             {isAdmin && <ViewAsSwitcher effectiveRole={effectiveRole} onSwitch={switchView} />}
+            <LanguageSwitcher />
             {nav.map(item => (
               <NavItem key={item.key} item={item} active={page === item.key} onClick={() => { setPage(item.key); setMobileOpen(false) }} />
             ))}
@@ -121,11 +126,38 @@ export function Shell({ page, setPage, children }) {
             fontFamily:'inherit',
           }}>
             <span style={{ fontSize: 20 }}>⋯</span>
-            <span>עוד</span>
+            <span>{tr('nav.more', isRTL ? 'עוד' : 'More')}</span>
           </button>
         </nav>
       </main>
       <ResponsiveStyle />
+    </div>
+  )
+}
+
+function LanguageSwitcher() {
+  const { lang, setLang } = useI18n()
+  return (
+    <div style={{ display: 'flex', background: t.color.bgSoft, borderRadius: t.radius.md, padding: 3, gap: 2 }}>
+      {['he', 'en'].map(l => {
+        const active = lang === l
+        return (
+          <button
+            key={l}
+            onClick={() => setLang(l)}
+            style={{
+              flex: 1, padding: '8px 6px',
+              background: active ? t.color.bgCard : 'transparent',
+              border: 'none', borderRadius: t.radius.sm,
+              color: active ? t.color.gold : t.color.textDim,
+              fontFamily: 'inherit', fontWeight: 700, fontSize: t.font.xs,
+              cursor: 'pointer', letterSpacing: 0.5,
+            }}
+          >
+            {l === 'he' ? '🇮🇱 עברית' : '🇺🇸 English'}
+          </button>
+        )
+      })}
     </div>
   )
 }

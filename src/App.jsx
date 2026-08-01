@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { AppProvider, useApp } from './store/AppStore'
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { I18nProvider } from './i18n/i18n'
 import { Shell } from './components/layout/Layout'
 import { InstallPrompt } from './components/layout/InstallPrompt'
 import { FloatingAssistant } from './components/assistant/FloatingAssistant'
@@ -121,10 +122,12 @@ function AppRouter() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppRouter />
-      </AppProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <AppProvider>
+          <AppRouter />
+        </AppProvider>
+      </AuthProvider>
+    </I18nProvider>
   )
 }
