@@ -173,6 +173,32 @@ export async function listAllMembers() {
   return data || []
 }
 
+// Admin action: trigger a password-recovery email for a specific member.
+// Uses the same public endpoint the user would hit via "forgot password" —
+// no admin privilege required, but the caller UI should be admin-only.
+// Returns { ok, email, error } — swallows nothing so the UI can react.
+export async function adminSendPasswordRecovery(email) {
+  if (!supabaseEnabled) return { ok: false, error: new Error('Supabase not configured') }
+  const normalized = (email || '').trim().toLowerCase()
+  if (!normalized || !normalized.includes('@')) {
+    return { ok: false, error: new Error('כתובת מייל לא תקינה') }
+  }
+  const redirectTo = typeof window !== 'undefined'
+    ? window.location.origin + window.location.pathname
+    : undefined
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(normalized, { redirectTo })
+    if (error) {
+      console.warn('[supabaseSync] adminSendPasswordRecovery failed:', error.message)
+      return { ok: false, email: normalized, error }
+    }
+    return { ok: true, email: normalized }
+  } catch (err) {
+    console.warn('[supabaseSync] adminSendPasswordRecovery threw:', err?.message)
+    return { ok: false, email: normalized, error: err }
+  }
+}
+
 // Aggregate — how many progress photos each member uploaded (proxy for engagement)
 export async function memberEngagementSummary() {
   if (!supabaseEnabled) return { photos: {}, requests: {} }

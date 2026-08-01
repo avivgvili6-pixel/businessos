@@ -5,7 +5,7 @@ import { Sparkline } from '../../../components/charts/Charts'
 import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/components/primitives'
 import { useAuth } from '../../../auth/AuthContext'
 import { supabaseEnabled } from '../../../lib/supabase'
-import { listAllMembers, memberEngagementSummary } from '../../../services/supabaseSync'
+import { listAllMembers, memberEngagementSummary, adminSendPasswordRecovery } from '../../../services/supabaseSync'
 
 // Real admin roster — reads live from Supabase profiles table.
 // The old mockMembers demo is available behind a toggle for UI preview.
@@ -457,6 +457,29 @@ function NoticeBanner({ tone, children }) {
 function MemberDrawer({ member, onClose }) {
   if (!member) return null
 
+  // Password recovery action state
+  const [resetState, setResetState] = useState({ status: 'idle', message: '' })
+  const sendReset = async () => {
+    if (!member.email) {
+      setResetState({ status: 'error', message: 'למתאמן/ת אין מייל רשום — אי אפשר לשלוח איפוס.' })
+      return
+    }
+    setResetState({ status: 'sending', message: '' })
+    const res = await adminSendPasswordRecovery(member.email)
+    if (res.ok) {
+      setResetState({ status: 'ok', message: `נשלח מייל איפוס ל־${member.email}. הקישור פעיל שעה.` })
+    } else {
+      const msg = res.error?.message || 'שגיאה בשליחת האיפוס. נסה שוב או פנה לתמיכה.'
+      setResetState({ status: 'error', message: msg })
+    }
+  }
+  const copyInvite = async () => {
+    const link = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+    await navigator.clipboard?.writeText(link)
+    setResetState({ status: 'copied', message: 'קישור ההזמנה הועתק — הדבק בהודעה למתאמן.' })
+    setTimeout(() => setResetState({ status: 'idle', message: '' }), 2500)
+  }
+
   // Seed-based synthetic charts for demo members (no real workout log yet)
   const seed = String(member.id).charCodeAt(1) || 3
   const rand = (i) => Math.abs(Math.sin(seed * 12.9898 + i * 78.233)) % 1
@@ -533,6 +556,53 @@ function MemberDrawer({ member, onClose }) {
           }}>
             {coachRecommendation(member)}
           </div>
+        </div>
+
+        {/* Account actions — send recovery / copy invite */}
+        <div style={{
+          padding: 16, background: t.color.panel,
+          border: `1px solid ${t.color.border}`, borderRadius: t.radius.lg,
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            alignItems: 'baseline', marginBottom: 12,
+          }}>
+            <Kicker color="wine">גישה לחשבון</Kicker>
+            <Label color={t.color.silver3}>שליחה למייל של המתאמן/ת</Label>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <SButton
+              variant="primary"
+              onClick={sendReset}
+              disabled={resetState.status === 'sending' || !member.email}
+            >
+              {resetState.status === 'sending' ? 'שולח…' : 'שלח מייל איפוס סיסמה'}
+            </SButton>
+            <SButton variant="ghost" onClick={copyInvite}>
+              העתק קישור הזמנה
+            </SButton>
+          </div>
+
+          {resetState.message && (
+            <div style={{
+              marginTop: 12, padding: '10px 12px',
+              borderRadius: t.radius.sm,
+              background: resetState.status === 'error' ? `${t.color.danger}18` : `${t.color.wineGlow}`,
+              border: `1px solid ${resetState.status === 'error' ? t.color.danger : t.color.wineLight}`,
+              color: resetState.status === 'error' ? t.color.danger : t.color.silver1,
+              fontSize: 13, lineHeight: 1.5, letterSpacing: '-0.005em',
+            }}>{resetState.message}</div>
+          )}
+
+          {!member.email && (
+            <div style={{
+              marginTop: 10,
+              fontFamily: t.font.family.mono, fontSize: 10,
+              letterSpacing: '0.14em', color: t.color.silver3,
+              textTransform: 'uppercase',
+            }}>אין מייל רשום — לא ניתן לשלוח איפוס</div>
+          )}
         </div>
 
         <div style={{
