@@ -41,6 +41,19 @@ const initialState = {
   goals: [],                // {id, title, kind, metric, deadlineWeeks, why, barriers, weeklyActions, checkins, status}
   personalTrainingRequests: [], // {id, name, phone, email, age, level, goals, injuries, timePref, whyNow, submittedAt, status}
   benchmarkPRs: {},         // { [benchmarkId]: {time, rounds?, completedAt, history: [{time, rounds?, date}]} }
+  // Bodybuilding module
+  bbRoutines: [],           // user-saved routines (custom or copied from system)
+  bbSavedPrograms: [],      // program ids the user has saved to their library
+  bbActiveProgram: null,    // currently active program (like 'plan' but for bodybuilding)
+  exercisePRs: {},          // { [exerciseId]: { heaviestWeight: {weight,reps,date}, best1RM: {kg,date}, bestSetVolume: {weight,reps,total,date}, bestSessionVolume: {total,date}, history: [] } }
+  workoutSettings: {        // per-user preferences
+    rpeEnabled: false,
+    plateCalculatorEnabled: true,
+    warmupCalculatorEnabled: true,
+    defaultRestSeconds: 90,
+    keepAwake: true,
+    leaderboardOptIn: false,
+  },
   lastActiveDate: todayKey(),
 }
 
@@ -156,6 +169,58 @@ function reducer(state, action) {
     case 'CHECKIN_GOAL':   return { ...state, goals: (state.goals || []).map(g => g.id === action.goalId ? { ...g, checkins: [{ date: new Date().toISOString(), value: action.value, note: action.note }, ...(g.checkins || [])] } : g) }
     case 'ADD_TRAINING_REQUEST': return { ...state, personalTrainingRequests: [action.request, ...(state.personalTrainingRequests || [])] }
     case 'UPDATE_TRAINING_REQUEST': return { ...state, personalTrainingRequests: (state.personalTrainingRequests || []).map(r => r.id === action.id ? { ...r, ...action.patch } : r) }
+    // ─── Bodybuilding module ───────────────────────────────
+    case 'BB_SAVE_ROUTINE': {
+      const routines = state.bbRoutines || []
+      const existing = routines.findIndex(r => r.id === action.routine.id)
+      const next = existing >= 0
+        ? routines.map((r, i) => i === existing ? action.routine : r)
+        : [action.routine, ...routines]
+      return { ...state, bbRoutines: next }
+    }
+    case 'BB_DELETE_ROUTINE':
+      return { ...state, bbRoutines: (state.bbRoutines || []).filter(r => r.id !== action.id) }
+    case 'BB_SAVE_PROGRAM': {
+      const saved = state.bbSavedPrograms || []
+      if (saved.includes(action.programId)) return state
+      return { ...state, bbSavedPrograms: [action.programId, ...saved] }
+    }
+    case 'BB_UNSAVE_PROGRAM':
+      return { ...state, bbSavedPrograms: (state.bbSavedPrograms || []).filter(id => id !== action.programId) }
+    case 'BB_SET_ACTIVE_PROGRAM':
+      return { ...state, bbActiveProgram: action.program }
+    case 'BB_UPDATE_EXERCISE_PR': {
+      // action.result: { exerciseId, weight, reps, sessionVolume, date, workoutId }
+      const { exerciseId, weight, reps, sessionVolume, date, workoutId } = action.result
+      const prev = state.exercisePRs?.[exerciseId] || {}
+      const setVolume = weight * reps
+      // Epley formula for 1RM estimation
+      const est1RM = reps === 1 ? weight : weight * (1 + reps / 30)
+
+      const heaviestWeight = !prev.heaviestWeight || weight > (prev.heaviestWeight.weight || 0)
+        ? { weight, reps, date, workoutId }
+        : prev.heaviestWeight
+      const best1RM = !prev.best1RM || est1RM > (prev.best1RM.kg || 0)
+        ? { kg: Math.round(est1RM * 10) / 10, weight, reps, date }
+        : prev.best1RM
+      const bestSetVolume = !prev.bestSetVolume || setVolume > (prev.bestSetVolume.total || 0)
+        ? { weight, reps, total: setVolume, date }
+        : prev.bestSetVolume
+      const bestSessionVolume = sessionVolume != null && (!prev.bestSessionVolume || sessionVolume > (prev.bestSessionVolume.total || 0))
+        ? { total: sessionVolume, date, workoutId }
+        : prev.bestSessionVolume
+
+      const history = [{ weight, reps, setVolume, date }, ...(prev.history || [])].slice(0, 100)
+      return {
+        ...state,
+        exercisePRs: {
+          ...(state.exercisePRs || {}),
+          [exerciseId]: { heaviestWeight, best1RM, bestSetVolume, bestSessionVolume, history },
+        },
+      }
+    }
+    case 'BB_UPDATE_SETTINGS':
+      return { ...state, workoutSettings: { ...(state.workoutSettings || {}), ...action.patch } }
     case 'SAVE_BENCHMARK_PR': {
       const { benchmarkId, time, rounds, completedAt } = action.pr
       const prev = state.benchmarkPRs?.[benchmarkId]
@@ -244,6 +309,14 @@ export function AppProvider({ children }) {
     addTrainingRequest: (request) => dispatch({ type:'ADD_TRAINING_REQUEST', request }),
     updateTrainingRequest: (id, patch) => dispatch({ type:'UPDATE_TRAINING_REQUEST', id, patch }),
     saveBenchmarkPR: (pr) => dispatch({ type:'SAVE_BENCHMARK_PR', pr }),
+    // Bodybuilding module
+    bbSaveRoutine: (routine) => dispatch({ type:'BB_SAVE_ROUTINE', routine }),
+    bbDeleteRoutine: (id) => dispatch({ type:'BB_DELETE_ROUTINE', id }),
+    bbSaveProgram: (programId) => dispatch({ type:'BB_SAVE_PROGRAM', programId }),
+    bbUnsaveProgram: (programId) => dispatch({ type:'BB_UNSAVE_PROGRAM', programId }),
+    bbSetActiveProgram: (program) => dispatch({ type:'BB_SET_ACTIVE_PROGRAM', program }),
+    bbUpdateExercisePR: (result) => dispatch({ type:'BB_UPDATE_EXERCISE_PR', result }),
+    bbUpdateSettings: (patch) => dispatch({ type:'BB_UPDATE_SETTINGS', patch }),
     reset: () => dispatch({ type:'RESET' }),
   }
 

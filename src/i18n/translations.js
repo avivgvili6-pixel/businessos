@@ -151,6 +151,13 @@ export const TRANSLATIONS = {
     'wod.intent.competition': 'תחרות',
     'wod.intent.competition_desc':'ספציפי למתחרים',
 
+    // Bodybuilding module
+    'train.tab.bb':       '🏋️ אימוני כוח (Hevy-style)',
+    'bb.tab.trainer':     '🎯 המחולל',
+    'bb.tab.programs':    '📚 תוכניות',
+    'bb.tab.routines':    '📋 Routines',
+    'bb.tab.exercises':   '🏋️ מאגר תרגילים',
+
     // Language switcher
     'lang.switch':  'English',
     'lang.current': 'עברית',
@@ -306,6 +313,13 @@ export const TRANSLATIONS = {
     'wod.intent.recovery_desc':'Active recovery & mobility',
     'wod.intent.competition': 'Competition',
     'wod.intent.competition_desc':'Sport-specific',
+
+    // Bodybuilding module
+    'train.tab.bb':       '🏋️ Strength (Hevy-style)',
+    'bb.tab.trainer':     '🎯 Trainer',
+    'bb.tab.programs':    '📚 Programs',
+    'bb.tab.routines':    '📋 Routines',
+    'bb.tab.exercises':   '🏋️ Exercise Library',
 
     // Language switcher
     'lang.switch':  'עברית',

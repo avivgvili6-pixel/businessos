@@ -19,6 +19,7 @@ import {
   applyDifficultyToSession, difficultyProfile,
 } from '../../../utils/weekProgression'
 import { CrossFitWod } from './crossfit/WodGenerator'
+import { BodybuildingHub } from './bodybuilding/BodybuildingHub'
 import { useI18n } from '../../../i18n/i18n'
 
 export function Train() {
@@ -28,6 +29,7 @@ export function Train() {
     <>
       <Tabs tabs={[
         { key:'plan',     label: tr('train.tab.plan') },
+        { key:'bb',       label: tr('train.tab.bb', '🏋️ אימוני כוח (Hevy-style)') },
         { key:'crossfit', label: tr('train.tab.crossfit') },
         { key:'programs', label: tr('train.tab.programs') },
         { key:'import',   label: tr('train.tab.import') },
@@ -36,6 +38,7 @@ export function Train() {
         { key:'history',  label: tr('train.tab.history') },
       ]} active={tab} onChange={setTab} />
       {tab === 'plan'     && <MyPlan />}
+      {tab === 'bb'       && <BodybuildingHub />}
       {tab === 'crossfit' && <CrossFitWod />}
       {tab === 'programs' && <ProgramsLibrary />}
       {tab === 'import'   && <PdfImporter />}
