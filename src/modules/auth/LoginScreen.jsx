@@ -1,30 +1,30 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { t } from '../../theme/tokens'
 import { useAuth, ADMIN_EMAILS } from '../../auth/AuthContext'
-import { Button, Card, Input, Badge } from '../../components/ui/UI'
+import { Button, Card, Input } from '../../components/ui/UI'
 import { storage } from '../../utils/storage'
 
-// 3-step login flow:
-//   1. chooser: 'existing' or 'new'
-//   2. login-form: email (+ name if new) → send magic link
-//   3. link-sent: confirmation
-// Also: coach-request / coach-pending side branch.
-// Remembers last email in localStorage so returning users get pre-filled.
+// Password-based login flow (magic-link removed for a faster experience):
+//   1. chooser: 'existing' or 'new' or coach-request
+//   2. existing: email + password → sign in
+//   3. new: name + email + password → sign up
+// Remembers last email so returning users get pre-filled.
 
 const LAST_EMAIL_KEY = 'hfos:last_email'
 const LAST_NAME_KEY = 'hfos:last_name'
 
 export function LoginScreen() {
-  const { login, supabaseEnabled } = useAuth()
+  const { loginWithPassword, signupWithPassword, supabaseEnabled } = useAuth()
 
-  // Auto-pick 'existing' if we have a remembered email
   const rememberedEmail = storage.get(LAST_EMAIL_KEY) || ''
   const rememberedName = storage.get(LAST_NAME_KEY) || ''
   const [step, setStep] = useState(rememberedEmail ? 'existing' : 'chooser')
   const [email, setEmail] = useState(rememberedEmail)
   const [name, setName] = useState(rememberedName)
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Coach request state
   const [specialty, setSpecialty] = useState('')
@@ -33,76 +33,91 @@ export function LoginScreen() {
 
   const normalizedEmail = (email || '').trim().toLowerCase()
   const emailIsAdmin = ADMIN_EMAILS.includes(normalizedEmail)
-  const emailIsCoach = ((storage.get('coach-whitelist') || []).includes(normalizedEmail))
 
-  const submit = async (e) => {
+  const humanizeError = (err) => {
+    console.error('[Login] error:', {
+      message: err?.message, code: err?.code, status: err?.status, name: err?.name,
+    })
+    const raw = typeof err?.message === 'string' ? err.message : ''
+    const status = err?.status
+    const code = err?.code || err?.name
+
+    if (/invalid.?login|invalid.?credentials|invalid_grant/i.test(raw) || code === 'invalid_credentials') {
+      return '🔐 מייל או סיסמה שגויים. נסה שוב.'
+    }
+    if (/user.?not.?found|no.?user.?found/i.test(raw)) {
+      return '👤 לא נמצא משתמש עם המייל הזה. אולי צריך להירשם קודם?'
+    }
+    if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') {
+      return '👋 המייל הזה כבר רשום. תנסה להיכנס במקום.'
+    }
+    if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) {
+      return '🔒 סיסמה חלשה מדי. לפחות 6 תווים, עדיף עם ספרות ואותיות.'
+    }
+    if (/email.?not.?confirmed/i.test(raw)) {
+      return '✉️ המייל שלך לא אושר. פנה למנהל לכיבוי אישור מייל בהגדרות.'
+    }
+    if (status === 429 || /rate.?limit|too many/i.test(raw)) {
+      return '⏱️ יותר מדי ניסיונות. המתן דקה ונסה שוב.'
+    }
+    if (/failed to fetch|networkerror|connection/i.test(raw) || code === 'NETWORK') {
+      return '📶 בעיית חיבור לאינטרנט. בדוק חיבור ונסה שוב.'
+    }
+    if (raw && !/^[\{\[\]\}]+$/.test(raw.trim())) {
+      return code ? `${raw} (${code})` : raw
+    }
+    return 'משהו השתבש. נסה שוב עוד רגע.'
+  }
+
+  const submitLogin = async (e) => {
     e?.preventDefault?.()
     setError(''); setBusy(true)
-
-    // Client-side validation (bypass browser's native to avoid `{}` artifacts)
-    const em = (email || '').trim().toLowerCase()
-    if (!em || !em.includes('@') || !em.includes('.')) {
-      setError('כתובת מייל לא תקינה')
-      setBusy(false)
-      return
-    }
-
     try {
-      const result = await login(em, name || em.split('@')[0])
-      if (em) storage.set(LAST_EMAIL_KEY, em)
-      if (name) storage.set(LAST_NAME_KEY, name)
-      if (result?.magicLinkSent) setStep('link-sent')
+      if (!normalizedEmail || !normalizedEmail.includes('@')) {
+        setError('כתובת מייל לא תקינה'); setBusy(false); return
+      }
+      if (!password || password.length < 6) {
+        setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return
+      }
+      await loginWithPassword(normalizedEmail, password)
+      storage.set(LAST_EMAIL_KEY, normalizedEmail)
+      // AuthProvider's onAuthStateChange will set user + trigger app render
     } catch (err) {
-      const debugInfo = {
-        message: err?.message,
-        name: err?.name,
-        code: err?.code,
-        status: err?.status,
-        cause: err?.cause,
-        stack: err?.stack?.slice(0, 200),
-        stringified: (() => { try { return JSON.stringify(err, Object.getOwnPropertyNames(err || {})) } catch { return String(err) } })(),
-      }
-      console.error('[Login] submit failed:', debugInfo)
+      setError(humanizeError(err))
+    } finally { setBusy(false) }
+  }
 
-      // Human-friendly message per known Supabase / network conditions
-      const rawMsg = typeof err?.message === 'string' ? err.message : ''
-      const status = err?.status
-      const code = err?.code || err?.name
-      let msg
-      if (status === 429 || /rate.?limit|too many|60 seconds|only request/i.test(rawMsg)) {
-        msg = '⏱️ יותר מדי בקשות. המתן דקה ונסה שוב.'
-      } else if (/redirect.?url/i.test(rawMsg)) {
-        msg = '🔧 בעיית הגדרת URL בשרת. פנה למנהל להוסיף את הכתובת ל־Redirect URLs ב־Supabase.'
-      } else if (/invalid.?email|email.?format/i.test(rawMsg)) {
-        msg = '📧 כתובת מייל לא תקינה. בדוק את הכתובת ונסה שוב.'
-      } else if (/rate.?exceed|smtp|email send|failed to send/i.test(rawMsg) || (rawMsg && /^\{.*\}$|^\[.*\]$/.test(rawMsg.trim()))) {
-        msg = '📮 בעיה בשליחת המייל. ייתכן שהגענו למכסה יומית. תיצור קשר: israelgrip@gmail.com'
-      } else if (/failed to fetch|networkerror|connection|typeerror/i.test(rawMsg) || code === 'NETWORK') {
-        msg = '📶 בעיית חיבור לאינטרנט. בדוק חיבור ונסה שוב.'
-      } else if (rawMsg && !/^[\{\[\]\}]+$/.test(rawMsg.trim())) {
-        // Real Supabase message - show it with code if present
-        msg = code ? `${rawMsg} (${code})` : rawMsg
-      } else if (status || code) {
-        msg = `שגיאה: ${status || code}. תשלח צילום מסך למנהל.`
-      } else {
-        msg = 'משהו השתבש. נסה שוב עוד רגע.'
+  const submitSignup = async (e) => {
+    e?.preventDefault?.()
+    setError(''); setBusy(true)
+    try {
+      if (!name?.trim()) { setError('חסר שם'); setBusy(false); return }
+      if (!normalizedEmail || !normalizedEmail.includes('@')) {
+        setError('כתובת מייל לא תקינה'); setBusy(false); return
       }
-      setError(msg)
-    } finally {
-      setBusy(false)
-    }
+      if (!password || password.length < 6) {
+        setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return
+      }
+      const result = await signupWithPassword(normalizedEmail, password, name)
+      storage.set(LAST_EMAIL_KEY, normalizedEmail)
+      storage.set(LAST_NAME_KEY, name)
+      if (result?.needsConfirmation) {
+        // Supabase created the account but requires email confirmation before session.
+        // Tell the user + offer to try immediate login (works if admin later disables confirmation).
+        setError('נרשמת בהצלחה! מנהל המערכת צריך לאשר את חשבונך. פנה: israelgrip@gmail.com')
+      }
+      // Otherwise onAuthStateChange handles the transition.
+    } catch (err) {
+      setError(humanizeError(err))
+    } finally { setBusy(false) }
   }
 
   const submitCoachRequest = () => {
-    if (!email || !name || !specialty) {
-      setError('שם, מייל, ותחום התמחות חובה')
-      return
-    }
+    if (!email || !name || !specialty) { setError('שם, מייל, ותחום התמחות חובה'); return }
     const requests = storage.get('coach-requests') || []
     const req = {
       email: normalizedEmail, name, specialty, experience, phone,
-      requestedAt: new Date().toISOString(),
-      status: 'pending',
+      requestedAt: new Date().toISOString(), status: 'pending',
     }
     if (!requests.find(r => r.email === normalizedEmail)) {
       storage.set('coach-requests', [req, ...requests])
@@ -111,9 +126,8 @@ export function LoginScreen() {
   }
 
   const forgetMe = () => {
-    storage.remove(LAST_EMAIL_KEY)
-    storage.remove(LAST_NAME_KEY)
-    setEmail(''); setName(''); setStep('chooser')
+    storage.remove(LAST_EMAIL_KEY); storage.remove(LAST_NAME_KEY)
+    setEmail(''); setName(''); setPassword(''); setStep('chooser')
   }
 
   return (
@@ -131,7 +145,6 @@ export function LoginScreen() {
       }} />
 
       <Card style={{ maxWidth: 480, width: '100%', padding: 'clamp(20px, 5vw, 32px)', position: 'relative', zIndex: 1 }} glow>
-        {/* Logo + header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{
             width: 60, height: 60, borderRadius: 14, background: t.color.gold,
@@ -145,20 +158,19 @@ export function LoginScreen() {
             {step === 'chooser' && 'ברוכים הבאים'}
             {step === 'existing' && 'שמח לראות אותך שוב 👋'}
             {step === 'new' && 'בואי נכיר ✨'}
-            {step === 'link-sent' && 'קישור נשלח למייל'}
             {step === 'coach-request' && 'הרשמה כמאמן'}
             {step === 'coach-pending' && 'הבקשה נשלחה'}
           </h1>
         </div>
 
-        {/* CHOOSER: existing vs new */}
+        {/* CHOOSER */}
         {step === 'chooser' && (
           <div style={{ display: 'grid', gap: 12 }}>
             <button onClick={() => setStep('existing')} style={choiceCard(t, false)}>
               <div style={{ fontSize: 40 }}>👋</div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2 }}>משתמש קיים</div>
-                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>יש לי כבר חשבון — שלח קישור למייל</div>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>יש לי חשבון — כניסה עם סיסמה</div>
               </div>
             </button>
 
@@ -166,7 +178,7 @@ export function LoginScreen() {
               <div style={{ fontSize: 40 }}>✨</div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2, color: t.color.gold }}>משתמש חדש</div>
-                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>פעם ראשונה — אני נרשם/ת</div>
+                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>אני נרשם/ת — סיסמה חדשה</div>
               </div>
             </button>
 
@@ -179,9 +191,9 @@ export function LoginScreen() {
           </div>
         )}
 
-        {/* EXISTING USER: email only */}
+        {/* EXISTING USER: email + password */}
         {step === 'existing' && (
-          <form onSubmit={submit} noValidate style={{ display: 'grid', gap: 14 }}>
+          <form onSubmit={submitLogin} noValidate style={{ display: 'grid', gap: 14 }}>
             <Input
               label="מייל"
               type="email"
@@ -189,24 +201,32 @@ export function LoginScreen() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
-              autoFocus
+              autoFocus={!rememberedEmail}
               required
-              error={error ? String(error) : ''}
             />
+            <div>
+              <Input
+                label="סיסמה"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="הזן/י סיסמה"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                autoFocus={!!rememberedEmail}
+                required
+                error={error ? String(error) : ''}
+              />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
+                {showPassword ? '🙈 הסתר' : '👁 הצג סיסמה'}
+              </button>
+            </div>
 
             {normalizedEmail && emailIsAdmin && (
-              <div style={{
-                padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
-                background: t.color.goldGlow,
-                border: `1px solid ${t.color.gold}`,
-                color: t.color.gold,
-              }}>
-                🎯 מייל של מנהל · קונסולת אדמין
-              </div>
+              <div style={adminBadge(t)}>🎯 מייל של מנהל · קונסולת אדמין</div>
             )}
 
-            <Button type="submit" size="lg" disabled={busy || !email} style={{ marginTop: 4 }}>
-              {busy ? 'שולח...' : '✉️ שלח לי קישור כניסה'}
+            <Button type="submit" size="lg" disabled={busy || !email || !password} style={{ marginTop: 4 }}>
+              {busy ? 'נכנס...' : '🚀 כניסה'}
             </Button>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
@@ -218,52 +238,40 @@ export function LoginScreen() {
           </form>
         )}
 
-        {/* NEW USER: name + email */}
+        {/* NEW USER: name + email + password */}
         {step === 'new' && (
-          <form onSubmit={submit} noValidate style={{ display: 'grid', gap: 14 }}>
+          <form onSubmit={submitSignup} noValidate style={{ display: 'grid', gap: 14 }}>
             <Input label="איך קוראים לך?" placeholder="ישראל ישראלי" value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
-            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" error={error ? String(error) : ''} />
+            <Input label="מייל" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+            <div>
+              <Input
+                label="סיסמה חדשה"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="לפחות 6 תווים"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password"
+                error={error ? String(error) : ''}
+                hint="שמור/י את הסיסמה — היא תשמש לכניסה הבאה"
+              />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
+                {showPassword ? '🙈 הסתר' : '👁 הצג סיסמה'}
+              </button>
+            </div>
 
             {normalizedEmail && emailIsAdmin && (
-              <div style={{
-                padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
-                background: t.color.goldGlow, border: `1px solid ${t.color.gold}`,
-                color: t.color.gold,
-              }}>
-                🎯 מייל של מנהל · תיכנס לקונסולת אדמין
-              </div>
+              <div style={adminBadge(t)}>🎯 מייל של מנהל · תיכנס לקונסולת אדמין</div>
             )}
 
-            <Button type="submit" size="lg" disabled={busy || !email || !name} style={{ marginTop: 4 }}>
-              {busy ? 'שולח...' : '✨ צור לי חשבון'}
+            <Button type="submit" size="lg" disabled={busy || !email || !name || !password} style={{ marginTop: 4 }}>
+              {busy ? 'יוצר חשבון...' : '✨ צור לי חשבון'}
             </Button>
 
             <button type="button" onClick={() => setStep('chooser')} style={{ ...ghostBtn(t), textAlign: 'right', margin: '4px 0 0' }}>→ חזור</button>
           </form>
         )}
 
-        {/* LINK SENT confirmation */}
-        {step === 'link-sent' && (
-          <div style={{ textAlign: 'center', padding: '10px 0' }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%', background: t.color.gold, color: '#0d0d14',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
-              marginBottom: 16, boxShadow: t.shadow.glow,
-            }}>✉️</div>
-            <div style={{ marginBottom: 16, fontSize: t.font.md, color: t.color.text, lineHeight: 1.6 }}>
-              שלחנו קישור כניסה למייל:<br />
-              <b style={{ color: t.color.gold }}>{email}</b>
-            </div>
-            <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.7, marginBottom: 16 }}>
-              📧 פתח את המייל ולחץ "כניסה" — יעביר אותך אוטומטית לאפליקציה.
-              <br /><br />
-              💡 לא רואה? בדוק בספאם/קידום מכירות. הקישור פעיל שעה.
-            </div>
-            <Button variant="ghost" onClick={() => { setStep('chooser'); setError('') }}>← מייל אחר</Button>
-          </div>
-        )}
-
-        {/* COACH REQUEST */}
+        {/* COACH REQUEST (unchanged) */}
         {step === 'coach-request' && (
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ color: t.color.textDim, fontSize: t.font.sm, textAlign: 'center', marginBottom: 4 }}>
@@ -307,8 +315,8 @@ export function LoginScreen() {
           borderRadius: t.radius.md, fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5, textAlign: 'center',
         }}>
           {supabaseEnabled
-            ? '🔒 כניסה עם קישור למייל · ללא סיסמאות · הנתונים בענן ומסונכרנים בין מכשירים'
-            : '🔒 הפיילוט שומר הכל מקומית במכשיר - אין סיסמאות'}
+            ? '🔒 כניסה עם סיסמה · הנתונים בענן ומסונכרנים בין מכשירים'
+            : '🔒 הפיילוט שומר הכל מקומית במכשיר'}
         </div>
       </Card>
     </div>
@@ -331,5 +339,18 @@ function ghostBtn(t) {
     background: 'none', border: 'none', color: t.color.textDim,
     fontSize: t.font.xs, cursor: 'pointer', fontFamily: 'inherit',
     textDecoration: 'underline',
+  }
+}
+function showPwBtn(t) {
+  return {
+    background: 'none', border: 'none', color: t.color.textDim,
+    fontSize: t.font.xs, cursor: 'pointer', fontFamily: 'inherit',
+    padding: '6px 2px 0', textDecoration: 'underline',
+  }
+}
+function adminBadge(t) {
+  return {
+    padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
+    background: t.color.goldGlow, border: `1px solid ${t.color.gold}`, color: t.color.gold,
   }
 }

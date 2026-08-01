@@ -156,6 +156,92 @@ export function AuthProvider({ children }) {
     return { user: null, magicLinkSent: true, email: normalizedEmail }
   }
 
+  // Password login — the primary flow now. No magic-link, no waiting for email.
+  const loginWithPassword = async (email, password) => {
+    const normalizedEmail = (email || '').trim().toLowerCase()
+    if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('כתובת מייל לא תקינה')
+    if (!password || password.length < 6) throw new Error('סיסמה חייבת להכיל לפחות 6 תווים')
+
+    if (!supabaseEnabled) {
+      // Legacy local-only fallback (no real auth, matches localStorage-only mode)
+      const role = roleFor(normalizedEmail)
+      const nextUser = { email: normalizedEmail, name: normalizedEmail.split('@')[0], role, loginAt: new Date().toISOString() }
+      setUser(nextUser)
+      return { user: nextUser }
+    }
+
+    let response
+    try {
+      response = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+    } catch (networkErr) {
+      const w = new Error(networkErr?.message || 'בעיית רשת - נסה שוב')
+      w.code = networkErr?.code || 'NETWORK'
+      w.name = networkErr?.name || 'NetworkError'
+      w.cause = networkErr
+      console.error('[supabase.signInWithPassword] network error:', networkErr)
+      throw w
+    }
+
+    const { error } = response
+    if (error) {
+      const w = new Error(error.message || 'שגיאה בכניסה')
+      w.code = error.code
+      w.status = error.status
+      w.name = error.name || 'AuthApiError'
+      w.cause = error
+      console.error('[supabase.signInWithPassword] auth error:', { message: error.message, code: error.code, status: error.status })
+      throw w
+    }
+    return { user: response.data?.user }
+  }
+
+  // Password signup — creates new account.
+  // Requires Supabase's "Confirm email" toggle to be OFF for immediate access.
+  const signupWithPassword = async (email, password, name) => {
+    const normalizedEmail = (email || '').trim().toLowerCase()
+    if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('כתובת מייל לא תקינה')
+    if (!password || password.length < 6) throw new Error('סיסמה חייבת להכיל לפחות 6 תווים')
+
+    if (!supabaseEnabled) {
+      const role = roleFor(normalizedEmail)
+      const nextUser = { email: normalizedEmail, name: name || normalizedEmail.split('@')[0], role, loginAt: new Date().toISOString() }
+      setUser(nextUser)
+      return { user: nextUser }
+    }
+
+    let response
+    try {
+      response = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: { data: { name: name || normalizedEmail.split('@')[0] } },
+      })
+    } catch (networkErr) {
+      const w = new Error(networkErr?.message || 'בעיית רשת - נסה שוב')
+      w.code = networkErr?.code || 'NETWORK'
+      w.name = networkErr?.name || 'NetworkError'
+      w.cause = networkErr
+      console.error('[supabase.signUp] network error:', networkErr)
+      throw w
+    }
+
+    const { error, data } = response
+    if (error) {
+      const w = new Error(error.message || 'שגיאה בהרשמה')
+      w.code = error.code
+      w.status = error.status
+      w.name = error.name || 'AuthApiError'
+      w.cause = error
+      console.error('[supabase.signUp] auth error:', { message: error.message, code: error.code, status: error.status })
+      throw w
+    }
+
+    // If email confirmation is required, Supabase returns a user with no session.
+    // We surface that so the LoginScreen can auto-fall-back to password login,
+    // which will work only if the admin turned confirmation OFF in project settings.
+    return { user: data?.user, session: data?.session, needsConfirmation: !data?.session }
+  }
+
   const logout = async () => {
     if (supabaseEnabled) await supabase.auth.signOut()
     setUser(null); setViewAsState(null)
@@ -182,7 +268,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthCtx.Provider value={{
-      user, session, loading, login, logout,
+      user, session, loading, login, loginWithPassword, signupWithPassword, logout,
       inviteCoach, revokeCoach, listCoaches,
       viewAs, setViewAs, effectiveRole,
       supabaseEnabled,
