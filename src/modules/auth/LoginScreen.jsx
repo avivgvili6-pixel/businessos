@@ -1,19 +1,194 @@
 import React, { useState } from 'react'
 import { t } from '../../theme/tokens'
 import { useAuth, ADMIN_EMAILS } from '../../auth/AuthContext'
-import { Button, Card, Input } from '../../components/ui/UI'
 import { storage } from '../../utils/storage'
 import { useI18n } from '../../i18n/i18n'
 
-// Password-based login flow (magic-link removed for a faster experience):
-//   1. chooser: 'existing' or 'new' or coach-request
-//   2. existing: email + password → sign in
-//   3. new: name + email + password → sign up
-// Remembers last email so returning users get pre-filled.
+// Nike Training Club-inspired auth. Light theme (cream ground, black type,
+// wine primary action), sentence-case sport-refined typography, real form
+// controls with floating labels and inline validation.
 
 const LAST_EMAIL_KEY = 'hfos:last_email'
 const LAST_NAME_KEY = 'hfos:last_name'
 
+// Light auth palette — designed to feel like a signup form, not a dark app screen.
+const AUTH = {
+  bg:       '#fafaf7',
+  card:     '#ffffff',
+  ink:      '#0a0a0a',
+  body:     '#2a2a2a',
+  mute:     '#7a7770',
+  hairline: '#e5e2da',
+  divider:  '#d4d1c8',
+  wine:     '#6f1622',
+  wineDeep: '#5a0f1c',
+  wineLite: '#a52a3a',
+  danger:   '#c03530',
+  success:  '#2e8b57',
+}
+
+// ─── Small controls ──────────────────────────────────────
+function TextField({ label, type = 'text', value, onChange, autoComplete, autoFocus, error, hint, dir, required, placeholder }) {
+  const filled = !!value
+  const [focused, setFocused] = useState(false)
+  return (
+    <label style={{ display: 'block', width: '100%' }}>
+      <div style={{
+        position: 'relative',
+        border: `1px solid ${error ? AUTH.danger : focused ? AUTH.ink : AUTH.hairline}`,
+        borderRadius: 4,
+        background: AUTH.card,
+        transition: 'border-color .12s',
+      }}>
+        <span style={{
+          position: 'absolute',
+          insetInlineStart: 14,
+          top: (filled || focused) ? 6 : '50%',
+          transform: (filled || focused) ? 'translateY(0)' : 'translateY(-50%)',
+          fontFamily: 'inherit',
+          fontSize: (filled || focused) ? 10 : 14,
+          letterSpacing: (filled || focused) ? '0.1em' : '0.005em',
+          textTransform: (filled || focused) ? 'uppercase' : 'none',
+          color: error ? AUTH.danger : (filled || focused) ? AUTH.mute : AUTH.mute,
+          pointerEvents: 'none',
+          transition: 'all .14s',
+          background: (filled || focused) ? AUTH.card : 'transparent',
+          padding: (filled || focused) ? '0 4px' : 0,
+          fontWeight: 500,
+        }}>{label}{required && ' *'}</span>
+        <input
+          type={type}
+          value={value || ''}
+          onChange={onChange}
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          placeholder={focused ? (placeholder || '') : ''}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          dir={dir}
+          style={{
+            width: '100%',
+            padding: '22px 14px 10px',
+            border: 'none',
+            background: 'transparent',
+            color: AUTH.ink,
+            fontFamily: 'inherit',
+            fontSize: 15,
+            letterSpacing: '-0.005em',
+            outline: 'none',
+            borderRadius: 4,
+          }}
+        />
+      </div>
+      {error && (
+        <div style={{
+          color: AUTH.danger, fontSize: 12, marginTop: 6,
+          letterSpacing: '-0.005em', lineHeight: 1.4,
+        }}>{error}</div>
+      )}
+      {hint && !error && (
+        <div style={{
+          color: AUTH.mute, fontSize: 12, marginTop: 6,
+          letterSpacing: '-0.005em', lineHeight: 1.4,
+        }}>{hint}</div>
+      )}
+    </label>
+  )
+}
+
+function PrimaryButton({ children, type, onClick, disabled }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: '100%',
+        padding: '15px 20px',
+        background: disabled ? '#c5c2b8' : AUTH.ink,
+        color: '#fff',
+        border: 'none',
+        borderRadius: 999,
+        fontFamily: 'inherit',
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background .12s',
+      }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = AUTH.wine }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = AUTH.ink }}
+    >{children}</button>
+  )
+}
+
+function SecondaryButton({ children, onClick, type }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      style={{
+        width: '100%',
+        padding: '15px 20px',
+        background: 'transparent',
+        color: AUTH.ink,
+        border: `1.5px solid ${AUTH.ink}`,
+        borderRadius: 999,
+        fontFamily: 'inherit',
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        cursor: 'pointer',
+      }}
+    >{children}</button>
+  )
+}
+
+function GhostLink({ children, onClick, type }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: AUTH.body,
+        fontFamily: 'inherit',
+        fontSize: 13,
+        letterSpacing: '-0.005em',
+        cursor: 'pointer',
+        padding: '6px 4px',
+        textDecoration: 'underline',
+      }}
+    >{children}</button>
+  )
+}
+
+// Rule row: real check/x indicators for password requirements.
+function Rule({ ok, text }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      fontSize: 12, color: ok ? AUTH.success : AUTH.mute,
+      letterSpacing: '-0.005em', lineHeight: 1.4,
+    }}>
+      {ok ? (
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={AUTH.success} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 6l3 3 5-6"/>
+        </svg>
+      ) : (
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={AUTH.mute} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3l6 6M9 3l-6 6"/>
+        </svg>
+      )}
+      <span>{text}</span>
+    </div>
+  )
+}
+
+// ─── Main component ──────────────────────────────────────
 export function LoginScreen() {
   const {
     loginWithPassword, signupWithPassword, sendPasswordReset,
@@ -23,7 +198,6 @@ export function LoginScreen() {
 
   const rememberedEmail = storage.get(LAST_EMAIL_KEY) || ''
   const rememberedName = storage.get(LAST_NAME_KEY) || ''
-  // If landed from a reset-password email, jump straight to the reset form.
   const initialStep = passwordRecovery ? 'reset-password' : (rememberedEmail ? 'existing' : 'chooser')
   const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState(rememberedEmail)
@@ -31,14 +205,11 @@ export function LoginScreen() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
 
-  // If passwordRecovery arrives late (event fires after mount), switch view.
   React.useEffect(() => {
     if (passwordRecovery) setStep('reset-password')
   }, [passwordRecovery])
 
-  // Coach request state
   const [specialty, setSpecialty] = useState('')
   const [experience, setExperience] = useState('')
   const [phone, setPhone] = useState('')
@@ -54,49 +225,26 @@ export function LoginScreen() {
     const status = err?.status
     const code = err?.code || err?.name
 
-    if (/invalid.?login|invalid.?credentials|invalid_grant/i.test(raw) || code === 'invalid_credentials') {
-      return '🔐 מייל או סיסמה שגויים. נסה שוב.'
-    }
-    if (/user.?not.?found|no.?user.?found/i.test(raw)) {
-      return '👤 לא נמצא משתמש עם המייל הזה. אולי צריך להירשם קודם?'
-    }
-    if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') {
-      return '👋 המייל הזה כבר רשום. תנסה להיכנס במקום.'
-    }
-    if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) {
-      return '🔒 סיסמה חלשה מדי. לפחות 6 תווים, עדיף עם ספרות ואותיות.'
-    }
-    if (/email.?not.?confirmed/i.test(raw)) {
-      return '✉️ המייל שלך לא אושר. פנה למנהל לכיבוי אישור מייל בהגדרות.'
-    }
-    if (status === 429 || /rate.?limit|too many/i.test(raw)) {
-      return '⏱️ יותר מדי ניסיונות. המתן דקה ונסה שוב.'
-    }
-    if (/failed to fetch|networkerror|connection/i.test(raw) || code === 'NETWORK') {
-      return '📶 בעיית חיבור לאינטרנט. בדוק חיבור ונסה שוב.'
-    }
-    if (raw && !/^[\{\[\]\}]+$/.test(raw.trim())) {
-      return code ? `${raw} (${code})` : raw
-    }
-    return 'משהו השתבש. נסה שוב עוד רגע.'
+    if (/invalid.?login|invalid.?credentials|invalid_grant/i.test(raw) || code === 'invalid_credentials') return 'מייל או סיסמה שגויים.'
+    if (/user.?not.?found|no.?user.?found/i.test(raw)) return 'לא נמצא משתמש עם המייל הזה.'
+    if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') return 'המייל הזה כבר רשום.'
+    if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) return 'סיסמה חלשה מדי.'
+    if (/email.?not.?confirmed/i.test(raw)) return 'המייל שלך לא אושר. פנה למנהל.'
+    if (status === 429 || /rate.?limit|too many/i.test(raw)) return 'יותר מדי ניסיונות. המתן דקה.'
+    if (/failed to fetch|networkerror|connection/i.test(raw) || code === 'NETWORK') return 'בעיית חיבור לאינטרנט.'
+    if (raw && !/^[\{\[\]\}]+$/.test(raw.trim())) return code ? `${raw} (${code})` : raw
+    return 'משהו השתבש. נסה שוב.'
   }
 
   const submitLogin = async (e) => {
     e?.preventDefault?.()
     setError(''); setBusy(true)
     try {
-      if (!normalizedEmail || !normalizedEmail.includes('@')) {
-        setError('כתובת מייל לא תקינה'); setBusy(false); return
-      }
-      if (!password || password.length < 6) {
-        setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return
-      }
+      if (!normalizedEmail || !normalizedEmail.includes('@')) { setError('כתובת מייל לא תקינה'); setBusy(false); return }
+      if (!password || password.length < 6) { setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return }
       await loginWithPassword(normalizedEmail, password)
       storage.set(LAST_EMAIL_KEY, normalizedEmail)
-      // AuthProvider's onAuthStateChange will set user + trigger app render
-    } catch (err) {
-      setError(humanizeError(err))
-    } finally { setBusy(false) }
+    } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
   }
 
   const submitSignup = async (e) => {
@@ -104,54 +252,35 @@ export function LoginScreen() {
     setError(''); setBusy(true)
     try {
       if (!name?.trim()) { setError('חסר שם'); setBusy(false); return }
-      if (!normalizedEmail || !normalizedEmail.includes('@')) {
-        setError('כתובת מייל לא תקינה'); setBusy(false); return
-      }
-      if (!password || password.length < 6) {
-        setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return
-      }
+      if (!normalizedEmail || !normalizedEmail.includes('@')) { setError('כתובת מייל לא תקינה'); setBusy(false); return }
+      if (!password || password.length < 6) { setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return }
       const result = await signupWithPassword(normalizedEmail, password, name)
       storage.set(LAST_EMAIL_KEY, normalizedEmail)
       storage.set(LAST_NAME_KEY, name)
       if (result?.needsConfirmation) {
-        // Supabase created the account but requires email confirmation before session.
-        // Tell the user + offer to try immediate login (works if admin later disables confirmation).
-        setError('נרשמת בהצלחה! מנהל המערכת צריך לאשר את חשבונך. פנה: israelgrip@gmail.com')
+        setError('נרשמת בהצלחה. מנהל המערכת צריך לאשר את חשבונך. פנה: israelgrip@gmail.com')
       }
-      // Otherwise onAuthStateChange handles the transition.
-    } catch (err) {
-      setError(humanizeError(err))
-    } finally { setBusy(false) }
+    } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
   }
 
   const submitForgot = async (e) => {
     e?.preventDefault?.()
     setError(''); setBusy(true)
     try {
-      if (!normalizedEmail || !normalizedEmail.includes('@')) {
-        setError('כתובת מייל לא תקינה'); setBusy(false); return
-      }
+      if (!normalizedEmail || !normalizedEmail.includes('@')) { setError('כתובת מייל לא תקינה'); setBusy(false); return }
       await sendPasswordReset(normalizedEmail)
       storage.set(LAST_EMAIL_KEY, normalizedEmail)
       setStep('forgot-sent')
-    } catch (err) {
-      setError(humanizeError(err))
-    } finally { setBusy(false) }
+    } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
   }
 
   const submitNewPassword = async (e) => {
     e?.preventDefault?.()
     setError(''); setBusy(true)
     try {
-      if (!password || password.length < 6) {
-        setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return
-      }
+      if (!password || password.length < 6) { setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return }
       await updatePassword(password)
-      // updatePassword clears passwordRecovery → App will detect logged-in user
-      // and auto-navigate to the home screen. Nothing else to do here.
-    } catch (err) {
-      setError(humanizeError(err))
-    } finally { setBusy(false) }
+    } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
   }
 
   const submitCoachRequest = () => {
@@ -172,333 +301,368 @@ export function LoginScreen() {
     setEmail(''); setName(''); setPassword(''); setStep('chooser')
   }
 
+  // Password rules (for signup + reset)
+  const pwHasLen = (password || '').length >= 8
+  const pwHasNum = /\d/.test(password || '')
+  const pwHasLetter = /[a-zA-Zא-ת]/.test(password || '')
+
   return (
     <div style={{
-      minHeight: '100vh', background: t.color.bg,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: t.space.lg, direction: isRTL ? 'rtl' : 'ltr', color: t.color.text,
-      position: 'relative', overflow: 'hidden',
+      minHeight: '100vh',
+      background: AUTH.bg,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      direction: isRTL ? 'rtl' : 'ltr',
+      color: AUTH.body,
+      fontFamily: '"Heebo", "Inter", -apple-system, "Segoe UI", sans-serif',
     }}>
+      {/* Language switcher — pinned top-right */}
       <div style={{
-        position: 'absolute', top: '-20%', left: '-10%',
-        width: '60%', height: '80%',
-        background: `radial-gradient(closest-side, ${t.color.goldGlow} 0%, transparent 70%)`,
-        filter: 'blur(60px)', pointerEvents: 'none',
-      }} />
-
-      {/* Language switcher — pinned top-right (in RTL: left side visually) */}
-      <div style={{
-        position: 'absolute', top: 16,
-        [isRTL ? 'left' : 'right']: 16,
-        zIndex: 2, display: 'flex', background: t.color.bgSoft,
-        borderRadius: t.radius.pill, padding: 3, gap: 2,
-        border: `1px solid ${t.color.border}`,
+        position: 'absolute', top: 20,
+        [isRTL ? 'left' : 'right']: 20,
+        zIndex: 3, display: 'flex', gap: 12,
       }}>
         {['he', 'en'].map(l => {
           const active = lang === l
           return (
             <button key={l} onClick={() => setLang(l)} style={{
-              padding: '6px 14px', borderRadius: t.radius.pill,
-              background: active ? t.color.gold : 'transparent',
-              color: active ? '#0d0d14' : t.color.textDim,
-              border: 'none', fontFamily: 'inherit', fontWeight: 700, fontSize: t.font.xs,
-              cursor: 'pointer', letterSpacing: 0.5,
-            }}>{l === 'he' ? '🇮🇱 עברית' : '🇺🇸 English'}</button>
+              background: 'none', border: 'none', padding: 4,
+              color: active ? AUTH.ink : AUTH.mute,
+              fontFamily: 'inherit',
+              fontWeight: active ? 700 : 400, fontSize: 11,
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              cursor: 'pointer',
+              textDecoration: active ? 'underline' : 'none',
+              textUnderlineOffset: 6,
+            }}>{l === 'he' ? 'עב' : 'EN'}</button>
           )
         })}
       </div>
 
-      <Card style={{ maxWidth: 480, width: '100%', padding: 'clamp(20px, 5vw, 32px)', position: 'relative', zIndex: 1 }} glow>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+      {/* Centered content column */}
+      <div style={{
+        width: '100%', maxWidth: 440,
+        padding: '80px 24px 48px',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'stretch',
+        minHeight: '100vh',
+      }}>
+        {/* Wordmark — no emoji, no square logo, just the brand */}
+        <div style={{
+          textAlign: 'center', marginBottom: 40,
+        }}>
           <div style={{
-            width: 60, height: 60, borderRadius: 14, background: t.color.gold,
-            color: '#0d0d14', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: 26, marginBottom: 14, boxShadow: t.shadow.glow,
-          }}>H</div>
-          <div style={{ fontSize: 11, letterSpacing: 2, color: t.color.gold, fontFamily: 'Space Mono, monospace', marginBottom: 6 }}>
-            HOLISTIC FITNESS OS
+            fontFamily: '"Barlow", "SF Pro Display", -apple-system, "Inter", sans-serif',
+            fontSize: 28, fontWeight: 700,
+            letterSpacing: '-0.035em',
+            color: AUTH.ink, lineHeight: 1,
+          }}>
+            <span style={{ color: AUTH.wine }}>S</span>elano
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.02 }}>
-            {step === 'chooser' && tr('login.welcome')}
-            {step === 'existing' && tr('login.welcome_back')}
-            {step === 'new' && tr('login.new_user_title')}
-            {step === 'forgot' && tr('login.forgot_title')}
-            {step === 'forgot-sent' && tr('login.forgot_sent_title')}
-            {step === 'reset-password' && tr('login.reset_title')}
-            {step === 'coach-request' && (isRTL ? 'הרשמה כמאמן' : 'Coach signup')}
-            {step === 'coach-pending' && (isRTL ? 'הבקשה נשלחה' : 'Request sent')}
+        </div>
+
+        {/* Step title — Nike style: sentence case, tight, bold */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{
+            fontFamily: '"Barlow", "SF Pro Display", -apple-system, "Inter", sans-serif',
+            fontSize: 26, fontWeight: 700,
+            letterSpacing: '-0.02em',
+            color: AUTH.ink,
+            lineHeight: 1.15,
+            textAlign: 'center',
+            margin: 0,
+          }}>
+            {step === 'chooser' && (isRTL ? 'ברוך הבא ל-Selano.' : 'Welcome to Selano.')}
+            {step === 'existing' && (isRTL ? 'שמחים לראות אותך שוב.' : 'Welcome back.')}
+            {step === 'new' && (isRTL ? 'בוא ניצור לך חשבון.' : "Let's create your account.")}
+            {step === 'forgot' && (isRTL ? 'איפוס סיסמה.' : 'Reset your password.')}
+            {step === 'forgot-sent' && (isRTL ? 'שלחנו לך מייל.' : 'Check your email.')}
+            {step === 'reset-password' && (isRTL ? 'קבע סיסמה חדשה.' : 'Set a new password.')}
+            {step === 'coach-request' && (isRTL ? 'הצטרפות כמאמן.' : 'Coach signup.')}
+            {step === 'coach-pending' && (isRTL ? 'הבקשה נשלחה.' : 'Request sent.')}
           </h1>
         </div>
 
         {/* CHOOSER */}
         {step === 'chooser' && (
           <div style={{ display: 'grid', gap: 12 }}>
-            <button onClick={() => setStep('existing')} style={choiceCard(t, false)}>
-              <div style={{ fontSize: 40 }}>👋</div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2 }}>{tr('login.existing_user')}</div>
-                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{tr('login.existing_desc')}</div>
-              </div>
-            </button>
+            <div style={{
+              color: AUTH.body, fontSize: 14, lineHeight: 1.5,
+              textAlign: 'center', marginBottom: 8,
+            }}>
+              {isRTL
+                ? 'מערכת הפרפורמנס לכושר הוליסטי — אימונים, תזונה, שיקום, ומעקב.'
+                : 'The holistic fitness performance system — train, eat, recover, track.'}
+            </div>
 
-            <button onClick={() => setStep('new')} style={choiceCard(t, true)}>
-              <div style={{ fontSize: 40 }}>✨</div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 2, color: t.color.gold }}>{tr('login.new_user')}</div>
-                <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{tr('login.new_desc')}</div>
-              </div>
-            </button>
+            <PrimaryButton onClick={() => setStep('existing')}>
+              {tr('login.existing_user')}
+            </PrimaryButton>
 
-            <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <button onClick={() => setStep('coach-request')} style={{
-                background: 'none', border: 'none', color: t.color.gold, cursor: 'pointer',
-                fontSize: t.font.sm, textDecoration: 'underline', fontFamily: 'inherit',
-              }}>{tr('login.coach_link')}</button>
+            <SecondaryButton onClick={() => setStep('new')}>
+              {tr('login.new_user')}
+            </SecondaryButton>
+
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <GhostLink onClick={() => setStep('coach-request')}>{tr('login.coach_link')}</GhostLink>
             </div>
           </div>
         )}
 
-        {/* EXISTING USER: email + password */}
+        {/* EXISTING USER */}
         {step === 'existing' && (
           <form onSubmit={submitLogin} noValidate style={{ display: 'grid', gap: 14 }}>
-            <Input
-              label={tr('login.email')}
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              autoFocus={!rememberedEmail}
-              required
+            <TextField
+              label={tr('login.email')} type="email"
+              value={email} onChange={e => setEmail(e.target.value)}
+              autoComplete="email" autoFocus={!rememberedEmail} required
+              dir="ltr"
             />
-            <div>
-              <Input
-                label={tr('login.password')}
-                type={showPassword ? 'text' : 'password'}
-                placeholder={tr('login.password_placeholder')}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="current-password"
-                autoFocus={!!rememberedEmail}
-                required
-                error={error ? String(error) : ''}
-              />
-              <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
-                {showPassword ? tr('login.hide_password') : tr('login.show_password')}
-              </button>
+            <TextField
+              label={tr('login.password')} type="password"
+              value={password} onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password" autoFocus={!!rememberedEmail} required
+              dir="ltr"
+              error={error ? String(error) : ''}
+            />
+
+            {normalizedEmail && emailIsAdmin && (
+              <div style={{
+                padding: 10, borderRadius: 4,
+                background: `${AUTH.wine}12`,
+                border: `1px solid ${AUTH.wine}`,
+                color: AUTH.wine,
+                fontSize: 11, letterSpacing: '0.16em',
+                textAlign: 'center', textTransform: 'uppercase',
+                fontWeight: 700,
+              }}>{tr('login.admin_badge')}</div>
+            )}
+
+            <div style={{ marginTop: 4 }}>
+              <PrimaryButton type="submit" disabled={busy || !email || !password}>
+                {busy ? tr('login.entering') : tr('login.enter')}
+              </PrimaryButton>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <GhostLink onClick={() => { setError(''); setPassword(''); setStep('forgot') }}>
+                {tr('login.forgot_link')}
+              </GhostLink>
+            </div>
+
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              paddingTop: 8, marginTop: 4,
+              borderTop: `1px solid ${AUTH.hairline}`,
+            }}>
+              <GhostLink onClick={() => setStep('chooser')}>← {tr('login.back')}</GhostLink>
+              {rememberedEmail && <GhostLink onClick={forgetMe}>{tr('login.forget_me')}</GhostLink>}
+            </div>
+          </form>
+        )}
+
+        {/* NEW USER — with password rules like Nike */}
+        {step === 'new' && (
+          <form onSubmit={submitSignup} noValidate style={{ display: 'grid', gap: 14 }}>
+            <TextField
+              label={tr('login.name')} value={name}
+              onChange={e => setName(e.target.value)}
+              autoComplete="name" autoFocus required
+            />
+            <TextField
+              label={tr('login.email')} type="email"
+              value={email} onChange={e => setEmail(e.target.value)}
+              autoComplete="email" required dir="ltr"
+            />
+            <TextField
+              label={tr('login.new_password')} type="password"
+              value={password} onChange={e => setPassword(e.target.value)}
+              autoComplete="new-password" required dir="ltr"
+              error={error ? String(error) : ''}
+            />
+
+            {/* Nike-style password rules */}
+            <div style={{
+              display: 'grid', gap: 6, padding: '4px 2px',
+            }}>
+              <Rule ok={pwHasLen} text={isRTL ? 'מינימום 8 תווים' : 'Minimum of 8 characters'} />
+              <Rule ok={pwHasLetter && pwHasNum} text={isRTL ? 'לפחות אות אחת ומספר אחד' : 'One letter and one number'} />
             </div>
 
             {normalizedEmail && emailIsAdmin && (
-              <div style={adminBadge(t)}>{tr('login.admin_badge')}</div>
+              <div style={{
+                padding: 10, borderRadius: 4,
+                background: `${AUTH.wine}12`, border: `1px solid ${AUTH.wine}`,
+                color: AUTH.wine, fontSize: 11, letterSpacing: '0.16em',
+                textAlign: 'center', textTransform: 'uppercase', fontWeight: 700,
+              }}>{tr('login.admin_badge')}</div>
             )}
 
-            <Button type="submit" size="lg" disabled={busy || !email || !password} style={{ marginTop: 4 }}>
-              {busy ? tr('login.entering') : tr('login.enter')}
-            </Button>
-
-            <div style={{ textAlign: 'center', marginTop: 2 }}>
-              <button type="button" onClick={() => { setError(''); setPassword(''); setStep('forgot') }}
-                style={{ ...ghostBtn(t), color: t.color.gold, fontSize: t.font.sm }}>
-                {tr('login.forgot_link')}
-              </button>
+            <div style={{ marginTop: 4 }}>
+              <PrimaryButton type="submit" disabled={busy || !email || !name || !password}>
+                {busy ? tr('login.creating') : tr('login.create_account')}
+              </PrimaryButton>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-              <button type="button" onClick={() => setStep('chooser')} style={ghostBtn(t)}>{tr('login.back')}</button>
-              {rememberedEmail && (
-                <button type="button" onClick={forgetMe} style={ghostBtn(t)}>{tr('login.forget_me')}</button>
-              )}
+            <div style={{
+              paddingTop: 8, marginTop: 4,
+              borderTop: `1px solid ${AUTH.hairline}`,
+            }}>
+              <GhostLink onClick={() => setStep('chooser')}>← {tr('login.back')}</GhostLink>
             </div>
           </form>
         )}
 
-        {/* FORGOT PASSWORD: email only → send reset link */}
+        {/* FORGOT PASSWORD */}
         {step === 'forgot' && (
           <form onSubmit={submitForgot} noValidate style={{ display: 'grid', gap: 14 }}>
-            <div style={{ fontSize: t.font.sm, color: t.color.textDim, textAlign: 'center', marginBottom: 4, lineHeight: 1.6 }}>
-              נשלח למייל שלך קישור לאיפוס.<br />
-              <b style={{ color: t.color.text }}>גם אם עוד לא יצרת סיסמה</b> — זה יאפשר לך לקבוע אחת עכשיו.
+            <div style={{
+              fontSize: 14, color: AUTH.body, textAlign: 'center', lineHeight: 1.55,
+              marginBottom: 8,
+            }}>
+              {isRTL
+                ? 'נשלח למייל שלך קישור לאיפוס. גם אם עוד לא יצרת סיסמה — זה יאפשר לך לקבוע אחת עכשיו.'
+                : "We'll send a link to reset your password. Even if you never set one, this lets you create one now."}
             </div>
-            <Input
-              label="מייל"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              autoFocus
-              required
+            <TextField
+              label={tr('login.email')} type="email"
+              value={email} onChange={e => setEmail(e.target.value)}
+              autoComplete="email" autoFocus required dir="ltr"
               error={error ? String(error) : ''}
             />
-            <Button type="submit" size="lg" disabled={busy || !email} style={{ marginTop: 4 }}>
-              {busy ? 'שולח...' : '✉️ שלח לי קישור איפוס'}
-            </Button>
-            <button type="button" onClick={() => { setError(''); setStep('existing') }} style={{ ...ghostBtn(t), textAlign: 'center' }}>
-              → חזור לכניסה
-            </button>
+            <PrimaryButton type="submit" disabled={busy || !email}>
+              {busy ? (isRTL ? 'שולח...' : 'Sending...') : (isRTL ? 'שלח קישור איפוס' : 'Send reset link')}
+            </PrimaryButton>
+            <div style={{ textAlign: 'center', paddingTop: 6 }}>
+              <GhostLink onClick={() => { setError(''); setStep('existing') }}>← {isRTL ? 'חזור לכניסה' : 'Back to sign in'}</GhostLink>
+            </div>
           </form>
         )}
 
-        {/* FORGOT SENT confirmation */}
+        {/* FORGOT SENT */}
         {step === 'forgot-sent' && (
-          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ textAlign: 'center' }}>
             <div style={{
-              width: 72, height: 72, borderRadius: '50%', background: t.color.gold, color: '#0d0d14',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
-              marginBottom: 16, boxShadow: t.shadow.glow,
-            }}>✉️</div>
-            <div style={{ marginBottom: 16, fontSize: t.font.md, color: t.color.text, lineHeight: 1.6 }}>
-              שלחנו קישור איפוס למייל:<br />
-              <b style={{ color: t.color.gold }}>{email}</b>
+              width: 56, height: 56, borderRadius: '50%',
+              background: '#fff', border: `2px solid ${AUTH.wine}`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <svg width="24" height="24" viewBox="0 0 26 26" fill="none" stroke={AUTH.wine} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="6" width="20" height="14" rx="2"/>
+                <path d="M3 8l10 7 10-7"/>
+              </svg>
             </div>
-            <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.7, marginBottom: 16 }}>
-              📧 פתח את המייל ולחץ על הקישור — תועבר לאפליקציה לקבוע סיסמה חדשה.
-              <br /><br />
-              💡 לא רואה? בדוק בספאם. הקישור פעיל שעה.
+            <div style={{
+              marginBottom: 16, fontSize: 15, color: AUTH.body, lineHeight: 1.6,
+            }}>
+              {isRTL ? 'שלחנו קישור איפוס למייל:' : 'We sent a reset link to:'}<br />
+              <b style={{ color: AUTH.ink, fontWeight: 700 }}>{email}</b>
             </div>
-            <Button variant="ghost" onClick={() => { setStep('existing'); setError('') }}>← חזור לכניסה</Button>
+            <div style={{
+              padding: 14, background: '#f0ede4', borderRadius: 4,
+              fontSize: 12, color: AUTH.body, lineHeight: 1.7, marginBottom: 20,
+              textAlign: isRTL ? 'right' : 'left',
+            }}>
+              {isRTL
+                ? 'פתח את המייל ולחץ על הקישור — תועבר לאפליקציה לקבוע סיסמה חדשה. לא רואה? בדוק בספאם. הקישור פעיל שעה.'
+                : "Open the email and click the link — you'll be sent back here to set a new password. Not seeing it? Check spam. The link expires in an hour."}
+            </div>
+            <SecondaryButton onClick={() => { setStep('existing'); setError('') }}>{isRTL ? 'חזור לכניסה' : 'Back to sign in'}</SecondaryButton>
           </div>
         )}
 
-        {/* RESET PASSWORD: user landed from email reset link */}
+        {/* RESET PASSWORD */}
         {step === 'reset-password' && (
           <form onSubmit={submitNewPassword} noValidate style={{ display: 'grid', gap: 14 }}>
-            <div style={{ fontSize: t.font.sm, color: t.color.textDim, textAlign: 'center', marginBottom: 4, lineHeight: 1.6 }}>
-              קבעת/י סיסמה חדשה לחשבון שלך.<br />
-              <b style={{ color: t.color.text }}>שמור/י אותה — היא תשמש לכניסות הבאות.</b>
+            <div style={{
+              fontSize: 14, color: AUTH.body, textAlign: 'center', lineHeight: 1.55,
+              marginBottom: 8,
+            }}>
+              {isRTL
+                ? 'קבע סיסמה חדשה לחשבון שלך. שמור אותה — היא תשמש לכניסות הבאות.'
+                : "Set a new password for your account. Save it — you'll need it next time."}
             </div>
-            <div>
-              <Input
-                label="סיסמה חדשה"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="לפחות 6 תווים"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="new-password"
-                autoFocus
-                error={error ? String(error) : ''}
-              />
-              <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
-                {showPassword ? '🙈 הסתר' : '👁 הצג סיסמה'}
-              </button>
+            <TextField
+              label={isRTL ? 'סיסמה חדשה' : 'New password'} type="password"
+              value={password} onChange={e => setPassword(e.target.value)}
+              autoComplete="new-password" autoFocus required dir="ltr"
+              error={error ? String(error) : ''}
+            />
+            <div style={{ display: 'grid', gap: 6, padding: '4px 2px' }}>
+              <Rule ok={pwHasLen} text={isRTL ? 'מינימום 8 תווים' : 'Minimum of 8 characters'} />
+              <Rule ok={pwHasLetter && pwHasNum} text={isRTL ? 'לפחות אות אחת ומספר אחד' : 'One letter and one number'} />
             </div>
-            <Button type="submit" size="lg" disabled={busy || !password} style={{ marginTop: 4 }}>
-              {busy ? 'שומר...' : '✓ קבע סיסמה והיכנס'}
-            </Button>
+            <PrimaryButton type="submit" disabled={busy || !password}>
+              {busy ? (isRTL ? 'שומר...' : 'Saving...') : (isRTL ? 'קבע סיסמה והיכנס' : 'Set password & sign in')}
+            </PrimaryButton>
           </form>
         )}
 
-        {/* NEW USER: name + email + password */}
-        {step === 'new' && (
-          <form onSubmit={submitSignup} noValidate style={{ display: 'grid', gap: 14 }}>
-            <Input label={tr('login.name')} placeholder={tr('login.name_placeholder')} value={name} onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
-            <Input label={tr('login.email')} type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
-            <div>
-              <Input
-                label={tr('login.new_password')}
-                type={showPassword ? 'text' : 'password'}
-                placeholder={tr('login.new_password_placeholder')}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="new-password"
-                error={error ? String(error) : ''}
-                hint={tr('login.password_hint')}
-              />
-              <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
-                {showPassword ? tr('login.hide_password') : tr('login.show_password')}
-              </button>
-            </div>
-
-            {normalizedEmail && emailIsAdmin && (
-              <div style={adminBadge(t)}>{tr('login.admin_badge')}</div>
-            )}
-
-            <Button type="submit" size="lg" disabled={busy || !email || !name || !password} style={{ marginTop: 4 }}>
-              {busy ? tr('login.creating') : tr('login.create_account')}
-            </Button>
-
-            <button type="button" onClick={() => setStep('chooser')} style={{ ...ghostBtn(t), textAlign: isRTL ? 'right' : 'left', margin: '4px 0 0' }}>{tr('login.back')}</button>
-          </form>
-        )}
-
-        {/* COACH REQUEST (unchanged) */}
+        {/* COACH REQUEST */}
         {step === 'coach-request' && (
           <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ color: t.color.textDim, fontSize: t.font.sm, textAlign: 'center', marginBottom: 4 }}>
-              מלא/י פרטים - המנהל יבדוק ויאשר בהקדם
+            <div style={{
+              color: AUTH.body, fontSize: 14, textAlign: 'center', lineHeight: 1.55,
+              marginBottom: 8,
+            }}>
+              {isRTL ? 'מלא פרטים — המנהל יבדוק ויאשר בהקדם' : 'Fill your details — the admin will review shortly'}
             </div>
-            <Input label="שם מלא" value={name} onChange={e => setName(e.target.value)} required />
-            <Input label="מייל" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <Input label="טלפון" value={phone} onChange={e => setPhone(e.target.value)} placeholder="050-1234567" />
-            <Input label="תחום התמחות" value={specialty} onChange={e => setSpecialty(e.target.value)} placeholder="לדוגמה: כוח והיפרטרופיה" required />
-            <Input label="שנות ניסיון" type="number" value={experience} onChange={e => setExperience(e.target.value)} placeholder="5" />
-            {error && <div style={{ color: t.color.danger, fontSize: t.font.xs, textAlign: 'center' }}>{error}</div>}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Button variant="ghost" onClick={() => setStep('chooser')} style={{ flex: 1 }}>→ חזור</Button>
-              <Button onClick={submitCoachRequest} style={{ flex: 2 }}>שלח בקשה</Button>
+            <TextField label={isRTL ? 'שם מלא' : 'Full name'} value={name} onChange={e => setName(e.target.value)} required />
+            <TextField label={isRTL ? 'מייל' : 'Email'} type="email" value={email} onChange={e => setEmail(e.target.value)} required dir="ltr" />
+            <TextField label={isRTL ? 'טלפון' : 'Phone'} value={phone} onChange={e => setPhone(e.target.value)} dir="ltr" />
+            <TextField label={isRTL ? 'תחום התמחות' : 'Specialty'} value={specialty} onChange={e => setSpecialty(e.target.value)} required />
+            <TextField label={isRTL ? 'שנות ניסיון' : 'Years of experience'} type="number" value={experience} onChange={e => setExperience(e.target.value)} dir="ltr" />
+            {error && <div style={{ color: AUTH.danger, fontSize: 12, textAlign: 'center' }}>{error}</div>}
+            <div style={{ display: 'grid', gap: 10, marginTop: 4 }}>
+              <PrimaryButton onClick={submitCoachRequest}>{isRTL ? 'שלח בקשה' : 'Submit request'}</PrimaryButton>
+              <SecondaryButton onClick={() => setStep('chooser')}>{isRTL ? 'חזור' : 'Back'}</SecondaryButton>
             </div>
           </div>
         )}
 
         {step === 'coach-pending' && (
-          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ textAlign: 'center' }}>
             <div style={{
-              width: 72, height: 72, borderRadius: '50%', background: t.color.gold, color: '#0d0d14',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 36,
-              marginBottom: 16, boxShadow: t.shadow.glow,
-            }}>✓</div>
-            <div style={{ marginBottom: 10, fontSize: t.font.md, color: t.color.text, lineHeight: 1.6 }}>
-              בקשתך נשלחה למנהל.<br />
-              ברגע שתאושר, תקבל קישור אישי לגשת כמאמן.
+              width: 56, height: 56, borderRadius: '50%',
+              background: '#fff', border: `2px solid ${AUTH.success}`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <svg width="24" height="24" viewBox="0 0 26 26" fill="none" stroke={AUTH.success} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 13l5 5 11-11"/>
+              </svg>
             </div>
-            <div style={{ padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.xs, color: t.color.textDim, textAlign: 'right', marginBottom: 16 }}>
-              📧 <b>{email}</b><br />
-              🎯 {specialty}<br />
-              {phone && <>📱 {phone}<br /></>}
+            <div style={{
+              marginBottom: 16, fontSize: 15, color: AUTH.body, lineHeight: 1.6,
+            }}>
+              {isRTL
+                ? 'בקשתך נשלחה למנהל. ברגע שתאושר, תקבל קישור אישי לגשת כמאמן.'
+                : "Your request was sent. Once approved, you'll receive a personal link to sign in as a coach."}
             </div>
-            <Button variant="outline" onClick={() => setStep('chooser')}>חזור למסך הכניסה</Button>
+            <div style={{
+              padding: 14, background: '#f0ede4', borderRadius: 4,
+              fontSize: 12, color: AUTH.body, textAlign: isRTL ? 'right' : 'left', marginBottom: 20,
+              lineHeight: 1.9,
+            }}>
+              <div><b style={{ color: AUTH.mute, fontWeight: 500, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{isRTL ? 'מייל' : 'Email'}</b> <span style={{ marginInlineStart: 8 }}>{email}</span></div>
+              <div><b style={{ color: AUTH.mute, fontWeight: 500, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{isRTL ? 'תחום' : 'Specialty'}</b> <span style={{ marginInlineStart: 8 }}>{specialty}</span></div>
+              {phone && <div><b style={{ color: AUTH.mute, fontWeight: 500, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{isRTL ? 'טלפון' : 'Phone'}</b> <span style={{ marginInlineStart: 8 }}>{phone}</span></div>}
+            </div>
+            <SecondaryButton onClick={() => setStep('chooser')}>{isRTL ? 'חזור למסך הכניסה' : 'Back to sign in'}</SecondaryButton>
           </div>
         )}
 
+        {/* Footer note — quiet, mono, no drama */}
         <div style={{
-          marginTop: 24, padding: 12, background: t.color.bgSoft,
-          borderRadius: t.radius.md, fontSize: t.font.xs, color: t.color.textDim, lineHeight: 1.5, textAlign: 'center',
+          marginTop: 'auto', paddingTop: 32,
+          fontFamily: '"Space Mono", ui-monospace, monospace',
+          fontSize: 9, letterSpacing: '0.24em',
+          color: AUTH.mute, textAlign: 'center', textTransform: 'uppercase',
+          lineHeight: 1.6,
         }}>
           {supabaseEnabled ? tr('login.footer_supabase') : tr('login.footer_local')}
         </div>
-      </Card>
+      </div>
     </div>
   )
-}
-
-function choiceCard(t, gold) {
-  return {
-    display: 'flex', gap: 14, alignItems: 'center', textAlign: 'right',
-    padding: 20,
-    background: gold ? t.color.goldGlow : t.color.bgSoft,
-    border: `1px solid ${gold ? t.color.gold : t.color.border}`,
-    borderRadius: t.radius.md,
-    cursor: 'pointer', fontFamily: 'inherit',
-    color: t.color.text, transition: 'transform .15s',
-  }
-}
-function ghostBtn(t) {
-  return {
-    background: 'none', border: 'none', color: t.color.textDim,
-    fontSize: t.font.xs, cursor: 'pointer', fontFamily: 'inherit',
-    textDecoration: 'underline',
-  }
-}
-function showPwBtn(t) {
-  return {
-    background: 'none', border: 'none', color: t.color.textDim,
-    fontSize: t.font.xs, cursor: 'pointer', fontFamily: 'inherit',
-    padding: '6px 2px 0', textDecoration: 'underline',
-  }
-}
-function adminBadge(t) {
-  return {
-    padding: 10, borderRadius: t.radius.sm, fontSize: t.font.xs, textAlign: 'center',
-    background: t.color.goldGlow, border: `1px solid ${t.color.gold}`, color: t.color.gold,
-  }
 }
