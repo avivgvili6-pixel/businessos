@@ -393,22 +393,22 @@ function PRs() {
  </div>
  )}
 
- <Modal open={open} onClose={() => setOpen(false)} title="שיא חדש "width={480}>
+ <Modal open={open} onClose={() => setOpen(false)} title={isRTL ? 'שיא חדש ' : 'New PR'} width={480}>
  <div style={{ display:'grid', gap: 12 }}>
- <Input label="תרגיל"placeholder="לדוגמה: סקוואט אחורי"value={form.exercise} onChange={e => set({ exercise: e.target.value })} />
+ <Input label={isRTL ? 'תרגיל' : 'Exercise'} placeholder={isRTL ? 'לדוגמה: סקוואט אחורי' : 'Example: back squat'} value={form.exercise} onChange={e => set({ exercise: e.target.value })} />
  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 }}>
- <Input type="number"label="משקל (ק״ג)"value={form.weight} onChange={e => set({ weight: e.target.value })} />
- <Input type="number"label="חזרות"value={form.reps} onChange={e => set({ reps: e.target.value })} />
+ <Input type="number" label={isRTL ? 'משקל (ק״ג)' : 'Weight (kg)'} value={form.weight} onChange={e => set({ weight: e.target.value })} />
+ <Input type="number" label={isRTL ? 'חזרות' : 'Reps'} value={form.reps} onChange={e => set({ reps: e.target.value })} />
  </div>
- <Input label="הערה (אופציונלי)"value={form.note} onChange={e => set({ note: e.target.value })} />
+ <Input label={isRTL ? 'הערה (אופציונלי)' : 'Note (optional)'} value={form.note} onChange={e => set({ note: e.target.value })} />
  {form.weight && form.reps && (
  <div style={{ padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, textAlign:'center'}}>
- e1RM מוערך: <b style={{ color: t.color.gold }}>{Math.round(form.weight * (1 + form.reps/30))} ק״ג</b>
+ {isRTL ? 'e1RM מוערך' : 'Estimated e1RM'}: <b style={{ color: t.color.gold }}>{Math.round(form.weight * (1 + form.reps/30))} {isRTL ? 'ק״ג' : 'kg'}</b>
  </div>
  )}
  <div style={{ display:'flex', gap: 10, justifyContent:'flex-end' }}>
- <Button variant="ghost" onClick={() => setOpen(false)}>בטל</Button>
- <Button onClick={save} disabled={!form.exercise || !form.weight}>שמור שיא</Button>
+ <Button variant="ghost" onClick={() => setOpen(false)}>{isRTL ? 'בטל' : 'Cancel'}</Button>
+ <Button onClick={save} disabled={!form.exercise || !form.weight}>{isRTL ? 'שמור שיא' : 'Save PR'}</Button>
  </div>
  </div>
  </Modal>
