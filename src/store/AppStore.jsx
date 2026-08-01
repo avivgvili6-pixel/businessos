@@ -113,6 +113,32 @@ function reducer(state, action) {
     }
     case 'REMOVE_ARCHIVED_PLAN':
       return { ...state, plansArchive: (state.plansArchive || []).filter(p => p.id !== action.id) }
+    case 'CLOSE_PLAN': {
+      // Archive the current plan (with completion snapshot) and clear plan.
+      if (!state.plan) return state
+      const now = new Date().toISOString()
+      const logsCount = (state.workoutLogs || []).filter(l => l.planId === state.plan.id || l.planId === state.plan.programId).length
+      const expectedTotal = (state.plan.days || 3) * (state.plan.weeks || 12)
+      const pct = expectedTotal > 0 ? Math.round((logsCount / expectedTotal) * 100) : 0
+      const archived = {
+        id: state.plan.id || state.plan.programId,
+        name: state.plan.name,
+        programId: state.plan.programId,
+        style: state.plan.style,
+        startedAt: state.plan.startedAt,
+        archivedAt: now,
+        weeksScheduled: state.plan.weeks,
+        sessionsDone: logsCount,
+        sessionsExpected: expectedTotal,
+        completionPct: pct,
+        snapshot: state.plan,
+      }
+      return {
+        ...state,
+        plan: null,
+        plansArchive: [archived, ...(state.plansArchive || [])].slice(0, 20),
+      }
+    }
     case 'LOG_WORKOUT': {
       // Auto-tag with planId and planWeek so weekly-progression util can group by week
       let log = action.log
@@ -280,6 +306,7 @@ export function AppProvider({ children }) {
     setPlan: (plan) => dispatch({ type:'SET_PLAN', plan }),
     resumePlan: (id) => dispatch({ type:'RESUME_PLAN', id }),
     removeArchivedPlan: (id) => dispatch({ type:'REMOVE_ARCHIVED_PLAN', id }),
+    closePlan: () => dispatch({ type:'CLOSE_PLAN' }),
     setWeekDifficulty: (week, difficulty) => dispatch({ type:'SET_WEEK_DIFFICULTY', week, difficulty }),
     startNewCycle: () => dispatch({ type:'START_NEW_CYCLE' }),
     logWorkout: (log) => dispatch({ type:'LOG_WORKOUT', log }),

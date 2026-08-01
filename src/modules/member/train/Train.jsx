@@ -48,11 +48,13 @@ export function Train() {
 }
 
 function MyPlan() {
-  const { state, logWorkout, setWeekDifficulty, startNewCycle, resumePlan, removeArchivedPlan } = useApp()
+  const { state, logWorkout, setWeekDifficulty, startNewCycle, resumePlan, removeArchivedPlan, closePlan } = useApp()
   const [session, setSession] = useState(null)
   const [celebration, setCelebration] = useState(null)
   const [buildingPlan, setBuildingPlan] = useState(false)
   const [showResearch, setShowResearch] = useState(false)
+  const [expanded, setExpanded] = useState(false)          // collapsed by default (user request)
+  const [previewPlan, setPreviewPlan] = useState(null)     // archive plan being previewed
   const plan = state.plan
   const archive = state.plansArchive || []
   const demo = adjustmentFor({ sex: state.profile?.sex, age: state.profile?.age })
@@ -66,6 +68,13 @@ function MyPlan() {
   const cycleDone = isPlanCycleComplete(plan, state.workoutLogs)
   const difficulty = plan.difficultyByWeek?.[currentWeek] || 'medium'
   const profile = difficultyProfile(style, difficulty)
+
+  // Overall plan completion + last workout
+  const planLogs = (state.workoutLogs || []).filter(l => l.planId === plan.id || l.planId === plan.programId)
+  const totalExpected = (plan.days || 3) * (plan.weeks || 12)
+  const overallPct = totalExpected > 0 ? Math.round((planLogs.length / totalExpected) * 100) : 0
+  const lastLog = planLogs[0] // logs are prepended in reducer
+  const lastWorkoutDate = lastLog?.date ? new Date(lastLog.date).toLocaleDateString('he-IL') : null
 
   // Apply BOTH difficulty AND demographic adjustment
   const displaySessions = plan.sessions.map(s => {
@@ -81,8 +90,27 @@ function MyPlan() {
     return <PlanBuilder onDone={() => setBuildingPlan(false)} onCancel={() => setBuildingPlan(false)} />
   }
 
+  const handleClosePlan = () => {
+    if (confirm(`לסגור את "${plan.name}"? התכנית תעבור לארכיון ותוכל להחזיר אותה בהמשך.`)) {
+      closePlan()
+    }
+  }
+
   return (
     <div style={{ display:'grid', gap: 16 }}>
+      {/* COLLAPSED SUMMARY (always visible) */}
+      <ActivePlanSummary
+        plan={plan} overallPct={overallPct} weekPct={completion.pct}
+        currentWeek={currentWeek} totalWeeks={plan.weeks}
+        lastWorkoutDate={lastWorkoutDate}
+        expanded={expanded}
+        onToggle={() => setExpanded(v => !v)}
+        onClose={handleClosePlan}
+        onNewPlan={() => setBuildingPlan(true)}
+      />
+
+      {/* EXPANDED DETAIL (only when open) */}
+      {expanded && <>
       <WeekBanner
         plan={plan} currentWeek={currentWeek} completion={completion}
         difficulty={difficulty} style={style} profile={profile}
@@ -136,37 +164,72 @@ function MyPlan() {
         difficultyByWeek={plan.difficultyByWeek || {}}
         onSetDifficulty={setWeekDifficulty}
       />
+      </>}
 
-      {/* Plans archive */}
+      {/* Plans archive - always visible */}
       {archive.length > 0 && (
         <Card>
-          <SectionHeader title="התכניות הקודמות שלך" subtitle={`${archive.length} תכניות בארכיון`} />
+          <SectionHeader title="התכניות הקודמות שלך" subtitle={`${archive.length} תכניות בארכיון · לחיצה פותחת תצוגה מקדימה`} />
           <div style={{ display: 'grid', gap: 8 }}>
-            {archive.map(p => (
-              <div key={p.id} style={{
-                display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
-                padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
-              }}>
-                <div style={{ flex: 1, minWidth: 180 }}>
-                  <div style={{ fontWeight: 700 }}>{p.name}</div>
-                  <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
-                    {p.sessionsDone}/{p.sessionsExpected} אימונים · <b style={{ color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning }}>{p.completionPct}%</b> · הסתיים {new Date(p.archivedAt).toLocaleDateString('he-IL')}
+            {archive.map(p => {
+              const daysSince = p.archivedAt ? Math.floor((Date.now() - new Date(p.archivedAt).getTime()) / 86400000) : 0
+              const lastUsedLabel = daysSince === 0 ? 'היום' : daysSince === 1 ? 'אתמול' : `לפני ${daysSince} ימים`
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPreviewPlan(p)}
+                  style={{
+                    display: 'flex', gap: 12, alignItems: 'center', width: '100%',
+                    padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
+                    border: 'none', cursor: 'pointer', textAlign: 'right', fontFamily: 'inherit',
+                    color: t.color.text, transition: t.transition,
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = t.color.bgCard}
+                  onMouseLeave={e => e.currentTarget.style.background = t.color.bgSoft}
+                >
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: p.completionPct >= 75 ? `${t.color.success}33` : p.completionPct >= 40 ? `${t.color.gold}33` : `${t.color.warning}33`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: t.font.sm,
+                    color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning,
+                    flexShrink: 0,
+                  }}>{p.completionPct}%</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 2 }}>{p.name}</div>
+                    <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+                      {p.sessionsDone}/{p.sessionsExpected} אימונים · שימוש אחרון: {lastUsedLabel}
+                    </div>
                   </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => { if (confirm('להחזיר את התכנית הזאת? התכנית הנוכחית תעבור לארכיון')) resumePlan(p.id) }}>🔄 חזור לתכנית</Button>
-                <button onClick={() => { if (confirm('למחוק לצמיתות?')) removeArchivedPlan(p.id) }} style={{
-                  background: 'transparent', border: 'none', color: t.color.textDim, cursor: 'pointer', fontSize: 18,
-                }}>🗑️</button>
-              </div>
-            ))}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (confirm('למחוק את התכנית לצמיתות?')) removeArchivedPlan(p.id) }}
+                    style={{
+                      background: 'transparent', border: 'none', color: t.color.textDim,
+                      cursor: 'pointer', fontSize: 18, padding: 6,
+                    }}
+                    title="מחק"
+                  >🗑️</button>
+                  <span style={{ color: t.color.textMuted, fontSize: 20 }}>›</span>
+                </button>
+              )
+            })}
           </div>
         </Card>
       )}
 
-      {/* Build another plan */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <Button variant="outline" onClick={() => setBuildingPlan(true)}>✨ בנה תכנית חדשה (הנוכחית תעבור לארכיון)</Button>
-      </div>
+      {/* Archive plan preview modal */}
+      {previewPlan && (
+        <ArchivedPlanPreview
+          archivedPlan={previewPlan}
+          activePlan={plan}
+          onClose={() => setPreviewPlan(null)}
+          onResume={() => {
+            resumePlan(previewPlan.id)
+            setPreviewPlan(null)
+            setExpanded(true)
+          }}
+        />
+      )}
 
       {/* Research modal */}
       {showResearch && (
@@ -886,6 +949,151 @@ function EmptyPlanScreen({ archive, onBuildPlan, onResume, onRemove, building, s
           </div>
         </Card>
       )}
+    </div>
+  )
+}
+
+// ─── Active plan summary (collapsed by default) ─────────────
+function ActivePlanSummary({ plan, overallPct, weekPct, currentWeek, totalWeeks, lastWorkoutDate, expanded, onToggle, onClose, onNewPlan }) {
+  const pctColor = overallPct >= 75 ? t.color.success : overallPct >= 40 ? t.color.gold : t.color.warning
+  return (
+    <Card style={{ borderColor: t.color.gold, borderWidth: 2 }} glow>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+        {/* Progress ring */}
+        <div style={{
+          width: 60, height: 60, borderRadius: '50%',
+          background: `conic-gradient(${pctColor} ${overallPct * 3.6}deg, ${t.color.bgSoft} 0deg)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%', background: t.color.bgCard,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 900, fontSize: t.font.md, color: pctColor,
+          }}>{overallPct}%</div>
+        </div>
+
+        {/* Name + info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <Badge color={t.color.gold}>פעיל</Badge>
+            <b style={{ color: t.color.text, fontSize: t.font.lg }}>{plan.name}</b>
+          </div>
+          <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+            שבוע {currentWeek}/{totalWeeks} · {weekPct}% השבוע
+            {lastWorkoutDate && <> · אימון אחרון: {lastWorkoutDate}</>}
+            {!lastWorkoutDate && <> · טרם התחלת</>}
+          </div>
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          title="סגור תכנית"
+          style={{
+            background: 'transparent', border: `1px solid ${t.color.border}`,
+            color: t.color.textDim, borderRadius: '50%',
+            width: 36, height: 36, cursor: 'pointer', fontSize: 16,
+          }}
+        >✕</button>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Button variant="primary" onClick={onToggle} style={{ flex: 2, justifyContent: 'center', minWidth: 140 }}>
+          {expanded ? '▲ סגור מבט מלא' : '▼ פתח מבט מלא'}
+        </Button>
+        <Button variant="outline" onClick={onNewPlan}>✨ תכנית חדשה</Button>
+      </div>
+    </Card>
+  )
+}
+
+// ─── Archived plan preview modal ────────────────────────────
+function ArchivedPlanPreview({ archivedPlan, activePlan, onClose, onResume }) {
+  const p = archivedPlan
+  const snapshot = p.snapshot || {}
+  const daysSince = p.archivedAt ? Math.floor((Date.now() - new Date(p.archivedAt).getTime()) / 86400000) : 0
+  const lastUsedLabel = daysSince === 0 ? 'היום' : daysSince === 1 ? 'אתמול' : `לפני ${daysSince} ימים`
+  const pctColor = p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning
+
+  return (
+    <Modal open onClose={onClose} title="תצוגה מקדימה של התכנית" width={560}>
+      {/* Big header */}
+      <div style={{
+        background: `${pctColor}22`, borderRadius: t.radius.md,
+        padding: t.space.xl, textAlign: 'center', marginBottom: t.space.md,
+      }}>
+        <div style={{ fontSize: 40, fontWeight: 900, color: pctColor, marginBottom: 4 }}>
+          {p.completionPct}%
+        </div>
+        <b style={{ color: t.color.text, fontSize: t.font.lg }}>{p.name}</b>
+        <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 6 }}>
+          {p.sessionsDone}/{p.sessionsExpected} אימונים · שימוש אחרון: {lastUsedLabel}
+        </div>
+      </div>
+
+      {/* Details */}
+      <div style={{ display: 'grid', gap: 10, marginBottom: t.space.md }}>
+        <PreviewRow label="סגנון" value={snapshot.style || '—'} />
+        <PreviewRow label="ימים בשבוע" value={String(snapshot.days || '—')} />
+        <PreviewRow label="שבועות" value={String(snapshot.weeks || p.weeksScheduled || '—')} />
+        <PreviewRow label={'תרגילים בסה"כ'} value={String((snapshot.sessions || []).reduce((s, sess) => s + (sess.exercises?.length || 0), 0))} />
+        <PreviewRow label="הופעל לראשונה" value={p.startedAt ? new Date(p.startedAt).toLocaleDateString('he-IL') : '—'} />
+      </div>
+
+      {/* Session list preview */}
+      {(snapshot.sessions || []).length > 0 && (
+        <div style={{ marginBottom: t.space.md }}>
+          <div style={{ fontSize: t.font.sm, color: t.color.gold, fontWeight: 700, marginBottom: 8 }}>
+            אימונים בתכנית ({snapshot.sessions.length})
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {snapshot.sessions.slice(0, 6).map((s, i) => (
+              <div key={i} style={{
+                padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm,
+                fontSize: t.font.sm, display: 'flex', justifyContent: 'space-between',
+              }}>
+                <span>{s.name || `אימון ${i + 1}`}</span>
+                <span style={{ color: t.color.textDim, fontSize: t.font.xs }}>{s.exercises?.length || 0} תרגילים</span>
+              </div>
+            ))}
+            {snapshot.sessions.length > 6 && (
+              <div style={{ fontSize: t.font.xs, color: t.color.textMuted, textAlign: 'center' }}>
+                + {snapshot.sessions.length - 6} נוספים
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Warning + actions */}
+      {activePlan && (
+        <div style={{
+          background: `${t.color.warning}22`, borderRadius: t.radius.sm,
+          padding: 10, marginBottom: t.space.md, fontSize: t.font.xs, color: t.color.warning,
+        }}>
+          ⚠️ הפעלת התכנית תעביר את "{activePlan.name}" לארכיון
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button variant="ghost" onClick={onClose} style={{ flex: 1, justifyContent: 'center' }}>ביטול</Button>
+        <Button variant="primary" size="lg" onClick={onResume} style={{ flex: 2, justifyContent: 'center' }}>
+          ✓ הפעל את התכנית
+        </Button>
+      </div>
+    </Modal>
+  )
+}
+
+function PreviewRow({ label, value }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between',
+      padding: '8px 0', borderBottom: `1px solid ${t.color.border}`,
+    }}>
+      <span style={{ color: t.color.textDim, fontSize: t.font.sm }}>{label}</span>
+      <span style={{ color: t.color.text, fontWeight: 600, fontSize: t.font.sm }}>{value}</span>
     </div>
   )
 }
