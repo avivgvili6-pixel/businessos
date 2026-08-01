@@ -4,6 +4,7 @@ import { Modal, Card, Button, Badge } from '../../../../components/ui/UI'
 import { useApp } from '../../../../store/AppStore'
 import { EXERCISE_BY_ID, EQUIPMENT } from '../../../../data/bodybuilding/exercises'
 import { calculatePlates, platesNotation } from '../../../../data/bodybuilding/calculators'
+import { Kicker, SectionHead, Label, Button as SButton } from '../../../../design/components/primitives'
 
 // Live routine runner — user goes through exercises, logs sets, uses rest timer.
 export function RoutineRunner({ routine, open, onClose }) {
@@ -115,22 +116,38 @@ export function RoutineRunner({ routine, open, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} title={routine.name} width={640}>
-      {/* Rest timer banner (when active) */}
+      {/* Rest timer banner (when active) — Sport-Refined */}
       {restEnd && restRemaining > 0 && (
-        <Card style={{
-          background: `${t.color.gold}22`, borderColor: t.color.gold,
-          marginBottom: t.space.md, textAlign: 'center',
+        <div style={{
+          position: 'relative',
+          background: `linear-gradient(160deg, ${t.color.wineGlow}, transparent 60%), linear-gradient(160deg, ${t.color.panel}, ${t.color.charcoal})`,
+          border: `1px solid ${t.color.wineLight}`,
+          borderRadius: t.radius.xl,
+          padding: '20px 22px 18px',
+          marginBottom: t.space.md,
+          textAlign: 'center',
+          overflow: 'hidden',
         }}>
-          <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginBottom: 4 }}>מנוחה</div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: t.color.gold, fontFamily: 'Space Mono, monospace' }}>
+          <div style={{ marginBottom: 6 }}>
+            <Kicker>מנוחה · Rest</Kicker>
+          </div>
+          <div style={{
+            fontFamily: t.font.family.display,
+            fontSize: 56, fontWeight: t.font.weight.med,
+            color: t.color.white,
+            letterSpacing: '-0.05em',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1,
+            marginBottom: 12,
+          }}>
             {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
           </div>
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 8 }}>
-            <Button variant="ghost" size="sm" onClick={() => adjustRest(-15)}>-15s</Button>
-            <Button variant="ghost" size="sm" onClick={() => adjustRest(15)}>+15s</Button>
-            <Button variant="primary" size="sm" onClick={skipRest}>דלג</Button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <SButton variant="ghost" size="sm" onClick={() => adjustRest(-15)}>−15s</SButton>
+            <SButton variant="ghost" size="sm" onClick={() => adjustRest(15)}>+15s</SButton>
+            <SButton variant="primary" size="sm" onClick={skipRest}>דלג</SButton>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Exercises */}
@@ -141,44 +158,79 @@ export function RoutineRunner({ routine, open, onClose }) {
         const completedWorking = ex.sets.filter(s => s.type !== 'warmup' && s.completed).length
         return (
           <Card key={idx} style={{ marginBottom: t.space.md }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 24 }}>{EQUIPMENT[ex.equipment]?.icon || '💪'}</span>
+            {/* Sport-Refined exercise header */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+              gap: 8, marginBottom: 14,
+              paddingBottom: 12, borderBottom: `1px solid ${t.color.hairline}`,
+            }}>
               <div style={{ flex: 1 }}>
-                <b style={{ color: t.color.info, fontSize: t.font.md }}>{exercise.he}</b>
-                <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
-                  {completedWorking}/{totalWorking} סטים · Rest {ex.restSeconds}s
+                <div style={{ marginBottom: 6 }}>
+                  <Kicker color="wine">תרגיל {idx + 1}</Kicker>
+                </div>
+                <div style={{
+                  fontFamily: t.font.family.display,
+                  fontSize: 22, fontWeight: t.font.weight.semi,
+                  color: t.color.white,
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.05,
+                }}>{exercise.he}</div>
+                <div style={{ marginTop: 6 }}>
+                  <Label>
+                    {completedWorking}/{totalWorking} סטים · מנוחה {ex.restSeconds}s
+                  </Label>
                 </div>
               </div>
+              <div style={{
+                fontFamily: t.font.family.display,
+                fontSize: 34, fontWeight: t.font.weight.med,
+                color: t.color.silver3,
+                letterSpacing: '-0.03em',
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1,
+              }}>{String(idx + 1).padStart(2, '0')}</div>
             </div>
 
             {ex.notes && (
               <div style={{
-                background: t.color.bgSoft, padding: 8, borderRadius: t.radius.sm,
-                fontSize: t.font.sm, color: t.color.text, marginBottom: 8,
+                background: t.color.panel, padding: 10, borderRadius: t.radius.sm,
+                fontSize: t.font.body, color: t.color.silver1, marginBottom: 10,
+                border: `1px solid ${t.color.hairline}`,
+                letterSpacing: '-0.005em',
               }}>
-                📝 {ex.notes}
+                {ex.notes}
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1fr 40px 40px', gap: 6, fontSize: t.font.xs, color: t.color.textDim, padding: '4px 6px' }}>
-              <span>SET</span>
-              <span>KG</span>
-              <span>REPS</span>
-              <span>⚖️</span>
-              <span>✓</span>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '50px 1fr 1fr 40px 40px', gap: 6,
+              fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: t.font.track.label,
+              color: t.color.silver3, textTransform: 'uppercase',
+              padding: '4px 6px',
+            }}>
+              <span>Set</span>
+              <span>Kg</span>
+              <span>Reps</span>
+              <span>Plate</span>
+              <span>·</span>
             </div>
             {ex.sets.map((s, si) => {
               const setNumber = s.type === 'warmup' ? 'W' : ex.sets.slice(0, si + 1).filter(x => x.type !== 'warmup').length
               return (
                 <div key={si} style={{
                   display: 'grid', gridTemplateColumns: '50px 1fr 1fr 40px 40px', gap: 6,
-                  padding: '8px 6px',
-                  background: s.completed ? `${t.color.success}22` : s.type === 'warmup' ? `${t.color.gold}11` : t.color.bgSoft,
-                  borderRadius: 4, alignItems: 'center', marginBottom: 4,
+                  padding: '10px 6px',
+                  background: s.completed ? `${t.color.wineGlow}` : s.type === 'warmup' ? `${t.color.panel}` : t.color.charcoal,
+                  border: `1px solid ${s.completed ? t.color.wineLight : t.color.hairline}`,
+                  borderRadius: t.radius.sm, alignItems: 'center', marginBottom: 4,
                 }}>
                   <span style={{
-                    textAlign: 'center', fontWeight: 900,
-                    color: s.type === 'warmup' ? t.color.gold : t.color.text,
+                    textAlign: 'center',
+                    fontFamily: t.font.family.display,
+                    fontSize: 16, fontWeight: t.font.weight.semi,
+                    color: s.type === 'warmup' ? t.color.silver2 : s.completed ? t.color.wineLight : t.color.white,
+                    letterSpacing: '-0.02em',
+                    fontVariantNumeric: 'tabular-nums',
                   }}>{setNumber}</span>
                   <input type="number" value={s.actualWeight || ''}
                     onChange={e => updateActual(idx, si, 'actualWeight', e.target.value)}
@@ -191,20 +243,27 @@ export function RoutineRunner({ routine, open, onClose }) {
                   <button
                     onClick={() => setPlateOpen({ weight: s.actualWeight || s.weight })}
                     disabled={!settings.plateCalculatorEnabled || !s.actualWeight}
+                    title="חישוב פלטות"
                     style={{
-                      background: 'none', border: 'none', fontSize: 16,
+                      background: 'none', border: `1px solid ${s.actualWeight ? t.color.border : 'transparent'}`,
+                      borderRadius: t.radius.sm,
                       cursor: s.actualWeight ? 'pointer' : 'default',
-                      color: s.actualWeight ? t.color.gold : t.color.textMuted,
+                      color: s.actualWeight ? t.color.silver1 : t.color.silver3,
+                      width: 32, height: 32,
+                      fontFamily: t.font.family.mono, fontSize: 10, letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
                     }}
-                  >⚖️</button>
+                  >P</button>
                   <button
                     onClick={() => toggleSet(idx, si)}
                     style={{
-                      background: s.completed ? t.color.success : t.color.bgSoft,
-                      border: `1.5px solid ${s.completed ? t.color.success : t.color.border}`,
-                      borderRadius: 4, cursor: 'pointer', fontSize: 16,
-                      color: s.completed ? '#0d0d14' : t.color.textDim,
-                      width: 32, height: 32, fontWeight: 900,
+                      background: s.completed ? t.color.wineLight : 'transparent',
+                      border: `1.5px solid ${s.completed ? t.color.wineLight : t.color.border}`,
+                      borderRadius: '50%', cursor: 'pointer',
+                      color: s.completed ? t.color.white : t.color.silver3,
+                      width: 32, height: 32, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, fontWeight: 700,
                     }}
                   >{s.completed ? '✓' : ''}</button>
                 </div>
@@ -216,9 +275,9 @@ export function RoutineRunner({ routine, open, onClose }) {
 
       {/* Finish button */}
       <div style={{ position: 'sticky', bottom: -24, background: t.color.bgElevated, padding: '16px 0', borderTop: `1px solid ${t.color.border}` }}>
-        <Button variant="primary" size="lg" onClick={finish} style={{ width: '100%', justifyContent: 'center' }}>
-          🏁 סיים אימון
-        </Button>
+        <SButton variant="primary" size="lg" onClick={finish} full>
+          סיים אימון
+        </SButton>
       </div>
 
       {/* Plate calculator modal */}
@@ -284,7 +343,12 @@ function PlatesGraph({ plates, reverse }) {
 }
 
 const setInput = {
-  padding: 6, background: '#0d0d14',
-  border: `1px solid ${t.color.borderSoft}`, borderRadius: 4,
-  color: t.color.text, fontFamily: 'inherit', textAlign: 'center', width: '100%',
+  padding: 8, background: t.color.charcoal,
+  border: `1px solid ${t.color.border}`, borderRadius: t.radius.sm,
+  color: t.color.white,
+  fontFamily: t.font.family.display,
+  fontSize: 15, fontWeight: t.font.weight.semi,
+  letterSpacing: '-0.02em',
+  fontVariantNumeric: 'tabular-nums',
+  textAlign: 'center', width: '100%', outline: 'none',
 }
