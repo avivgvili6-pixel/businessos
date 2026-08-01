@@ -176,27 +176,48 @@ export async function listAllMembers() {
 // Admin action: trigger a password-recovery email for a specific member.
 // Uses the same public endpoint the user would hit via "forgot password" —
 // no admin privilege required, but the caller UI should be admin-only.
-// Returns { ok, email, error } — swallows nothing so the UI can react.
+// Returns { ok, email, message } — a plain string message the UI can show
+// (never a raw error object, so no more '{}' banners).
 export async function adminSendPasswordRecovery(email) {
-  if (!supabaseEnabled) return { ok: false, error: new Error('Supabase not configured') }
+  if (!supabaseEnabled) {
+    return { ok: false, message: 'Supabase לא מוגדר — הגדר VITE_SUPABASE_URL / VITE_SUPABASE_KEY בסודות של GitHub Pages.' }
+  }
   const normalized = (email || '').trim().toLowerCase()
   if (!normalized || !normalized.includes('@')) {
-    return { ok: false, error: new Error('כתובת מייל לא תקינה') }
+    return { ok: false, message: 'כתובת מייל לא תקינה.' }
   }
   const redirectTo = typeof window !== 'undefined'
     ? window.location.origin + window.location.pathname
     : undefined
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(normalized, { redirectTo })
-    if (error) {
-      console.warn('[supabaseSync] adminSendPasswordRecovery failed:', error.message)
-      return { ok: false, email: normalized, error }
-    }
-    return { ok: true, email: normalized }
+    const response = await supabase.auth.resetPasswordForEmail(normalized, { redirectTo })
+    const { error } = response
+    console.info('[supabaseSync] resetPasswordForEmail response:', {
+      email: normalized, redirectTo, error, hasError: !!error,
+    })
+    if (!error) return { ok: true, email: normalized, message: `נשלח מייל איפוס ל־${normalized}. הקישור פעיל שעה.` }
+    // Build a message even when Supabase's error object is empty/opaque
+    return { ok: false, email: normalized, message: describeAuthError(error, redirectTo) }
   } catch (err) {
-    console.warn('[supabaseSync] adminSendPasswordRecovery threw:', err?.message)
-    return { ok: false, email: normalized, error: err }
+    console.error('[supabaseSync] adminSendPasswordRecovery threw:', err)
+    return { ok: false, email: normalized, message: `שגיאת רשת: ${err?.message || 'לא ניתן להגיע ל-Supabase. בדוק חיבור אינטרנט.'}` }
   }
+}
+
+function describeAuthError(err, redirectTo) {
+  const msg = (err?.message || '').trim()
+  const status = err?.status
+  const code = err?.code || err?.name
+  if (/rate.?limit|too.?many|for security purposes/i.test(msg)) return 'בקשות רבות מדי בזמן קצר. המתן דקה ונסה שוב.'
+  if (/redirect.?url|redirect_uri|not.?allowed/i.test(msg)) return `Redirect URL לא מאושר ב-Supabase. הוסף בפאנל Auth → URL Configuration: ${redirectTo}`
+  if (/user.?not.?found|no.?user.?found/i.test(msg)) return 'לא נמצא משתמש עם המייל הזה ב-Supabase.'
+  if (/invalid.?email/i.test(msg)) return 'כתובת מייל לא תקינה מבחינת Supabase.'
+  if (msg && msg !== '{}' && !/^[{}\[\]\s]+$/.test(msg)) {
+    return code ? `${msg} (${code})` : msg
+  }
+  // Empty/opaque error — most common cause: Redirect URL not whitelisted
+  if (status) return `שגיאה מהשרת (סטטוס ${status}). סיבה סבירה: Redirect URL לא מוגדר ב-Supabase Auth → URL Configuration. הוסף: ${redirectTo}`
+  return `Supabase החזיר שגיאה ריקה. סיבה סבירה: Redirect URL לא מוגדר. פתח את פאנל Supabase → Authentication → URL Configuration → הוסף לרשימה: ${redirectTo}`
 }
 
 // Aggregate — how many progress photos each member uploaded (proxy for engagement)

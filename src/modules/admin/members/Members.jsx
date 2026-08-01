@@ -466,12 +466,7 @@ function MemberDrawer({ member, onClose }) {
     }
     setResetState({ status: 'sending', message: '' })
     const res = await adminSendPasswordRecovery(member.email)
-    if (res.ok) {
-      setResetState({ status: 'ok', message: `נשלח מייל איפוס ל־${member.email}. הקישור פעיל שעה.` })
-    } else {
-      const msg = res.error?.message || 'שגיאה בשליחת האיפוס. נסה שוב או פנה לתמיכה.'
-      setResetState({ status: 'error', message: msg })
-    }
+    setResetState({ status: res.ok ? 'ok' : 'error', message: res.message || 'לא התקבלה תגובה מהשרת.' })
   }
   const copyInvite = async () => {
     const link = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
