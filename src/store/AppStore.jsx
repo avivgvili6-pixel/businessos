@@ -55,6 +55,24 @@ const initialState = {
     leaderboardOptIn: false,
   },
   lastActiveDate: todayKey(),
+  reminders: {                // meal + workout push reminders
+    enabled: false,           // user must opt-in (browser permission)
+    meals: {
+      breakfast: { at: '08:00', enabled: true },
+      lunch:     { at: '13:00', enabled: true },
+      dinner:    { at: '19:00', enabled: true },
+      snack:     { at: '16:00', enabled: false },
+    },
+    workouts: {               // dow → time (Sunday=0)
+      0: { at: '18:00', enabled: false },
+      1: { at: '18:00', enabled: true },
+      2: { at: '18:00', enabled: false },
+      3: { at: '18:00', enabled: true },
+      4: { at: '18:00', enabled: false },
+      5: { at: '18:00', enabled: true },
+      6: { at: '10:00', enabled: false },
+    },
+  },
 }
 
 function reducer(state, action) {
@@ -63,6 +81,7 @@ function reducer(state, action) {
     case 'SET_ROLE':       return { ...state, role: action.role }
     case 'SET_ONBOARDED':  return { ...state, onboarded: true, profile: { ...state.profile, ...action.profile } }
     case 'UPDATE_PROFILE': return { ...state, profile: { ...state.profile, ...action.patch } }
+    case 'UPDATE_REMINDERS': return { ...state, reminders: { ...(state.reminders || {}), ...action.patch } }
     case 'SET_1RM':        return { ...state, profile: { ...state.profile, oneRMs: { ...(state.profile.oneRMs || {}), [action.lift]: action.value } } }
     case 'SET_PLAN': {
       const now = new Date().toISOString()
@@ -295,6 +314,7 @@ export function AppProvider({ children }) {
         if (user?.id) markOnboarded(user.id, profile).catch(() => {})
       }
     },
+    updateReminders: (patch) => dispatch({ type: 'UPDATE_REMINDERS', patch }),
     updateProfile: async (patch) => {
       dispatch({ type:'UPDATE_PROFILE', patch })
       if (supabaseEnabled) {

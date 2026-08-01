@@ -43,7 +43,7 @@ export function Goals({ go }) {
  const dir = DIRECTIONS.find(d => d.id === active.direction)
 
  // Progress from actual data
- const progress = computeProgress(active, state)
+ const progress = computeProgress(active, state, isRTL)
 
  const submitCheckin = () => {
  if (checkinValue === ''|| isNaN(+checkinValue)) return
@@ -127,7 +127,7 @@ export function Goals({ go }) {
  {/* Weekly actions */}
  {active.weeklyActions?.length > 0 && (
  <Card>
- <SectionHeader title="המיני-מטרות השבועיות שלך"subtitle="הפעולות שיובילו אותך למטרה הגדולה"/>
+ <SectionHeader title={isRTL ? 'המיני-מטרות השבועיות שלך' : 'Your weekly mini-goals'} subtitle={isRTL ? 'הפעולות שיובילו אותך למטרה הגדולה' : 'The actions that will get you to the big goal'} />
  <div style={{ display:'grid', gap: 8 }}>
  {active.weeklyActions.map((a, i) => (
  <div key={i} style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md, display:'flex', gap: 12, alignItems:'center'}}>
@@ -145,7 +145,7 @@ export function Goals({ go }) {
  {/* Barriers reminder */}
  {active.barriers?.length > 0 && (
  <Card style={{ background:`${t.color.warning}10`, borderColor: t.color.warning }}>
- <SectionHeader title=" המכשולים שהזהרת מהם"subtitle="שים לב אליהם בשבוע הקרוב"/>
+ <SectionHeader title={isRTL ? ' המכשולים שהזהרת מהם' : ' Barriers you flagged'} subtitle={isRTL ? 'שים לב אליהם בשבוע הקרוב' : 'Watch out for these in the coming week'} />
  <div style={{ display:'flex', gap: 6, flexWrap:'wrap'}}>
  {active.barriers.map(id => <Badge key={id} color={t.color.warning}>{id}</Badge>)}
  </div>
@@ -159,13 +159,13 @@ export function Goals({ go }) {
  <div style={{ fontSize: 48 }}> </div>
  <div style={{ flex: 1, minWidth: 240 }}>
  <div style={{ fontWeight: 800, fontSize: t.font.xl, color: t.color.gold, marginBottom: 6 }}>
- יש לך מטרה - עכשיו איך משיגים אותה?
+ {isRTL ? 'יש לך מטרה - עכשיו איך משיגים אותה?' : 'You have a goal — now how do you get there?'}
  </div>
  <div style={{ color: t.color.textDim, fontSize: t.font.sm, lineHeight: 1.5 }}>
- בואי נבנה יחד תכנית הוליסטית - אימונים + תזונה + מעטפת מנטלית - הכל מותאם אישית תוך 2 דקות
+ {isRTL ? 'בואי נבנה יחד תכנית הוליסטית - אימונים + תזונה + מעטפת מנטלית - הכל מותאם אישית תוך 2 דקות' : 'Let\'s build a holistic plan together — workouts + nutrition + mental wrap — all tailored in under 2 minutes'}
  </div>
  </div>
- <Button size="lg"onClick={() => setBuildingPlan(true)}>בנה לי תכנית </Button>
+ <Button size="lg"onClick={() => setBuildingPlan(true)}>{isRTL ? 'בנה לי תכנית ' : 'Build my plan'}</Button>
  </div>
  </Card>
  )}
@@ -183,25 +183,25 @@ export function Goals({ go }) {
  <div style={{ display:'flex', gap: 12, alignItems:'center', flexWrap:'wrap'}}>
  <div style={{ fontSize: 28 }}> </div>
  <div style={{ flex: 1 }}>
- <div style={{ fontWeight: 700 }}>יש לך תכנית פעילה: {state.plan.name}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>לחץ כאן → מעביר אותך ישירות לאימונים </div>
+ <div style={{ fontWeight: 700 }}>{isRTL ? 'יש לך תכנית פעילה:' : 'Active plan:'} {state.plan.name}</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>{isRTL ? 'לחץ כאן → מעביר אותך ישירות לאימונים ' : 'Tap here → takes you straight to Workouts'}</div>
  </div>
  <div style={{ fontSize: 24, color: t.color.success }}>←</div>
- <Button variant="ghost"size="sm"onClick={(e) => { e.stopPropagation(); setBuildingPlan(true) }}>בנה תכנית מחדש</Button>
+ <Button variant="ghost"size="sm"onClick={(e) => { e.stopPropagation(); setBuildingPlan(true) }}>{isRTL ? 'בנה תכנית מחדש' : 'Rebuild plan'}</Button>
  </div>
  </Card>
  )}
 
  {/* Actions */}
  <div style={{ display:'flex', gap: 10, flexWrap:'wrap'}}>
- <Button variant="outline"onClick={() => setBuilding(true)}> שנה מטרה</Button>
- <Button variant="ghost"onClick={() => { if (confirm('לבטל את המטרה?')) removeGoal(active.id) }}>מחק מטרה</Button>
+ <Button variant="outline"onClick={() => setBuilding(true)}> {isRTL ? 'שנה מטרה' : 'Change goal'}</Button>
+ <Button variant="ghost"onClick={() => { if (confirm(isRTL ? 'לבטל את המטרה?' : 'Cancel this goal?')) removeGoal(active.id) }}>{isRTL ? 'מחק מטרה' : 'Delete goal'}</Button>
  </div>
 
  {/* Checkin history */}
  {active.checkins?.length > 0 && (
  <Card>
- <SectionHeader title="עדכונים אחרונים"/>
+ <SectionHeader title={isRTL ? 'עדכונים אחרונים' : 'Recent updates'} />
  <div style={{ display:'grid', gap: 8 }}>
  {active.checkins.slice(0, 6).map((c, i) => (
  <div key={i} style={{ display:'flex', justifyContent:'space-between', padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
@@ -209,20 +209,20 @@ export function Goals({ go }) {
  <div style={{ fontWeight: 700, color: t.color.gold }}>{c.value}</div>
  {c.note && <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{c.note}</div>}
  </div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{new Date(c.date).toLocaleDateString('he-IL')}</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{new Date(c.date).toLocaleDateString(isRTL ? 'he-IL' : 'en-US')}</div>
  </div>
  ))}
  </div>
  </Card>
  )}
 
- <Modal open={!!checkinFor} onClose={() => setCheckinFor(null)} title="עדכון מדד"width={420}>
+ <Modal open={!!checkinFor} onClose={() => setCheckinFor(null)} title={isRTL ? 'עדכון מדד' : 'Update metric'} width={420}>
  <div style={{ display:'grid', gap: 12 }}>
- <Input type="number"label={`ערך נוכחי (${checkinFor?.metric?.unit || ''})`} value={checkinValue} onChange={e => setCheckinValue(e.target.value)} />
- <Input label="הערה (אופציונלי)"value={checkinNote} onChange={e => setCheckinNote(e.target.value)} placeholder="איך אתה מרגיש? מה עבד השבוע?"/>
+ <Input type="number"label={`${isRTL ? 'ערך נוכחי' : 'Current value'} (${checkinFor?.metric?.unit || ''})`} value={checkinValue} onChange={e => setCheckinValue(e.target.value)} />
+ <Input label={isRTL ? 'הערה (אופציונלי)' : 'Note (optional)'} value={checkinNote} onChange={e => setCheckinNote(e.target.value)} placeholder={isRTL ? 'איך אתה מרגיש? מה עבד השבוע?' : 'How do you feel? What worked this week?'} />
  <div style={{ display:'flex', gap: 10, justifyContent:'flex-end'}}>
- <Button variant="ghost" onClick={() => setCheckinFor(null)}>בטל</Button>
- <Button onClick={submitCheckin}>שמור</Button>
+ <Button variant="ghost" onClick={() => setCheckinFor(null)}>{isRTL ? 'בטל' : 'Cancel'}</Button>
+ <Button onClick={submitCheckin}>{isRTL ? 'שמור' : 'Save'}</Button>
  </div>
  </div>
  </Modal>
@@ -238,7 +238,7 @@ export function Goals({ go }) {
 }
 
 // Compute progress from actual data
-function computeProgress(goal, state) {
+function computeProgress(goal, state, isRTL = true) {
  let currentValue = null, targetValue = null, startValue = null, metricLabel = '', trend = []
 
  switch (goal.kind) {
@@ -249,7 +249,7 @@ function computeProgress(goal, state) {
  currentValue = meas[meas.length - 1].weight
  targetValue = +(startValue + goal.metric.delta).toFixed(1)
  trend = meas.map(m => m.weight)
- metricLabel = 'משקל גוף (ק״ג)'
+ metricLabel = isRTL ? 'משקל גוף (ק״ג)' : 'Body weight (kg)'
  }
  break
  }
@@ -260,7 +260,7 @@ function computeProgress(goal, state) {
  currentValue = meas[meas.length - 1].bodyFat
  targetValue = +(startValue + goal.metric.delta).toFixed(1)
  trend = meas.map(m => m.bodyFat)
- metricLabel = 'אחוז שומן (%)'
+ metricLabel = isRTL ? 'אחוז שומן (%)' : 'Body fat (%)'
  }
  break
  }
@@ -271,7 +271,7 @@ function computeProgress(goal, state) {
  currentValue = Math.round(prs[prs.length - 1].weight * (1 + prs[prs.length - 1].reps/30))
  targetValue = goal.metric.target
  trend = prs.map(p => Math.round(p.weight * (1 + p.reps/30)))
- metricLabel = `${hebrewLift(goal.metric.lift)} - e1RM (ק״ג)`
+ metricLabel = `${hebrewLift(goal.metric.lift)} - e1RM (${isRTL ? 'ק״ג' : 'kg'})`
  }
  break
  }
@@ -282,7 +282,7 @@ function computeProgress(goal, state) {
  currentValue = +(cs.slice(-7).reduce((s,c) => s + c.sleepHours, 0) / Math.min(7, cs.length)).toFixed(1)
  targetValue = goal.metric.target
  trend = cs.map(c => c.sleepHours)
- metricLabel = 'שעות שינה (ממוצע 7 ימים)'
+ metricLabel = isRTL ? 'שעות שינה (ממוצע 7 ימים)' : 'Sleep hours (7-day avg)'
  }
  break
  }
@@ -293,7 +293,7 @@ function computeProgress(goal, state) {
  currentValue = +(cs.slice(-7).reduce((s,c) => s + c.mood, 0) / Math.min(7, cs.length)).toFixed(1)
  targetValue = goal.metric.target
  trend = cs.map(c => c.mood)
- metricLabel = 'מצב-רוח (ממוצע 7 ימים)'
+ metricLabel = isRTL ? 'מצב-רוח (ממוצע 7 ימים)' : 'Mood (7-day avg)'
  }
  break
  }
@@ -302,7 +302,7 @@ function computeProgress(goal, state) {
  if (latest && latest.values[goal.metric.marker]) {
  currentValue = +latest.values[goal.metric.marker]
  targetValue = goal.metric.target
- metricLabel = `סמן דם: ${goal.metric.marker}`
+ metricLabel = `${isRTL ? 'סמן דם' : 'Blood marker'}: ${goal.metric.marker}`
  }
  break
  }

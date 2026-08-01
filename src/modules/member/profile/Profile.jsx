@@ -4,9 +4,11 @@ import { useApp } from '../../../store/AppStore'
 import { Card, Button, Input, Select, Badge, SectionHeader, Tabs } from '../../../components/ui/UI'
 import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/calc'
 import { KEY_LIFTS } from '../../../data/programs'
+import { useI18n } from '../../../i18n/i18n'
 
 export function Profile() {
  const { state, updateProfile, setWearable, set1RM, reset } = useApp()
+ const { isRTL } = useI18n()
  const [tab, setTab] = useState('info')
  const p = state.profile
  const set = (patch) => updateProfile(patch)
@@ -14,10 +16,10 @@ export function Profile() {
  return (
  <>
  <Tabs tabs={[
- { key:'info', label:'פרטים'},
- { key:'strength', label:'יכולת מירבית (1RM)' },
- { key:'integrations',label:'אינטגרציות'},
- { key:'settings', label:'הגדרות'},
+ { key:'info', label: isRTL ? 'פרטים' : 'Details'},
+ { key:'strength', label: isRTL ? 'יכולת מירבית (1RM)' : 'Max strength (1RM)'},
+ { key:'integrations', label: isRTL ? 'אינטגרציות' : 'Integrations'},
+ { key:'settings', label: isRTL ? 'הגדרות' : 'Settings'},
  ]} active={tab} onChange={setTab} />
 
  {tab === 'strength'&& <StrengthTab oneRMs={p.oneRMs || {}} set1RM={set1RM} personalRecords={state.personalRecords} />}
@@ -25,30 +27,30 @@ export function Profile() {
  {tab === 'info'&& (
  <div style={{ display:'grid', gap: 16 }}>
  <Card>
- <SectionHeader title="פרטים אישיים"/>
+ <SectionHeader title={isRTL ? 'פרטים אישיים' : 'Personal details'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
- <Input label="שם"value={p.name} onChange={e => set({ name: e.target.value })} />
- <Input type="number"label="גיל"value={p.age} onChange={e => set({ age: +e.target.value })} />
- <Select label="מין"value={p.sex} onChange={e => set({ sex: e.target.value })}>
- <option value="male">גבר</option><option value="female">אישה</option>
+ <Input label={isRTL ? 'שם' : 'Name'} value={p.name} onChange={e => set({ name: e.target.value })} />
+ <Input type="number" label={isRTL ? 'גיל' : 'Age'} value={p.age} onChange={e => set({ age: +e.target.value })} />
+ <Select label={isRTL ? 'מין' : 'Sex'} value={p.sex} onChange={e => set({ sex: e.target.value })}>
+ <option value="male">{isRTL ? 'גבר' : 'Male'}</option><option value="female">{isRTL ? 'אישה' : 'Female'}</option>
  </Select>
- <Input type="number"label="גובה (ס״מ)"value={p.heightCm} onChange={e => set({ heightCm: +e.target.value })} />
- <Input type="number"label="משקל (ק״ג)"value={p.weightKg} onChange={e => set({ weightKg: +e.target.value })} />
- <Select label="רמת פעילות"value={p.activity} onChange={e => set({ activity: e.target.value })}>
+ <Input type="number" label={isRTL ? 'גובה (ס״מ)' : 'Height (cm)'} value={p.heightCm} onChange={e => set({ heightCm: +e.target.value })} />
+ <Input type="number" label={isRTL ? 'משקל (ק״ג)' : 'Weight (kg)'} value={p.weightKg} onChange={e => set({ weightKg: +e.target.value })} />
+ <Select label={isRTL ? 'רמת פעילות' : 'Activity level'} value={p.activity} onChange={e => set({ activity: e.target.value })}>
  {Object.entries(activityFactors).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
  </Select>
- <Select label="מטרה"value={p.goalKey} onChange={e => set({ goalKey: e.target.value })}>
+ <Select label={isRTL ? 'מטרה' : 'Goal'} value={p.goalKey} onChange={e => set({ goalKey: e.target.value })}>
  {Object.entries(goalAdjustments).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
  </Select>
- <Select label="תזונה"value={p.dietKey} onChange={e => set({ dietKey: e.target.value })}>
+ <Select label={isRTL ? 'תזונה' : 'Diet'} value={p.dietKey} onChange={e => set({ dietKey: e.target.value })}>
  {Object.entries(dietTemplates).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
  </Select>
- <Select label="ניסיון"value={p.experience} onChange={e => set({ experience: e.target.value })}>
- <option value="מתחיל">מתחיל</option><option value="בינוני">בינוני</option><option value="מתקדם">מתקדם</option>
+ <Select label={isRTL ? 'ניסיון' : 'Experience'} value={p.experience} onChange={e => set({ experience: e.target.value })}>
+ <option value="מתחיל">{isRTL ? 'מתחיל' : 'Beginner'}</option><option value="בינוני">{isRTL ? 'בינוני' : 'Intermediate'}</option><option value="מתקדם">{isRTL ? 'מתקדם' : 'Advanced'}</option>
  </Select>
  </div>
  <div style={{ marginTop: 14 }}>
- <Input label="הגבלות/פציעות"value={p.constraints} onChange={e => set({ constraints: e.target.value })} />
+ <Input label={isRTL ? 'הגבלות/פציעות' : 'Restrictions/injuries'} value={p.constraints} onChange={e => set({ constraints: e.target.value })} />
  </div>
  </Card>
  </div>
@@ -57,12 +59,12 @@ export function Profile() {
  {tab === 'integrations'&& (
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
  {[
- { name:'Apple Health', icon:'', desc:'סנכרון צעדים, שינה, HR'},
- { name:'Google Fit', icon:'', desc:'סנכרון פעילות ושינה'},
- { name:'Garmin', icon:'⌚', desc:'HRV, שינה, אימונים'},
+ { name:'Apple Health', icon:'', desc: isRTL ? 'סנכרון צעדים, שינה, HR' : 'Sync steps, sleep, HR'},
+ { name:'Google Fit', icon:'', desc: isRTL ? 'סנכרון פעילות ושינה' : 'Sync activity and sleep'},
+ { name:'Garmin', icon:'⌚', desc: isRTL ? 'HRV, שינה, אימונים' : 'HRV, sleep, workouts'},
  { name:'Whoop', icon:'', desc:'Recovery, Strain'},
- { name:'Oura Ring', icon:'', desc:'שינה, HRV, טמפרטורה'},
- { name:'MyFitnessPal',icon:'', desc:'ייבוא יומן אכילה'},
+ { name:'Oura Ring', icon:'', desc: isRTL ? 'שינה, HRV, טמפרטורה' : 'Sleep, HRV, temperature'},
+ { name:'MyFitnessPal',icon:'', desc: isRTL ? 'ייבוא יומן אכילה' : 'Import food log'},
  ].map(g => (
  <Card key={g.name} hover style={{ padding: 18 }}>
  <div style={{ display:'flex', alignItems:'center', gap: 10, marginBottom: 10 }}>
@@ -71,7 +73,7 @@ export function Profile() {
  </div>
  <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 14, minHeight: 40 }}>{g.desc}</div>
  <Button variant="outline"size="sm"onClick={() => setWearable({ source: g.name, sleepHours: 7.2, hrv: 62, steps: 8420, restingHR: 58, syncedAt: new Date().toISOString() })}>
- חבר (Mock)
+ {isRTL ? 'חבר (Mock)' : 'Connect (Mock)'}
  </Button>
  </Card>
  ))}
@@ -81,15 +83,15 @@ export function Profile() {
  {tab === 'settings'&& (
  <div style={{ display:'grid', gap: 16 }}>
  <Card>
- <SectionHeader title="נתונים"/>
+ <SectionHeader title={isRTL ? 'נתונים' : 'Data'} />
  <div style={{ display:'flex', gap: 10, flexWrap:'wrap'}}>
- <Button variant="ghost"onClick={() => { const s = JSON.stringify(state, null, 2); navigator.clipboard?.writeText(s); alert('הועתק ללוח (JSON)') }}>ייצא נתונים</Button>
- <Button variant="danger"onClick={() => { if (confirm('לאפס את כל הנתונים?')) reset() }}>אפס הכל</Button>
+ <Button variant="ghost"onClick={() => { const s = JSON.stringify(state, null, 2); navigator.clipboard?.writeText(s); alert(isRTL ? 'הועתק ללוח (JSON)' : 'Copied to clipboard (JSON)') }}>{isRTL ? 'ייצא נתונים' : 'Export data'}</Button>
+ <Button variant="danger"onClick={() => { if (confirm(isRTL ? 'לאפס את כל הנתונים?' : 'Reset all data?')) reset() }}>{isRTL ? 'אפס הכל' : 'Reset all'}</Button>
  </div>
  </Card>
  <Card>
- <SectionHeader title="גרסה"/>
- <div style={{ color: t.color.textDim, fontSize: t.font.sm }}>Holistic Fitness OS · שלד ראשוני · v0.1</div>
+ <SectionHeader title={isRTL ? 'גרסה' : 'Version'} />
+ <div style={{ color: t.color.textDim, fontSize: t.font.sm }}>Holistic Fitness OS · {isRTL ? 'שלד ראשוני' : 'initial skeleton'} · v0.1</div>
  </Card>
  </div>
  )}
@@ -98,6 +100,7 @@ export function Profile() {
 }
 
 function StrengthTab({ oneRMs, set1RM, personalRecords }) {
+ const { isRTL } = useI18n()
  // Auto-estimate from PRs (Epley: 1RM = w * (1 + r/30))
  const estimateFrom = (liftName) => {
  const prs = personalRecords.filter(pr => pr.exercise?.includes(liftName))
@@ -115,8 +118,8 @@ function StrengthTab({ oneRMs, set1RM, personalRecords }) {
  <div style={{ display:'grid', gap: 16 }}>
  <Card>
  <SectionHeader
- title="יכולת מירבית (1RM)"
- subtitle="חשוב לחישוב אחוזים אמיתיים בתכניות אימון. הזן ערכים ידניים או השתמש בהערכה מ-PRs שלך."
+ title={isRTL ? 'יכולת מירבית (1RM)' : 'Max strength (1RM)'}
+ subtitle={isRTL ? 'חשוב לחישוב אחוזים אמיתיים בתכניות אימון. הזן ערכים ידניים או השתמש בהערכה מ-PRs שלך.' : 'Needed for accurate % calculations in training plans. Enter values manually or use the estimate from your PRs.'}
  />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
  {Object.values(KEY_LIFTS).map(lift => {
@@ -126,15 +129,15 @@ function StrengthTab({ oneRMs, set1RM, personalRecords }) {
  <Card key={lift.key} style={{ padding: 16, background: t.color.bgSoft }}>
  <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 8 }}>{lift.label}</div>
  <div style={{ display:'flex', gap: 8, alignItems:'end'}}>
- <Input type="number"placeholder="ק״ג"value={val} onChange={e => set1RM(lift.key, e.target.value)} />
- <span style={{ color: t.color.textMuted, fontSize: t.font.xs, alignSelf:'center'}}>ק״ג</span>
+ <Input type="number" placeholder={isRTL ? 'ק״ג' : 'kg'} value={val} onChange={e => set1RM(lift.key, e.target.value)} />
+ <span style={{ color: t.color.textMuted, fontSize: t.font.xs, alignSelf:'center'}}>{isRTL ? 'ק״ג' : 'kg'}</span>
  </div>
  {suggested && (
  <div style={{ marginTop: 8, display:'flex', gap: 8, alignItems:'center'}}>
- <span style={{ fontSize: t.font.xs, color: t.color.textDim }}>הערכה מ-PRs: {suggested} ק״ג</span>
+ <span style={{ fontSize: t.font.xs, color: t.color.textDim }}>{isRTL ? 'הערכה מ-PRs' : 'Estimate from PRs'}: {suggested} {isRTL ? 'ק״ג' : 'kg'}</span>
  {suggested !== +val && <button onClick={() => set1RM(lift.key, suggested)} style={{
  background:'none', border:'none', color: t.color.gold, cursor:'pointer', fontSize: t.font.xs, textDecoration:'underline', fontFamily:'inherit',
- }}>קבל</button>}
+ }}>{isRTL ? 'קבל' : 'Accept'}</button>}
  </div>
  )}
  </Card>
@@ -142,18 +145,18 @@ function StrengthTab({ oneRMs, set1RM, personalRecords }) {
  })}
  </div>
  <div style={{ marginTop: 16, padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.6 }}>
- <b style={{ color: t.color.gold }}>איך לקבוע 1RM?</b> עלייה הדרגתית לניסיון אמת, או שימוש בחישוב Epley: <code style={{ background: t.color.bg, padding:'2px 6px', borderRadius: 4 }}>1RM = משקל × (1 + חזרות/30)</code>. לדוגמה, אם עשית 100 ק״ג × 5, ה-1RM המוערך שלך: 117 ק״ג.
+ <b style={{ color: t.color.gold }}>{isRTL ? 'איך לקבוע 1RM?' : 'How to set your 1RM?'}</b> {isRTL ? 'עלייה הדרגתית לניסיון אמת, או שימוש בחישוב Epley:' : 'Ramp up gradually to a real attempt, or use the Epley formula:'} <code style={{ background: t.color.bg, padding:'2px 6px', borderRadius: 4 }}>{isRTL ? '1RM = משקל × (1 + חזרות/30)' : '1RM = weight × (1 + reps/30)'}</code>. {isRTL ? 'לדוגמה, אם עשית 100 ק״ג × 5, ה-1RM המוערך שלך: 117 ק״ג.' : 'Example: 100 kg × 5 → estimated 1RM: 117 kg.'}
  </div>
  </Card>
 
  {Object.keys(oneRMs).length > 0 && (
  <Card>
- <SectionHeader title="פירוט אחוזים (למידה מהירה)"subtitle="המשקלים שתראה בתכניות אימון" />
+ <SectionHeader title={isRTL ? 'פירוט אחוזים (למידה מהירה)' : 'Percentage breakdown (quick lookup)'} subtitle={isRTL ? 'המשקלים שתראה בתכניות אימון' : 'The weights you\'ll see in training plans'} />
  <div style={{ overflowX:'auto'}}>
  <table style={{ width:'100%', borderCollapse:'collapse', minWidth: 600 }}>
  <thead>
  <tr style={{ borderBottom:`1px solid ${t.color.border}` }}>
- <th style={{ textAlign:'right', padding:'10px 12px', fontSize: t.font.xs, color: t.color.textDim }}>תרגיל</th>
+ <th style={{ textAlign:'right', padding:'10px 12px', fontSize: t.font.xs, color: t.color.textDim }}>{isRTL ? 'תרגיל' : 'Exercise'}</th>
  {[60, 70, 75, 80, 85, 90, 95].map(pct => (
  <th key={pct} style={{ textAlign:'right', padding:'10px 12px', fontSize: t.font.xs, color: t.color.textDim }}>{pct}%</th>
  ))}

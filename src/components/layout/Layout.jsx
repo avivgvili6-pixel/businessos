@@ -15,6 +15,7 @@ const MEMBER_NAV_KEYS = [
  { key:'mind', i18n:'nav.mind' },
  { key:'habits', i18n:'nav.habits' },
  { key:'calendar', i18n:'nav.calendar' },
+ { key:'reminders', i18n:'nav.reminders' },
  { key:'ondemand', i18n:'nav.ondemand' },
  { key:'store', i18n:'nav.store' },
  { key:'personal', i18n:'nav.personal' },
@@ -308,12 +309,24 @@ function TopBar({ page, isAdmin, onMenu }) {
  background: `${t.color.bgElevated}aa`, backdropFilter:'blur(10px)', position:'sticky', top: 0, zIndex: 50,
  }}>
  <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
- <button className="hfos-menu-btn" onClick={onMenu} style={{
- display:'none', background:'transparent', border:`1px solid ${t.color.border}`,
- color: t.color.text, padding:'6px 10px', borderRadius: t.radius.sm, cursor:'pointer', fontFamily:'inherit',
- }}> </button>
+ <button
+   className="hfos-menu-btn"
+   onClick={onMenu}
+   title={isRTL ? 'תפריט' : 'Menu'}
+   aria-label={isRTL ? 'תפריט' : 'Menu'}
+   style={{
+     display:'none', background:'transparent', border:`1px solid ${t.color.border}`,
+     color: t.color.silver1, padding:'8px 10px', borderRadius: t.radius.sm,
+     cursor:'pointer', fontFamily:'inherit',
+     alignItems:'center', justifyContent:'center',
+   }}
+ >
+   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+     <path d="M3 5h14M3 10h14M3 15h14"/>
+   </svg>
+ </button>
  <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
- <div>
+ <div className="hfos-page-title">
  <div style={{
  fontFamily: t.font.family.display, fontSize: 18, fontWeight: 600,
  letterSpacing:'-0.02em', color: t.color.white,
@@ -342,7 +355,8 @@ function ResponsiveStyle() {
  .hfos-sidebar { display: none !important; }
  .hfos-bottomnav { display: flex !important; }
  .hfos-mobile-overlay { display: block !important; }
- .hfos-menu-btn { display: inline-block !important; }
+ .hfos-menu-btn { display: inline-flex !important; }
+ .hfos-page-title { display: none !important; }
  .hfos-content { padding: 14px !important; padding-bottom: 100px !important; }
  }
  `}</style>

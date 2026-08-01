@@ -3,8 +3,8 @@ import { AppProvider, useApp } from './store/AppStore'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { I18nProvider } from './i18n/i18n'
 import { Shell } from './components/layout/Layout'
-import { InstallPrompt } from './components/layout/InstallPrompt'
 import { FloatingAssistant } from './components/assistant/FloatingAssistant'
+import { NotificationScheduler } from './components/notifications/NotificationScheduler'
 import { LoginScreen } from './modules/auth/LoginScreen'
 import { Onboarding } from './modules/member/onboarding/Onboarding'
 
@@ -23,6 +23,7 @@ import { Store } from './modules/member/store/Store'
 import { Personal } from './modules/member/personal/Personal'
 import { OnDemand } from './modules/member/ondemand/OnDemand'
 import { Profile } from './modules/member/profile/Profile'
+import { Reminders } from './modules/member/reminders/Reminders'
 
 // admin
 import { Overview } from './modules/admin/overview/Overview'
@@ -84,6 +85,7 @@ function AppRouter() {
  store: <Store />,
  personal: <Personal />,
  ondemand: <OnDemand />,
+ reminders: <Reminders />,
  profile: <Profile />,
  }
  const adminPages = {
@@ -112,7 +114,7 @@ function AppRouter() {
  <Shell page={validPage} setPage={setPage}>
  {pages[validPage]}
  </Shell>
- <InstallPrompt />
+ <NotificationScheduler />
  {!isAdminView && (
  <FloatingAssistant onOpenMentalCoach={() => setPage('mind')} />
  )}

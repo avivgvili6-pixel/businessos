@@ -13,8 +13,13 @@ export function Onboarding() {
  const { completeOnboarding, addProgressPhoto } = useApp()
  const { user } = useAuth()
  const [step, setStep] = useState(0)
+ // Pre-fill name from the signup — LoginScreen stores it in user.name
+ // and also in localStorage under hfos:last_name. No reason to ask twice.
+ const initialName = user?.name
+   || (typeof window !== 'undefined' && (localStorage.getItem('hfos:last_name') || ''))
+   || ''
  const [data, setData] = useState({
- name:'', age: 30, sex:'male', heightCm: 175, weightKg: 75,
+ name: initialName, age: 30, sex:'male', heightCm: 175, weightKg: 75,
  activity:'moderate', experience:'בינוני',
  goalKey:'recomp', targetPeriodWeeks: 12,
  dietKey:'balanced', constraints:'',
