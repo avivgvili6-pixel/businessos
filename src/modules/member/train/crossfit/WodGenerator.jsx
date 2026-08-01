@@ -63,6 +63,11 @@ function Generator() {
   const [timerOpen, setTimerOpen] = useState(false)
 
   function handleGenerate() {
+    // Feed the previous WOD's movements + format to the generator so
+    // "מחולל חדש" produces a visibly different workout — not the same
+    // movements reshuffled.
+    const prevMovementIds = (wod?.movements || []).map(m => m.id)
+    const prevFormat = wod?.format || null
     const result = generateWOD({
       selectionMode,
       customMovementIds: customIds,
@@ -71,6 +76,8 @@ function Generator() {
       intent,
       length,
       sex, age, injuries,
+      avoidMovementIds: prevMovementIds,
+      avoidFormat: prevFormat,
     })
     setWod(result)
     if (typeof window !== 'undefined') window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })

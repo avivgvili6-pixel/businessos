@@ -32,6 +32,8 @@ const LENGTH_TO_KEY = {
 //   age: number,
 //   injuries: string[],                // matches movement.contraindications
 //   equipment: string[]|null,          // null = all equipment available
+//   avoidMovementIds: string[],        // last-generated ids — regenerate picks fresh ones
+//   avoidFormat: string,               // last-generated format — random picks a different one
 // }
 export function generateWOD(input) {
   const {
@@ -45,6 +47,8 @@ export function generateWOD(input) {
     age = 30,
     injuries = [],
     equipment = null,
+    avoidMovementIds = [],
+    avoidFormat = null,
   } = input
 
   // Length → key + minutes
@@ -73,9 +77,9 @@ export function generateWOD(input) {
     const matching = pool.filter(m => intentTags.some(t => m.tags.includes(t)))
     // fall back to full pool if intent filter is too strict
     const source = matching.length >= 3 ? matching : pool
-    // Pick 3-5 diverse movements
+    // Pick 3-5 diverse movements — prefer ones NOT in the previous WOD
     const targetCount = 3 + Math.floor(Math.random() * 3)
-    selected = pickDiverse(source, targetCount)
+    selected = pickDiverse(source, targetCount, avoidMovementIds)
   }
 
   if (!selected.length) {
@@ -85,14 +89,14 @@ export function generateWOD(input) {
     }
   }
 
-  // If custom+SOME → reduce to 3-4
+  // If custom+SOME → reduce to 3-4 (avoid last round's picks when possible)
   if (selectionMode === 'custom' && !useAllSelected && selected.length > 4) {
-    selected = pickDiverse(selected, 4)
+    selected = pickDiverse(selected, 4, avoidMovementIds)
   }
 
-  // Pick actual format if random
+  // Pick actual format if random — avoid repeating the previous format
   const actualFormat = format === 'random'
-    ? randomFormat(intent, lengthKey)
+    ? randomFormat(intent, lengthKey, avoidFormat)
     : format
 
   const ctx = {
@@ -118,13 +122,22 @@ export function generateWOD(input) {
 }
 
 // Pick diverse movements — avoid stacking 3 upper-body pushes for example.
-function pickDiverse(source, count) {
-  if (source.length <= count) return [...source]
+// avoidIds: ids used in the previous WOD, deprioritized so regenerate produces
+// visibly different output. When the pool is small enough that we can't avoid
+// them entirely, at least reorder-shuffle them last so the mix changes.
+function pickDiverse(source, count, avoidIds = []) {
+  if (source.length <= count) return shuffle([...source])
+  const avoidSet = new Set(avoidIds || [])
+  const shuffled = shuffle([...source])
+  // Split into "fresh" and "recently used" — pick from fresh first
+  const fresh = shuffled.filter(m => !avoidSet.has(m.id))
+  const recentUsed = shuffled.filter(m => avoidSet.has(m.id))
+  const orderedPool = [...fresh, ...recentUsed]
+
   const picked = []
   const usedCategories = new Set()
-  const shuffled = [...source].sort(() => Math.random() - 0.5)
-  // First pass: one per category if possible
-  for (const m of shuffled) {
+  // First pass: one per category if possible, preferring fresh
+  for (const m of orderedPool) {
     if (picked.length >= count) break
     if (!usedCategories.has(m.category)) {
       picked.push(m)
@@ -132,23 +145,36 @@ function pickDiverse(source, count) {
     }
   }
   // Second pass: fill remaining slots
-  for (const m of shuffled) {
+  for (const m of orderedPool) {
     if (picked.length >= count) break
     if (!picked.includes(m)) picked.push(m)
   }
   return picked
 }
 
-// Choose a format that matches the intent + length.
-function randomFormat(intent, lengthKey) {
-  if (intent === 'strength')     return Math.random() < 0.7 ? 'strength_metcon' : 'for_time'
-  if (intent === 'endurance')    return Math.random() < 0.5 ? 'amrap' : 'intervals'
-  if (intent === 'fat_loss')     return ['emom', 'amrap', 'intervals'][Math.floor(Math.random() * 3)]
-  if (intent === 'skill')        return Math.random() < 0.5 ? 'emom' : 'for_time'
-  if (intent === 'recovery')     return 'intervals'
-  if (intent === 'competition')  return Math.random() < 0.4 ? 'strength_metcon' : ['amrap', 'for_time'][Math.floor(Math.random() * 2)]
+function shuffle(arr) {
+  // Fisher-Yates — more uniform than sort(() => Math.random() - .5)
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
 
-  // general → weighted mix
-  const bag = ['amrap', 'amrap', 'for_time', 'for_time', 'emom', 'chipper', 'intervals']
-  return bag[Math.floor(Math.random() * bag.length)]
+// Choose a format that matches the intent + length. Avoids the previous
+// format when there's more than one option in the bag.
+function randomFormat(intent, lengthKey, avoidFormat) {
+  const bags = {
+    strength:    ['strength_metcon', 'strength_metcon', 'for_time'],
+    endurance:   ['amrap', 'intervals', 'amrap'],
+    fat_loss:    ['emom', 'amrap', 'intervals'],
+    skill:       ['emom', 'for_time'],
+    recovery:    ['intervals'],
+    competition: ['strength_metcon', 'amrap', 'for_time', 'chipper'],
+    general:     ['amrap', 'amrap', 'for_time', 'for_time', 'emom', 'chipper', 'intervals'],
+  }
+  const bag = bags[intent] || bags.general
+  const filtered = bag.filter(f => f !== avoidFormat)
+  const source = filtered.length ? filtered : bag
+  return source[Math.floor(Math.random() * source.length)]
 }
