@@ -11,19 +11,21 @@ import { todayKey } from '../../../utils/date'
 import { MealPlanner } from './MealPlanner'
 import { FoodPickerPro } from './FoodPickerPro'
 import { recipes } from '../../../data/recipes'
+import { useI18n } from '../../../i18n/i18n'
 
 export function Nutrition() {
+ const { isRTL } = useI18n()
  const [tab, setTab] = useState('today')
  return (
  <>
  <Tabs tabs={[
- { key:'today', label:'היום'},
- { key:'planner', label:'תכנון שבועי' },
- { key:'recipes', label:'מרשמים' },
- { key:'calc', label:'מחשבון'},
- { key:'diets', label:'תבניות דיאטה'},
- { key:'foods', label:'מאגר מזון'},
- { key:'blood', label:'בדיקות דם'},
+ { key:'today', label: isRTL ? 'היום' : 'Today'},
+ { key:'planner', label: isRTL ? 'תכנון שבועי' : 'Weekly plan'},
+ { key:'recipes', label: isRTL ? 'מרשמים' : 'Recipes'},
+ { key:'calc', label: isRTL ? 'מחשבון' : 'Calculator'},
+ { key:'diets', label: isRTL ? 'תבניות דיאטה' : 'Diet templates'},
+ { key:'foods', label: isRTL ? 'מאגר מזון' : 'Food library'},
+ { key:'blood', label: isRTL ? 'בדיקות דם' : 'Blood tests'},
  ]} active={tab} onChange={setTab} />
  {tab === 'today'&& <Today />}
  {tab === 'planner'&& <MealPlanner />}
@@ -38,6 +40,7 @@ export function Nutrition() {
 
 function Today() {
  const { state, logMeal, removeMeal } = useApp()
+ const { isRTL } = useI18n()
  const [pickerOpen, setPickerOpen] = useState(false)
  const day = todayKey()
  const meals = state.mealLogs[day] || []
@@ -73,22 +76,22 @@ function Today() {
  <div style={{ display:'grid', gap: 16 }}>
  <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap: 16 }} className="hfos-grid-nut">
  <Card>
- <SectionHeader title="קלוריות היום"/>
+ <SectionHeader title={isRTL ? 'קלוריות היום' : 'Calories today'} />
  <DonutSegments size={160} segments={[
  { value: totals.kcal, color: t.color.gold },
  { value: Math.max(0, kcalTarget - totals.kcal), color: t.color.bgSoft },
  ]} />
  <div style={{ textAlign:'center', marginTop: 12, color: t.color.textDim, fontSize: t.font.sm }}>
- נותרו <b style={{ color: t.color.gold }}>{Math.max(0, kcalTarget - Math.round(totals.kcal))}</b> קלוריות
+ {isRTL ? 'נותרו' : 'Remaining'} <b style={{ color: t.color.gold }}>{Math.max(0, kcalTarget - Math.round(totals.kcal))}</b> {isRTL ? 'קלוריות' : 'calories'}
  </div>
  </Card>
  <Card>
- <SectionHeader title="מקרו-פילוח"/>
- <MacroRow label="חלבון"value={Math.round(totals.p)} target={target.protein} unit="ג׳"color={t.color.info} />
- <MacroRow label="פחמימות"value={Math.round(totals.c)} target={target.carbs} unit="ג׳"color={t.color.gold} />
- <MacroRow label="שומן"value={Math.round(totals.f)} target={target.fat} unit="ג׳"color={t.color.warning} />
+ <SectionHeader title={isRTL ? 'מקרו-פילוח' : 'Macro breakdown'} />
+ <MacroRow label={isRTL ? 'חלבון' : 'Protein'} value={Math.round(totals.p)} target={target.protein} unit={isRTL ? 'ג׳' : 'g'} color={t.color.info} />
+ <MacroRow label={isRTL ? 'פחמימות' : 'Carbs'} value={Math.round(totals.c)} target={target.carbs} unit={isRTL ? 'ג׳' : 'g'} color={t.color.gold} />
+ <MacroRow label={isRTL ? 'שומן' : 'Fat'} value={Math.round(totals.f)} target={target.fat} unit={isRTL ? 'ג׳' : 'g'} color={t.color.warning} />
  <div style={{ marginTop: 16, display:'flex', gap: 12, alignItems:'center', fontSize: t.font.sm, color: t.color.textDim }}>
- מים מומלץ: {waterLiters(state.profile.weightKg, state.profile.activity)} ל׳ · תזונה: {diet.label}
+ {isRTL ? 'מים מומלץ' : 'Recommended water'}: {waterLiters(state.profile.weightKg, state.profile.activity)} {isRTL ? 'ל׳' : 'L'} · {isRTL ? 'תזונה' : 'Diet'}: {diet.label}
  </div>
  </Card>
  </div>
@@ -96,8 +99,8 @@ function Today() {
  {recentMeals.length > 0 && (
  <Card style={{ background: `linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, border: `1px solid ${t.color.gold}` }}>
  <SectionHeader
- title="⭐ המרשמים שלי"
- subtitle="קליק אחד כדי להוסיף שוב"
+ title={isRTL ? '⭐ המרשמים שלי' : '⭐ My favorites'}
+ subtitle={isRTL ? 'קליק אחד כדי להוסיף שוב' : 'One click to add again'}
  action={<Badge color={t.color.gold}>{recentMeals.length}</Badge>}
  />
  <div style={{ display:'flex', gap: 8, overflowX:'auto', paddingBottom: 6, marginTop: 4 }}>
@@ -118,8 +121,8 @@ function Today() {
  <div style={{ fontWeight: 700, fontSize: t.font.sm, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 130 }}>{m.name}</div>
  {m.count > 1 && <span style={{ fontSize: 10, color: t.color.gold, fontWeight: 700 }}>{m.count}×</span>}
  </div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{m.grams}ג׳ · {Math.round(m.kcal)} קק״ל</div>
- <div style={{ marginTop: 6, fontSize: t.font.xs, color: t.color.gold, fontWeight: 700 }}>+ הוסף שוב</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{m.grams}{isRTL ? 'ג׳' : 'g'} · {Math.round(m.kcal)} {isRTL ? 'קק״ל' : 'kcal'}</div>
+ <div style={{ marginTop: 6, fontSize: t.font.xs, color: t.color.gold, fontWeight: 700 }}>+ {isRTL ? 'הוסף שוב' : 'Add again'}</div>
  </button>
  ))}
  </div>
