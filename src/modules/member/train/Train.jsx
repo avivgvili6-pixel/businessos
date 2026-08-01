@@ -457,59 +457,42 @@ function SessionRunner({ session, onClose, onFinish }) {
           <Button variant="ghost" size="sm" onClick={skipRest}>דלג</Button>
         </div>
       )}
+
+      {/* Explainer for advanced techniques (only shown if this session uses them) */}
+      {(log.some(e => e.supersetWith) || log.some(e => e.dropSetOnLast) || log.some(e => e.restPause)) && (
+        <AdvancedTechniquesHelp
+          hasSuperset={log.some(e => e.supersetWith)}
+          hasDropset={log.some(e => e.dropSetOnLast)}
+          hasRestPause={log.some(e => e.restPause)}
+        />
+      )}
+
       <div style={{ display:'grid', gap: 14 }}>
-        {log.map((ex, i) => (
-          <Card key={i} style={{ padding: 16 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{ex.name}</div>
-                  {ex.format && <Badge color={ex.format === 'strength' ? t.color.gold : ex.format === 'metcon' ? t.color.danger : t.color.textDim} style={{ marginTop: 4 }}>{ex.format}</Badge>}
-                </div>
-                <ExerciseGuideButton exerciseId={ex.id} exerciseName={ex.name} />
-              </div>
-              <div style={{ textAlign:'left' }}>
-                <Badge>{ex.sets.length}×{ex.reps || 8}</Badge>
-                {ex.intensity && (
-                  <div style={{ fontSize: t.font.xs, color: t.color.gold, marginTop: 4, fontFamily:'Space Mono, monospace' }}>
-                    @ {Math.round((Array.isArray(ex.intensity) ? ex.intensity[0] : ex.intensity) * 100)}%
-                    {ex.suggestedWeight ? ` = ${ex.suggestedWeight} ק״ג` : ''}
-                  </div>
-                )}
-              </div>
-            </div>
-            {ex.prescription && !ex.sets.some(s => s.w) && (
-              <div style={{ padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 10, fontSize: t.font.xs, color: t.color.textDim, fontFamily:'Space Mono, monospace' }}>
-                📋 {ex.prescription}
-              </div>
-            )}
-            <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr 1fr', gap: 8, alignItems:'center' }}>
-              <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>סט</div>
-              <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>משקל</div>
-              <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>חזרות</div>
-              <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>RPE</div>
-              {ex.sets.map((s, j) => (
-                <React.Fragment key={j}>
-                  <div style={{ color: t.color.gold, fontWeight: 700 }}>{j+1}</div>
-                  <Input value={s.w} onChange={e => updateSet(i, j, 'w', e.target.value)} placeholder={ex.suggestedWeight ? `${ex.suggestedWeight}` : 'ק״ג'} />
-                  <Input value={s.r} onChange={e => updateSet(i, j, 'r', e.target.value)} placeholder={String(ex.reps || 8)} />
-                  <div style={{ display:'flex', gap: 4 }}>
-                    <Input value={s.rpe} onChange={e => updateSet(i, j, 'rpe', e.target.value)} placeholder="1-10" />
-                    <button type="button" onClick={() => startRest(90)} title="התחל מנוחה 90ש׳" style={{
-                      background: t.color.bgSoft, border:`1px solid ${t.color.border}`, color: t.color.gold,
-                      borderRadius: t.radius.sm, cursor:'pointer', padding:'0 10px', fontSize: 16,
-                    }}>⏱</button>
-                  </div>
-                </React.Fragment>
-              ))}
-              {ex.suggestedWeight && !ex.sets.some(s => s.w) && (
-                <div style={{ gridColumn: '1 / -1', fontSize: t.font.xs, color: t.color.textDim, marginTop: 4 }}>
-                  💡 באימון האחרון: <b style={{ color: t.color.gold }}>{ex.suggestedWeight} ק״ג</b> · המלצה להעלות 2.5 ק״ג אם ה-RPE היה מתחת ל-8
-                </div>
-              )}
-            </div>
-          </Card>
-        ))}
+        {groupBySuperset(log).map((group, gi) => {
+          if (group.type === 'superset') {
+            return (
+              <SupersetPair
+                key={`ss-${gi}`}
+                label={supersetLetter(gi)}
+                exercises={group.exercises}
+                indexes={group.indexes}
+                updateSet={updateSet}
+                startRest={startRest}
+              />
+            )
+          }
+          const ex = group.exercise
+          const i = group.index
+          return (
+            <ExerciseCard
+              key={i}
+              ex={ex}
+              i={i}
+              updateSet={updateSet}
+              startRest={startRest}
+            />
+          )
+        })}
       </div>
       <div style={{ display:'flex', gap: 10, justifyContent:'flex-end', marginTop: 20 }}>
         <Button variant="ghost" onClick={onClose}>בטל</Button>
@@ -521,6 +504,227 @@ function SessionRunner({ session, onClose, onFinish }) {
   function updateSet(i, j, key, val) {
     setLog(l => l.map((ex, ii) => ii !== i ? ex : { ...ex, sets: ex.sets.map((s, jj) => jj !== j ? s : { ...s, [key]: val }) }))
   }
+}
+
+// ─── Superset / Dropset UI helpers ─────────────────────────
+// Groups the log array into blocks: either { type:'single', exercise, index }
+// or { type:'superset', exercises:[A,B], indexes:[i,j] }
+function groupBySuperset(log) {
+  const consumed = new Set()
+  const result = []
+  for (let i = 0; i < log.length; i++) {
+    if (consumed.has(i)) continue
+    const ex = log[i]
+    if (ex.supersetWith) {
+      const j = log.findIndex((e, k) => k !== i && !consumed.has(k) && e.name === ex.supersetWith)
+      if (j >= 0) {
+        consumed.add(i); consumed.add(j)
+        result.push({ type: 'superset', exercises: [ex, log[j]], indexes: [i, j] })
+        continue
+      }
+    }
+    consumed.add(i)
+    result.push({ type: 'single', exercise: ex, index: i })
+  }
+  return result
+}
+
+function supersetLetter(gi) {
+  // A, B, C… based on the sequence order of supersets in the workout
+  return String.fromCharCode(65 + gi)
+}
+
+function AdvancedTechniquesHelp({ hasSuperset, hasDropset, hasRestPause }) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <Card style={{
+      background: `${t.color.info}11`, borderColor: t.color.info, marginBottom: 12,
+    }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', background: 'transparent', border: 'none',
+          color: t.color.info, fontWeight: 700, fontSize: t.font.sm,
+          textAlign: 'right', cursor: 'pointer', fontFamily: 'inherit',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}
+      >
+        <span>ℹ️ באימון הזה יש טכניקות מתקדמות — לחץ להסבר</span>
+        <span>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 12, fontSize: t.font.sm, color: t.color.text, lineHeight: 1.7, display: 'grid', gap: 10 }}>
+          {hasSuperset && (
+            <div>
+              <b style={{ color: t.color.info }}>🔗 סופרסט (A1 + A2):</b>
+              <div style={{ marginTop: 4, color: t.color.textDim, fontSize: t.font.xs }}>
+                בצע סט של תרגיל A1 (למשל 10 חזרות), ומיד בלי מנוחה עבור לסט של A2. סיימת סט של A2 — עכשיו מנוחה מלאה. חזור לסט הבא של A1. זה חוסך זמן ומגביר גירוי מטבולי.
+              </div>
+            </div>
+          )}
+          {hasDropset && (
+            <div>
+              <b style={{ color: t.color.danger }}>🔻 דרופסט (DROP):</b>
+              <div style={{ marginTop: 4, color: t.color.textDim, fontSize: t.font.xs }}>
+                בסט האחרון — סיים כרגיל, ואז מיד הורד את המשקל ב-30-40% והמשך עד כשל. אין מנוחה בין הסט הרגיל לסט הדרופ. מטרה: הגברת נפח וגירוי היפרטרופיה.
+              </div>
+            </div>
+          )}
+          {hasRestPause && (
+            <div>
+              <b style={{ color: t.color.warning }}>🔁 Rest-Pause:</b>
+              <div style={{ marginTop: 4, color: t.color.textDim, fontSize: t.font.xs }}>
+                אחרי הסט האחרון: 15 שניות מנוחה בלבד → כמה שיותר חזרות עד כשל → 15 שניות מנוחה → שוב עד כשל. סוחט את היחידות המוטוריות עד הסוף.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function SupersetPair({ label, exercises, indexes, updateSet, startRest }) {
+  return (
+    <Card style={{
+      background: `${t.color.info}08`, borderColor: t.color.info, borderWidth: 2,
+      padding: 12, position: 'relative',
+    }}>
+      {/* Superset label */}
+      <div style={{
+        position: 'absolute', top: -12,
+        insetInlineStart: 16,
+        background: t.color.info, color: '#0d0d14',
+        padding: '2px 12px', borderRadius: t.radius.pill,
+        fontWeight: 900, fontSize: t.font.xs, letterSpacing: 1,
+      }}>🔗 סופרסט {label}</div>
+
+      <div style={{ fontSize: t.font.xs, color: t.color.info, marginTop: 6, marginBottom: 10, fontWeight: 600 }}>
+        בצע סט של {label}1 → מיד סט של {label}2 → מנוחה → חזור
+      </div>
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        {exercises.map((ex, k) => (
+          <div key={k} style={{
+            padding: 12, background: t.color.bgSoft,
+            border: `1px solid ${t.color.border}`, borderRadius: t.radius.sm,
+            position: 'relative',
+          }}>
+            {/* A1 / A2 tag */}
+            <div style={{
+              position: 'absolute', top: -8, insetInlineStart: 12,
+              background: t.color.info, color: '#0d0d14',
+              padding: '1px 8px', borderRadius: 4,
+              fontSize: t.font.xs, fontWeight: 900,
+            }}>{label}{k + 1}</div>
+            <ExerciseCardBody
+              ex={ex}
+              i={indexes[k]}
+              updateSet={updateSet}
+              startRest={startRest}
+              compact
+            />
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function ExerciseCard({ ex, i, updateSet, startRest }) {
+  return (
+    <Card style={{ padding: 16 }}>
+      <ExerciseCardBody ex={ex} i={i} updateSet={updateSet} startRest={startRest} />
+    </Card>
+  )
+}
+
+function ExerciseCardBody({ ex, i, updateSet, startRest, compact }) {
+  return (
+    <>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: compact ? t.font.sm : t.font.md }}>{ex.name}</div>
+            {ex.format && <Badge color={ex.format === 'strength' ? t.color.gold : ex.format === 'metcon' ? t.color.danger : t.color.textDim} style={{ marginTop: 4 }}>{ex.format}</Badge>}
+          </div>
+          <ExerciseGuideButton exerciseId={ex.id} exerciseName={ex.name} />
+        </div>
+        <div style={{ textAlign:'left' }}>
+          <Badge>{ex.sets.length}×{ex.reps || 8}</Badge>
+          {ex.intensity && (
+            <div style={{ fontSize: t.font.xs, color: t.color.gold, marginTop: 4, fontFamily:'Space Mono, monospace' }}>
+              @ {Math.round((Array.isArray(ex.intensity) ? ex.intensity[0] : ex.intensity) * 100)}%
+              {ex.suggestedWeight ? ` = ${ex.suggestedWeight} ק״ג` : ''}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Rest-Pause banner (per exercise) */}
+      {ex.restPause && (
+        <div style={{
+          background: `${t.color.warning}22`, border: `1px solid ${t.color.warning}`,
+          borderRadius: t.radius.sm, padding: 8, marginBottom: 10,
+          fontSize: t.font.xs, color: t.color.warning, fontWeight: 600,
+        }}>
+          🔁 Rest-Pause בסט האחרון: 15 שנ׳ מנוחה → כמה שיותר → 15 שנ׳ → כמה שיותר
+        </div>
+      )}
+
+      {ex.prescription && !ex.sets.some(s => s.w) && (
+        <div style={{ padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm, marginBottom: 10, fontSize: t.font.xs, color: t.color.textDim, fontFamily:'Space Mono, monospace' }}>
+          📋 {ex.prescription}
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr 1fr', gap: 8, alignItems:'center' }}>
+        <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>סט</div>
+        <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>משקל</div>
+        <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>חזרות</div>
+        <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>RPE</div>
+        {ex.sets.map((s, j) => (
+          <React.Fragment key={j}>
+            <div style={{ color: t.color.gold, fontWeight: 700 }}>{j+1}</div>
+            <Input value={s.w} onChange={e => updateSet(i, j, 'w', e.target.value)} placeholder={ex.suggestedWeight ? `${ex.suggestedWeight}` : 'ק״ג'} />
+            <Input value={s.r} onChange={e => updateSet(i, j, 'r', e.target.value)} placeholder={String(ex.reps || 8)} />
+            <div style={{ display:'flex', gap: 4 }}>
+              <Input value={s.rpe} onChange={e => updateSet(i, j, 'rpe', e.target.value)} placeholder="1-10" />
+              <button type="button" onClick={() => startRest(90)} title="התחל מנוחה 90ש׳" style={{
+                background: t.color.bgSoft, border:`1px solid ${t.color.border}`, color: t.color.gold,
+                borderRadius: t.radius.sm, cursor:'pointer', padding:'0 10px', fontSize: 16,
+              }}>⏱</button>
+            </div>
+          </React.Fragment>
+        ))}
+
+        {/* DROP SET row - visible after regular sets when dropSetOnLast is on */}
+        {ex.dropSetOnLast && (() => {
+          const lastWeight = ex.sets[ex.sets.length - 1]?.w
+          const dropWeight = lastWeight ? Math.round(+lastWeight * 0.6 / 2.5) * 2.5 : (ex.suggestedWeight ? Math.round(ex.suggestedWeight * 0.6 / 2.5) * 2.5 : '')
+          return (
+            <>
+              <div style={{ color: t.color.danger, fontWeight: 900 }}>🔻DROP</div>
+              <Input value={ex._dropWeight || ''} onChange={e => updateSet(i, ex.sets.length, '_dropWeight', e.target.value)} placeholder={dropWeight ? `${dropWeight} (60%)` : 'הורד 40%'} style={{ borderColor: t.color.danger }} />
+              <Input value={ex._dropReps || ''} onChange={e => updateSet(i, ex.sets.length, '_dropReps', e.target.value)} placeholder="עד כשל" style={{ borderColor: t.color.danger }} />
+              <div style={{ fontSize: t.font.xs, color: t.color.danger, alignSelf: 'center' }}>
+                מיד אחרי הסט האחרון
+              </div>
+              <div style={{ gridColumn: '1 / -1', fontSize: t.font.xs, color: t.color.danger, marginTop: 2 }}>
+                💥 סיים את הסט האחרון → הורד את המשקל ב-40% מיד → חזרות עד כשל טכני
+              </div>
+            </>
+          )
+        })()}
+
+        {ex.suggestedWeight && !ex.sets.some(s => s.w) && (
+          <div style={{ gridColumn: '1 / -1', fontSize: t.font.xs, color: t.color.textDim, marginTop: 4 }}>
+            💡 באימון האחרון: <b style={{ color: t.color.gold }}>{ex.suggestedWeight} ק״ג</b> · המלצה להעלות 2.5 ק״ג אם ה-RPE היה מתחת ל-8
+          </div>
+        )}
+      </div>
+    </>
+  )
 }
 
 function Library() {
