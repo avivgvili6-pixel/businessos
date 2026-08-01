@@ -79,7 +79,7 @@ function Generator() {
   function handleComplete(result) {
     logWorkout({
       date: result.completedAt,
-      sessionName: `CrossFit — ${result.wod.title}`,
+      sessionName: `WOD — ${result.wod.title}`,
       exercises: (result.wod.movements || []).map(m => ({
         id: m.id, name: m.he, sets: [{ w: 0, r: 0, rpe: 0 }],
       })),
@@ -98,7 +98,7 @@ function Generator() {
     <div>
       <SectionHeader
         title="🔥 מחולל WOD"
-        subtitle="בחר, לחץ Generate, וקבל אימון CrossFit מותאם אישית"
+        subtitle="בחר, לחץ Generate, וקבל אימון WOD מותאם אישית"
       />
 
       {/* Selection Mode */}
@@ -259,7 +259,7 @@ function BenchmarksTab() {
 
 function HistoryTab() {
   const { state } = useApp()
-  const wodLogs = (state.workoutLogs || []).filter(l => l.sessionName?.startsWith('CrossFit') || l.sessionName?.startsWith('Benchmark'))
+  const wodLogs = (state.workoutLogs || []).filter(l => l.sessionName?.startsWith('WOD') || l.sessionName?.startsWith('CrossFit') || l.sessionName?.startsWith('Benchmark'))
 
   if (wodLogs.length === 0) {
     return (

@@ -27,7 +27,7 @@ export function Train() {
     <>
       <Tabs tabs={[
         { key:'plan',     label:'התכנית שלי' },
-        { key:'crossfit', label:'🔥 CrossFit WOD' },
+        { key:'crossfit', label:'🔥 WOD' },
         { key:'quick',    label:'⚡ אימון מהיר' },
         { key:'programs', label:'🌍 תכניות מוכרות' },
         { key:'import',   label:'📄 ייבוא PDF' },

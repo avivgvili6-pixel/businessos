@@ -39,7 +39,7 @@ export function BenchmarkList({ prs = {}, onSavePR }) {
     <div>
       <SectionHeader
         title="🏆 Benchmark WODs"
-        subtitle="הקלאסיקות של CrossFit — התוצאות שלך נשמרות כשיאים אישיים"
+        subtitle="הקלאסיקות של עולם ה-WOD — התוצאות שלך נשמרות כשיאים אישיים"
       />
 
       <Tabs
