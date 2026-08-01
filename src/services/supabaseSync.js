@@ -208,16 +208,29 @@ function describeAuthError(err, redirectTo) {
   const msg = (err?.message || '').trim()
   const status = err?.status
   const code = err?.code || err?.name
+
+  // Content-based matches first (most specific)
   if (/rate.?limit|too.?many|for security purposes/i.test(msg)) return 'בקשות רבות מדי בזמן קצר. המתן דקה ונסה שוב.'
   if (/redirect.?url|redirect_uri|not.?allowed/i.test(msg)) return `Redirect URL לא מאושר ב-Supabase. הוסף בפאנל Auth → URL Configuration: ${redirectTo}`
   if (/user.?not.?found|no.?user.?found/i.test(msg)) return 'לא נמצא משתמש עם המייל הזה ב-Supabase.'
   if (/invalid.?email/i.test(msg)) return 'כתובת מייל לא תקינה מבחינת Supabase.'
+  if (/smtp|email.?send|send.?email|delivery|mailer/i.test(msg)) return 'Supabase לא הצליח לשלוח את המייל. בדוק Authentication → Emails → SMTP Settings (המפתח של Resend/SendGrid תקף?).'
   if (msg && msg !== '{}' && !/^[{}\[\]\s]+$/.test(msg)) {
     return code ? `${msg} (${code})` : msg
   }
-  // Empty/opaque error — most common cause: Redirect URL not whitelisted
-  if (status) return `שגיאה מהשרת (סטטוס ${status}). סיבה סבירה: Redirect URL לא מוגדר ב-Supabase Auth → URL Configuration. הוסף: ${redirectTo}`
-  return `Supabase החזיר שגיאה ריקה. סיבה סבירה: Redirect URL לא מוגדר. פתח את פאנל Supabase → Authentication → URL Configuration → הוסף לרשימה: ${redirectTo}`
+
+  // Status-based matches next — 500 is almost always SMTP/email delivery failure,
+  // NOT a redirect URL issue. Common causes: Resend/SendGrid key expired,
+  // rate limit hit on the SMTP provider, or the default Supabase mailer
+  // (3/hour limit) blocked the send.
+  if (status === 500) {
+    return 'שגיאת שרת (500). כמעט תמיד זו בעיית שליחת מייל — פתח Supabase → Authentication → Emails ובדוק: (1) יש SMTP Settings תקינים (Resend / SendGrid מפתח פעיל)? (2) אולי חצית את המכסה היומית של ספק המייל?'
+  }
+  if (status === 429) return 'הגעת למגבלת שליחה. המתן דקה ונסה שוב.'
+  if (status === 422) return 'המייל לא עבר ולידציה של Supabase.'
+  if (status === 400) return `שגיאה בבקשה (400) — בדוק שה־Redirect URL מוגדר ב-Supabase Auth → URL Configuration: ${redirectTo}`
+  if (status) return `שגיאה מהשרת (סטטוס ${status}). פתח את הקונסול בדפדפן (F12) לפרטים נוספים.`
+  return 'Supabase החזיר שגיאה ריקה. פתח את הקונסול בדפדפן (F12) → Console — יש שם פרטים.'
 }
 
 // Aggregate — how many progress photos each member uploaded (proxy for engagement)
