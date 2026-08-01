@@ -34,7 +34,6 @@ export function Train() {
         { key:'programs', label: tr('train.tab.programs') },
         { key:'import',   label: tr('train.tab.import') },
         { key:'library',  label: tr('train.tab.library') },
-        { key:'builder',  label: tr('train.tab.builder') },
         { key:'history',  label: tr('train.tab.history') },
       ]} active={tab} onChange={setTab} />
       {tab === 'plan'     && <MyPlan />}
@@ -43,7 +42,6 @@ export function Train() {
       {tab === 'programs' && <ProgramsLibrary />}
       {tab === 'import'   && <PdfImporter />}
       {tab === 'library'  && <Library />}
-      {tab === 'builder'  && <Builder />}
       {tab === 'history'  && <History />}
     </>
   )
