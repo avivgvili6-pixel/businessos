@@ -40,6 +40,7 @@ const initialState = {
   personalRecords: [],      // {id, exercise, weight, reps, date, note?}
   goals: [],                // {id, title, kind, metric, deadlineWeeks, why, barriers, weeklyActions, checkins, status}
   personalTrainingRequests: [], // {id, name, phone, email, age, level, goals, injuries, timePref, whyNow, submittedAt, status}
+  benchmarkPRs: {},         // { [benchmarkId]: {time, rounds?, completedAt, history: [{time, rounds?, date}]} }
   lastActiveDate: todayKey(),
 }
 
@@ -155,6 +156,20 @@ function reducer(state, action) {
     case 'CHECKIN_GOAL':   return { ...state, goals: (state.goals || []).map(g => g.id === action.goalId ? { ...g, checkins: [{ date: new Date().toISOString(), value: action.value, note: action.note }, ...(g.checkins || [])] } : g) }
     case 'ADD_TRAINING_REQUEST': return { ...state, personalTrainingRequests: [action.request, ...(state.personalTrainingRequests || [])] }
     case 'UPDATE_TRAINING_REQUEST': return { ...state, personalTrainingRequests: (state.personalTrainingRequests || []).map(r => r.id === action.id ? { ...r, ...action.patch } : r) }
+    case 'SAVE_BENCHMARK_PR': {
+      const { benchmarkId, time, rounds, completedAt } = action.pr
+      const prev = state.benchmarkPRs?.[benchmarkId]
+      // Keep the best score. For "for_time" lower is better; for "amrap" higher rounds is better.
+      const isForTimePR = rounds == null
+      const isBetter = !prev
+        || (isForTimePR && time < (prev.time ?? Infinity))
+        || (!isForTimePR && rounds > (prev.rounds ?? 0))
+      const history = [...(prev?.history || []), { time, rounds, date: completedAt }]
+      const nextEntry = isBetter
+        ? { time, rounds, completedAt, history }
+        : { ...prev, history }
+      return { ...state, benchmarkPRs: { ...(state.benchmarkPRs || {}), [benchmarkId]: nextEntry } }
+    }
     case 'RESET':          return initialState
     default: return state
   }
@@ -228,6 +243,7 @@ export function AppProvider({ children }) {
     checkinGoal: (goalId, value, note) => dispatch({ type:'CHECKIN_GOAL', goalId, value, note }),
     addTrainingRequest: (request) => dispatch({ type:'ADD_TRAINING_REQUEST', request }),
     updateTrainingRequest: (id, patch) => dispatch({ type:'UPDATE_TRAINING_REQUEST', id, patch }),
+    saveBenchmarkPR: (pr) => dispatch({ type:'SAVE_BENCHMARK_PR', pr }),
     reset: () => dispatch({ type:'RESET' }),
   }
 
