@@ -10,6 +10,7 @@ import { bloodMarkers, statusForValue } from '../../../data/bloodMarkers'
 import { todayKey } from '../../../utils/date'
 import { MealPlanner } from './MealPlanner'
 import { FoodPickerPro } from './FoodPickerPro'
+import { DishBuilder } from './DishBuilder'
 import { recipes } from '../../../data/recipes'
 import { useI18n } from '../../../i18n/i18n'
 
@@ -42,6 +43,7 @@ function Today() {
  const { state, logMeal, removeMeal } = useApp()
  const { isRTL } = useI18n()
  const [pickerOpen, setPickerOpen] = useState(false)
+ const [dishOpen, setDishOpen] = useState(false)
  const day = todayKey()
  const meals = state.mealLogs[day] || []
 
@@ -130,24 +132,50 @@ function Today() {
  )}
 
  <Card>
- <SectionHeader title={isRTL ? 'ארוחות היום' : 'Meals today'} action={<Button onClick={() => setPickerOpen(true)}>+ {isRTL ? 'הוסף' : 'Add'}</Button>} />
- {!meals.length && <EmptyState icon=" "title={isRTL ? 'עדיין לא רשמת ארוחות' : 'No meals logged yet'} subtitle={isRTL ? 'לחץ הוסף כדי לתעד את הראשונה' : 'Tap Add to log your first meal'} />}
+ <SectionHeader
+ title={isRTL ? 'ארוחות היום' : 'Meals today'}
+ action={
+ <div style={{ display:'flex', gap: 8 }}>
+ <Button variant="ghost" size="sm" onClick={() => setDishOpen(true)}>{isRTL ? 'בנה מנה' : 'Build dish'}</Button>
+ <Button size="sm" onClick={() => setPickerOpen(true)}>+ {isRTL ? 'הוסף' : 'Add'}</Button>
+ </div>
+ }
+ />
+ {!meals.length && <EmptyState title={isRTL ? 'עדיין לא רשמת ארוחות' : 'No meals logged yet'} subtitle={isRTL ? 'לחץ "הוסף" לפריט בודד, או "בנה מנה" למנה מרוכבת עם חישוב קלוריות' : 'Tap "Add" for a single item, or "Build dish" to compose one and see its calories'} />}
  <div style={{ display:'grid', gap: 8 }}>
  {meals.map((m, i) => (
  <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
- <div>
+ <div style={{ minWidth: 0, flex: 1 }}>
  <div style={{ fontWeight: 600 }}>{m.name} <span style={{ color: t.color.textDim, fontWeight: 400 }}>· {m.grams}{isRTL ? 'ג׳' : 'g'}</span></div>
  <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
  {Math.round(m.kcal)} {isRTL ? 'קק״ל' : 'kcal'} · {Math.round(m.p)}{isRTL ? 'ח׳' : 'P'} · {Math.round(m.c)}{isRTL ? 'פ׳' : 'C'} · {Math.round(m.f)}{isRTL ? 'ש׳' : 'F'}
  </div>
+ {m.composedOf?.length > 0 && (
+ <div style={{ fontSize: 10, color: t.color.textMuted, marginTop: 4 }}>
+ {m.composedOf.map(c => `${c.name} ${c.grams}${isRTL ? 'ג׳' : 'g'}`).join(' · ')}
  </div>
- <Button variant="ghost"size="sm"onClick={() => removeMeal(i)}> </Button>
+ )}
+ </div>
+ <button
+ onClick={() => { if (confirm(isRTL ? `להסיר את "${m.name}"?` : `Remove "${m.name}"?`)) removeMeal(i) }}
+ title={isRTL ? 'הסר ארוחה' : 'Remove meal'}
+ aria-label={isRTL ? 'הסר ארוחה' : 'Remove meal'}
+ style={{
+ background:'transparent', border:`1px solid ${t.color.border}`,
+ color: t.color.silver1, cursor:'pointer', padding:'6px 10px',
+ borderRadius: t.radius.sm, fontFamily:'inherit', fontSize: 16, lineHeight: 1,
+ flexShrink: 0,
+ }}
+ onMouseEnter={e => { e.currentTarget.style.borderColor = t.color.danger; e.currentTarget.style.color = t.color.danger }}
+ onMouseLeave={e => { e.currentTarget.style.borderColor = t.color.border; e.currentTarget.style.color = t.color.silver1 }}
+ >×</button>
  </div>
  ))}
  </div>
  </Card>
 
  <FoodPickerPro open={pickerOpen} onClose={() => setPickerOpen(false)} onAdd={(item) => { logMeal(item); setPickerOpen(false) }} />
+ <DishBuilder open={dishOpen} onClose={() => setDishOpen(false)} onLog={(meal) => { logMeal(meal); setDishOpen(false) }} />
  <style>{`@media (max-width: 900px) { .hfos-grid-nut { grid-template-columns: 1fr !important; } }`}</style>
  </div>
  )
