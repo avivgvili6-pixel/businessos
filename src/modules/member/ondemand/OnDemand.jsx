@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react'
 import { t } from '../../../theme/tokens'
 import { Card, Button, Badge, SectionHeader, Input, Select } from '../../../components/ui/UI'
 import { CATEGORIES, VIDEOS } from '../../../data/onDemand'
+import { useI18n } from '../../../i18n/i18n'
 
 // On-Demand video library. Categories are shown as filter chips; a search
 // box narrows further. Clicking a card opens the YouTube video in a modal
 // via nocookie embed.
 
 export function OnDemand() {
+ const { isRTL } = useI18n()
  const [cat, setCat] = useState('all')
  const [level, setLevel] = useState('')
  const [maxDur, setMaxDur] = useState('')
@@ -35,10 +37,10 @@ export function OnDemand() {
  <div style={{ position:'absolute', top: -30, left: -30, width: 180, height: 180, background: t.color.goldGlow, borderRadius:'50%', filter:'blur(40px)'}} />
  <div style={{ position:'relative', zIndex: 1 }}>
  <Badge color={t.color.gold}> ON-DEMAND</Badge>
- <h1 style={{ fontSize: t.font.hero, fontWeight: 900, marginTop: 10, marginBottom: 6 }}>אימונים בבית — בקליק</h1>
+ <h1 style={{ fontSize: t.font.hero, fontWeight: 900, marginTop: 10, marginBottom: 6 }}>{isRTL ? 'אימונים בבית — בקליק' : 'Home workouts — one click away'}</h1>
  <p style={{ color: t.color.textDim, fontSize: t.font.md, maxWidth: 520, lineHeight: 1.5 }}>
- {VIDEOS.length} סרטוני אימון בבית: פונקציונאלי, יוגה, פילאטיס, כוח משקל גוף, קרוספיט, וניידות.
- בחר קטגוריה, אורך, ורמה — ותצא לדרך.
+ {VIDEOS.length} {isRTL ? 'סרטוני אימון בבית: פונקציונאלי, יוגה, פילאטיס, כוח משקל גוף, קרוספיט, וניידות.' : 'home workout videos: functional, yoga, pilates, bodyweight strength, CrossFit, and mobility.'}
+ {isRTL ? ' בחר קטגוריה, אורך, ורמה — ותצא לדרך.' : ' Pick a category, length, and level — and go.'}
  </p>
  </div>
  </Card>
@@ -52,7 +54,7 @@ export function OnDemand() {
  border: `1px solid ${cat === 'all'? t.color.gold : t.color.border}`,
  cursor:'pointer', fontFamily:'inherit', fontWeight: 700, fontSize: t.font.sm,
  whiteSpace:'nowrap',
- }}>הכל ({catCounts.all})</button>
+ }}>{isRTL ? 'הכל' : 'All'} ({catCounts.all})</button>
  {CATEGORIES.map(c => (
  <button key={c.id} onClick={() => setCat(c.id)} style={{
  padding:'10px 16px', borderRadius: 999,
@@ -68,18 +70,18 @@ export function OnDemand() {
  {/* Filters */}
  <Card style={{ padding: 12 }}>
  <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap: 10 }} className="hfos-od-filters">
- <Input value={q} onChange={e => setQ(e.target.value)} placeholder="חיפוש..." />
+ <Input value={q} onChange={e => setQ(e.target.value)} placeholder={isRTL ? 'חיפוש...' : 'Search...'} />
  <Select value={level} onChange={e => setLevel(e.target.value)}>
- <option value="">כל הרמות</option>
- <option value="קל">קל</option>
- <option value="בינוני">בינוני</option>
- <option value="מתקדם">מתקדם</option>
+ <option value="">{isRTL ? 'כל הרמות' : 'All levels'}</option>
+ <option value="קל">{isRTL ? 'קל' : 'Easy'}</option>
+ <option value="בינוני">{isRTL ? 'בינוני' : 'Medium'}</option>
+ <option value="מתקדם">{isRTL ? 'מתקדם' : 'Advanced'}</option>
  </Select>
  <Select value={maxDur} onChange={e => setMaxDur(e.target.value)}>
- <option value="">כל אורך</option>
- <option value="15">עד 15 דק׳</option>
- <option value="25">עד 25 דק׳</option>
- <option value="40">עד 40 דק׳</option>
+ <option value="">{isRTL ? 'כל אורך' : 'Any length'}</option>
+ <option value="15">{isRTL ? 'עד 15 דק׳' : 'Up to 15 min'}</option>
+ <option value="25">{isRTL ? 'עד 25 דק׳' : 'Up to 25 min'}</option>
+ <option value="40">{isRTL ? 'עד 40 דק׳' : 'Up to 40 min'}</option>
  </Select>
  </div>
  </Card>
