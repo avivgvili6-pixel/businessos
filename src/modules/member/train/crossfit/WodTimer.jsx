@@ -34,19 +34,22 @@ export function WodTimer({ wod, open, onClose, onComplete }) {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [running])
 
-  if (!wod) return null
-
-  const timeCap = wod.timeCap || 0
+  // Derived state (computed even when wod is null — safe guards below)
+  const timeCap = wod?.timeCap || 0
   const remaining = Math.max(0, timeCap - elapsed)
   const isTimeUp = timeCap > 0 && elapsed >= timeCap
+  const wodFormat = wod?.format || null
 
-  // Auto-stop when time cap reached (AMRAP/EMOM/Intervals)
+  // Auto-stop when time cap reached (AMRAP/EMOM/Intervals).
+  // MUST be declared before any early return, otherwise React hooks order changes.
   useEffect(() => {
-    if (isTimeUp && running && ['amrap', 'emom', 'intervals'].includes(wod.format)) {
+    if (isTimeUp && running && ['amrap', 'emom', 'intervals'].includes(wodFormat)) {
       setRunning(false)
       setFinalTime(elapsed)
     }
-  }, [isTimeUp, running, wod.format])
+  }, [isTimeUp, running, wodFormat])
+
+  if (!wod) return null
 
   function handleStart() { setRunning(true) }
   function handlePause() { setRunning(false) }
