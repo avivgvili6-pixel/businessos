@@ -19,6 +19,7 @@ import {
   detectStyle, currentWeekOf, weekCompletion, isPlanCycleComplete,
   applyDifficultyToSession, difficultyProfile,
 } from '../../../utils/weekProgression'
+import { CrossFitWod } from './crossfit/WodGenerator'
 
 export function Train() {
   const [tab, setTab] = useState('plan')
@@ -26,6 +27,7 @@ export function Train() {
     <>
       <Tabs tabs={[
         { key:'plan',     label:'התכנית שלי' },
+        { key:'crossfit', label:'🔥 CrossFit WOD' },
         { key:'quick',    label:'⚡ אימון מהיר' },
         { key:'programs', label:'🌍 תכניות מוכרות' },
         { key:'import',   label:'📄 ייבוא PDF' },
@@ -34,6 +36,7 @@ export function Train() {
         { key:'history',  label:'היסטוריה' },
       ]} active={tab} onChange={setTab} />
       {tab === 'plan'     && <MyPlan />}
+      {tab === 'crossfit' && <CrossFitWod />}
       {tab === 'quick'    && <QuickBuilder />}
       {tab === 'programs' && <ProgramsLibrary />}
       {tab === 'import'   && <PdfImporter />}
