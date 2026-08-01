@@ -86,7 +86,13 @@ export function Shell({ page, setPage, children }) {
  position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex: 900, display:'none',
  }} className="hfos-mobile-overlay">
  <aside onClick={e=>e.stopPropagation()} style={{
- width: 260, background: t.color.bgElevated, height:'100%', padding: t.space.lg,
+ width: 260, background: t.color.bgElevated, height:'100%',
+ display:'flex', flexDirection:'column',
+ overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain',
+ }}>
+ <div style={{
+ padding: t.space.lg,
+ paddingBottom: `calc(${t.space.lg} + env(safe-area-inset-bottom))`,
  display:'flex', flexDirection:'column', gap: t.space.md,
  }}>
  <BrandBlock isAdmin={isAdminView} />
@@ -96,6 +102,7 @@ export function Shell({ page, setPage, children }) {
  {nav.map(item => (
  <NavItem key={item.key} item={item} active={page === item.key} onClick={() => { setPage(item.key); setMobileOpen(false) }} />
  ))}
+ </div>
  </aside>
  </div>
  )}
