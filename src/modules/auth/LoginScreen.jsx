@@ -394,8 +394,8 @@ export function LoginScreen() {
  textAlign:'center', marginBottom: 8,
  }}>
  {isRTL
- ? 'מערכת הפרפורמנס לכושר הוליסטי — אימונים, תזונה, שיקום, ומעקב.'
- :'The holistic fitness performance system — train, eat, recover, track.'}
+ ? 'מערכת לניהול ביצועים.'
+ :'Performance management system.'}
  </div>
 
  <PrimaryButton onClick={() => setStep('existing')}>

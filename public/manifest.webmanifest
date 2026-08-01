@@ -1,7 +1,7 @@
 {
   "name": "Selano — Performance System",
   "short_name": "Selano",
-  "description": "מערכת ביצועים הוליסטית לאימונים, תזונה, שיקום, מנטליות והתקדמות.",
+  "description": "מערכת לניהול ביצועים.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
