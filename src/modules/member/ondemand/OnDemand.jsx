@@ -90,7 +90,7 @@ export function OnDemand() {
  {filtered.length === 0 && (
  <Card style={{ padding: 40, textAlign:'center'}}>
  <div style={{ fontSize: 48, marginBottom: 12 }}> </div>
- <div style={{ color: t.color.textDim }}>לא נמצאו סרטונים עם הפילטרים האלה</div>
+ <div style={{ color: t.color.textDim }}>{isRTL ? 'לא נמצאו סרטונים עם הפילטרים האלה' : 'No videos found with these filters'}</div>
  </Card>
  )}
 
@@ -117,7 +117,7 @@ export function OnDemand() {
  <Badge color={catMeta?.color}>{catMeta?.icon} {catMeta?.label}</Badge>
  </div>
  <div style={{ position:'absolute', bottom: 8, left: 8, display:'flex', gap: 4 }}>
- <Badge>{v.duration} דק׳</Badge>
+ <Badge>{v.duration} {isRTL ? 'דק׳' : 'min'}</Badge>
  <Badge>{v.level}</Badge>
  </div>
  </div>
@@ -142,7 +142,7 @@ export function OnDemand() {
  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
  <div>
  <div style={{ color:'#fff', fontWeight: 700, fontSize: t.font.md }}>{playing.title}</div>
- <div style={{ color:'#aaa', fontSize: t.font.xs }}>{playing.by} · {playing.duration} דק׳ · {playing.level}</div>
+ <div style={{ color:'#aaa', fontSize: t.font.xs }}>{playing.by} · {playing.duration} {isRTL ? 'דק׳' : 'min'} · {playing.level}</div>
  </div>
  <button onClick={() => setPlaying(null)} style={{
  background:'#fff', border:'none', color:'#000', width: 36, height: 36,

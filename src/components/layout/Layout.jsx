@@ -300,6 +300,7 @@ function NavItem({ item, active, onClick }) {
 }
 
 function TopBar({ page, isAdmin, onMenu }) {
+ const { isRTL } = useI18n()
  return (
  <header className="hfos-topbar"style={{
  display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -327,7 +328,7 @@ function TopBar({ page, isAdmin, onMenu }) {
  display:'flex', alignItems:'center', gap: 6,
  }}>
  <span style={{ width: 7, height: 7, background: t.color.success, borderRadius:'50%'}} />
- מחובר
+ {isRTL ? 'מחובר' : 'Online'}
  </button>
  </div>
  </header>

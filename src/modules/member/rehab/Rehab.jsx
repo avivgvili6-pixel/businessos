@@ -5,16 +5,18 @@ import { Card, Button, Badge, SectionHeader, Modal, EmptyState, Input, Select, T
 import { Sparkline } from '../../../components/charts/Charts'
 import { bodyAreas, assessmentQuestions, redFlags, protocols } from '../../../data/rehab'
 import { rehabCuesFor } from '../../../data/rehabCues'
+import { useI18n } from '../../../i18n/i18n'
 
 export function Rehab() {
  const { state } = useApp()
+ const { isRTL } = useI18n()
  const [tab, setTab] = useState(state.rehabPrograms.length ? 'active':'start')
  return (
  <>
  <Tabs tabs={[
- { key:'active', label:`התכניות שלי${state.rehabPrograms.length ? '(' + state.rehabPrograms.length + ')':''}` },
- { key:'start', label:'התחל שיקום חדש'},
- { key:'library', label:'ספריית שיקום'},
+ { key:'active', label:`${isRTL ? 'התכניות שלי' : 'My programs'}${state.rehabPrograms.length ? ' (' + state.rehabPrograms.length + ')':''}` },
+ { key:'start', label: isRTL ? 'התחל שיקום חדש' : 'Start new rehab'},
+ { key:'library', label: isRTL ? 'ספריית שיקום' : 'Rehab library'},
  ]} active={tab} onChange={setTab} />
 
  {tab === 'active'&& <ActivePrograms />}
@@ -26,12 +28,13 @@ export function Rehab() {
 
 function ActivePrograms() {
  const { state, logRehabPain, logRehabSession, stopRehab } = useApp()
+ const { isRTL } = useI18n()
  const [painModal, setPainModal] = useState(null)
  const [painValue, setPainValue] = useState(3)
  const [painNote, setPainNote] = useState('')
 
  if (!state.rehabPrograms.length) {
- return <EmptyState icon="" title="עדיין אין תכנית שיקום פעילה"subtitle="לחץ על ׳התחל שיקום חדש׳ כדי לבנות פרוטוקול מותאם לאזור פציעה או חולשה"/>
+ return <EmptyState icon="" title={isRTL ? 'עדיין אין תכנית שיקום פעילה' : 'No active rehab program yet'} subtitle={isRTL ? 'לחץ על ׳התחל שיקום חדש׳ כדי לבנות פרוטוקול מותאם לאזור פציעה או חולשה' : 'Tap "Start new rehab" to build a protocol tailored to an injury or weak area'} />
  }
 
  return (
@@ -56,14 +59,14 @@ function ActivePrograms() {
  <span style={{ fontSize: 34 }}>{area?.icon}</span>
  <div>
  <h2 style={{ fontSize: t.font.xxl, fontWeight: 800 }}>{protocol?.title}</h2>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>שבוע {currentWeek} מתוך {protocol?.duration} · יום {daysSinceStart + 1}</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>{isRTL ? 'שבוע' : 'Week'} {currentWeek} {isRTL ? 'מתוך' : 'of'} {protocol?.duration} · {isRTL ? 'יום' : 'day'} {daysSinceStart + 1}</div>
  </div>
  </div>
  <ProgressBar value={currentWeek} max={protocol?.duration || 4} />
  </div>
  <div style={{ display:'flex', gap: 8 }}>
- <Button size="sm"onClick={() => { setPainModal(p); setPainValue(p.painLog[0]?.pain || 3) }}>סמן רמת כאב</Button>
- <Button variant="ghost"size="sm"onClick={() => { if (confirm('לסיים את התכנית?')) stopRehab(p.id) }}>סיים</Button>
+ <Button size="sm"onClick={() => { setPainModal(p); setPainValue(p.painLog[0]?.pain || 3) }}>{isRTL ? 'סמן רמת כאב' : 'Log pain level'}</Button>
+ <Button variant="ghost"size="sm"onClick={() => { if (confirm(isRTL ? 'לסיים את התכנית?' : 'End the program?')) stopRehab(p.id) }}>{isRTL ? 'סיים' : 'End'}</Button>
  </div>
  </div>
  </div>
@@ -72,13 +75,13 @@ function ActivePrograms() {
  <div>
  {protocol?.weeks.filter(w => w.week === currentWeek).map(week => (
  <div key={week.week}>
- <Badge color={t.color.gold}>שבוע {week.week}</Badge>
+ <Badge color={t.color.gold}>{isRTL ? 'שבוע' : 'Week'} {week.week}</Badge>
  <div style={{ fontWeight: 700, fontSize: t.font.lg, marginTop: 8, marginBottom: 10 }}>{week.focus}</div>
  <div style={{ display:'grid', gap: 6 }}>
  {week.exercises.map((ex, i) => <RehabExerciseRow key={i} index={i} exercise={ex} />)}
  </div>
  <div style={{ marginTop: 14, display:'flex', gap: 8 }}>
- <Button onClick={() => { logRehabSession(p.id, week.week); alert('אימון נרשם ') }}>סיימתי את האימון היום </Button>
+ <Button onClick={() => { logRehabSession(p.id, week.week); alert(isRTL ? 'אימון נרשם ' : 'Session logged') }}>{isRTL ? 'סיימתי את האימון היום ' : 'I finished today’s session'}</Button>
  </div>
  </div>
  ))}
@@ -86,7 +89,7 @@ function ActivePrograms() {
 
  <div style={{ display:'grid', gap: 14, alignContent:'start'}}>
  <Card style={{ padding: 14, background: t.color.bgSoft }}>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>מעקב כאב</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>{isRTL ? 'מעקב כאב' : 'Pain tracking'}</div>
  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center'}}>
  <div style={{ fontSize: t.font.xxl, fontWeight: 800, color: t.color.gold }}>
  {p.painLog[0]?.pain ?? '?'}<span style={{ fontSize: t.font.sm, color: t.color.textDim }}>/10</span>
@@ -98,28 +101,28 @@ function ActivePrograms() {
  )}
  </div>
  {painSeries.length > 1 && <div style={{ marginTop: 10 }}><Sparkline data={painSeries} height={40} color={t.color.warning} /></div>}
- <div style={{ fontSize: 10, color: t.color.textMuted, marginTop: 6 }}>{p.painLog.length} רישומים</div>
+ <div style={{ fontSize: 10, color: t.color.textMuted, marginTop: 6 }}>{p.painLog.length} {isRTL ? 'רישומים' : 'entries'}</div>
  </Card>
 
  <Card style={{ padding: 14, background: t.color.bgSoft }}>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>אימונים שהושלמו</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>{isRTL ? 'אימונים שהושלמו' : 'Sessions completed'}</div>
  <div style={{ fontSize: t.font.xxl, fontWeight: 800, color: t.color.success }}>{p.sessions.length}</div>
  </Card>
 
  <Card style={{ padding: 14, background: `${t.color.warning}15`, borderColor: t.color.warning }}>
- <div style={{ fontSize: t.font.xs, color: t.color.warning, fontWeight: 700, marginBottom: 8 }}> דגלים אדומים</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.warning, fontWeight: 700, marginBottom: 8 }}> {isRTL ? 'דגלים אדומים' : 'Red flags'}</div>
  <div style={{ display:'grid', gap: 4 }}>
  {(redFlags[p.area] || redFlags.general).slice(0, 3).map((f, i) => (
  <div key={i} style={{ fontSize: t.font.xs, color: t.color.text }}>• {f}</div>
  ))}
  </div>
- <div style={{ fontSize: 10, color: t.color.textDim, marginTop: 8 }}>אם משהו מהרשימה - פנה לרופא</div>
+ <div style={{ fontSize: 10, color: t.color.textDim, marginTop: 8 }}>{isRTL ? 'אם משהו מהרשימה - פנה לרופא' : 'If any of the above — see a doctor'}</div>
  </Card>
  </div>
  </div>
 
  <div style={{ padding: 16, borderTop:`1px solid ${t.color.border}`, background: t.color.bgSoft }}>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginBottom: 6, fontWeight: 700 }}>עקרונות מנחים</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginBottom: 6, fontWeight: 700 }}>{isRTL ? 'עקרונות מנחים' : 'Guiding principles'}</div>
  <div style={{ display:'flex', gap: 6, flexWrap:'wrap'}}>
  {protocol?.principles.map((pr, i) => <Badge key={i} color={t.color.textDim}>{pr}</Badge>)}
  </div>
@@ -128,22 +131,22 @@ function ActivePrograms() {
  )
  })}
 
- <Modal open={!!painModal} onClose={() => setPainModal(null)} title="רישום כאב"width={420}>
+ <Modal open={!!painModal} onClose={() => setPainModal(null)} title={isRTL ? 'רישום כאב' : 'Log pain'} width={420}>
  <div style={{ display:'grid', gap: 16 }}>
  <div>
  <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 6 }}>
- <span>רמת כאב</span>
+ <span>{isRTL ? 'רמת כאב' : 'Pain level'}</span>
  <b style={{ color: painValue > 6 ? t.color.danger : painValue > 3 ? t.color.warning : t.color.success }}>{painValue}/10</b>
  </div>
  <input type="range"min={0} max={10} value={painValue} onChange={e => setPainValue(+e.target.value)} style={{ width:'100%'}} />
  <div style={{ display:'flex', justifyContent:'space-between', fontSize: 10, color: t.color.textMuted, marginTop: 2 }}>
- <span>אין כאב</span><span>קל</span><span>מטריד</span><span>חזק</span><span>אסון</span>
+ <span>{isRTL ? 'אין כאב' : 'None'}</span><span>{isRTL ? 'קל' : 'Mild'}</span><span>{isRTL ? 'מטריד' : 'Bothersome'}</span><span>{isRTL ? 'חזק' : 'Severe'}</span><span>{isRTL ? 'אסון' : 'Worst'}</span>
  </div>
  </div>
- <Input label="הערה (אופציונלי)"placeholder="מתי הרגשתי? מה עזר?"value={painNote} onChange={e => setPainNote(e.target.value)} />
+ <Input label={isRTL ? 'הערה (אופציונלי)' : 'Note (optional)'} placeholder={isRTL ? 'מתי הרגשתי? מה עזר?' : 'When did I feel it? What helped?'} value={painNote} onChange={e => setPainNote(e.target.value)} />
  <div style={{ display:'flex', gap: 8, justifyContent:'flex-end'}}>
- <Button variant="ghost"onClick={() => setPainModal(null)}>ביטול</Button>
- <Button onClick={() => { logRehabPain(painModal.id, painValue, painNote); setPainModal(null); setPainNote('') }}>שמור</Button>
+ <Button variant="ghost"onClick={() => setPainModal(null)}>{isRTL ? 'ביטול' : 'Cancel'}</Button>
+ <Button onClick={() => { logRehabPain(painModal.id, painValue, painNote); setPainModal(null); setPainNote('') }}>{isRTL ? 'שמור' : 'Save'}</Button>
  </div>
  </div>
  </Modal>
