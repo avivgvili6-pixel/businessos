@@ -9,15 +9,26 @@ import {
 import { DAYS_HE } from '../../../utils/date'
 import { ai } from '../../../ai/aiProvider'
 import { bmr, tdee, macros, goalAdjustments, dietTemplates } from '../../../utils/calc'
+import { useI18n } from '../../../i18n/i18n'
+
+const MEAL_KEY_LABEL = {
+ 'בוקר': { he:'בוקר', en:'Breakfast'},
+ 'צהריים': { he:'צהריים', en:'Lunch'},
+ 'ערב': { he:'ערב', en:'Dinner'},
+ 'נשנוש': { he:'נשנוש', en:'Snack'},
+}
+const mealLabel = (key, isRTL) => (MEAL_KEY_LABEL[key] ? (isRTL ? MEAL_KEY_LABEL[key].he : MEAL_KEY_LABEL[key].en) : key)
+const DAYS_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 
 export function Calendar() {
+ const { isRTL } = useI18n()
  const [tab, setTab] = useState('week')
  return (
  <>
  <Tabs tabs={[
- { key:'week', label:'שבוע קדימה' },
- { key:'settings', label:'הגדרות סנכרון' },
- { key:'help', label:'איך זה עובד' },
+ { key:'week', label: isRTL ? 'שבוע קדימה' : 'Week ahead'},
+ { key:'settings', label: isRTL ? 'הגדרות סנכרון' : 'Sync settings'},
+ { key:'help', label: isRTL ? 'איך זה עובד' : 'How it works'},
  ]} active={tab} onChange={setTab} />
  {tab === 'week'&& <WeekView />}
  {tab === 'settings'&& <Settings />}
@@ -28,6 +39,7 @@ export function Calendar() {
 
 function WeekView() {
  const { state } = useApp()
+ const { isRTL } = useI18n()
  const [weekStart, setWeekStart] = useState(() => {
  const now = new Date()
  now.setHours(0, 0, 0, 0)
@@ -80,30 +92,30 @@ function WeekView() {
  return (
  <div style={{ display:'grid', gap: 16 }}>
  <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 24 }}>
- <Badge> סנכרון יומן</Badge>
- <h2 style={{ marginTop: 10, fontSize: t.font.xxl, fontWeight: 800 }}>הלו״ז השבועי שלך</h2>
+ <Badge> {isRTL ? 'סנכרון יומן' : 'Calendar sync'}</Badge>
+ <h2 style={{ marginTop: 10, fontSize: t.font.xxl, fontWeight: 800 }}>{isRTL ? 'הלו״ז השבועי שלך' : 'Your weekly schedule'}</h2>
  <div style={{ color: t.color.textDim, marginTop: 6 }}>
- {events.length} אירועים לשבוע · {Object.keys(eventsByDay).length} ימים · הורד כ-ICS או הוסף כל אירוע ל-Google Calendar בקליק
+ {events.length} {isRTL ? 'אירועים לשבוע' : 'events this week'} · {Object.keys(eventsByDay).length} {isRTL ? 'ימים' : 'days'} · {isRTL ? 'הורד כ-ICS או הוסף כל אירוע ל-Google Calendar בקליק' : 'Download as ICS or add each event to Google Calendar in one click'}
  </div>
  <div style={{ marginTop: 16, display:'flex', gap: 10, flexWrap:'wrap'}}>
- <Button icon="" onClick={downloadWeek} disabled={!events.length}>הורד קובץ ICS לשבוע</Button>
- {!mealPlan && <Button variant="outline"onClick={generateMeals} disabled={genMeals}>{genMeals ? 'בונה...':' הוסף גם ארוחות'}</Button>}
+ <Button icon="" onClick={downloadWeek} disabled={!events.length}>{isRTL ? 'הורד קובץ ICS לשבוע' : 'Download weekly ICS'}</Button>
+ {!mealPlan && <Button variant="outline"onClick={generateMeals} disabled={genMeals}>{genMeals ? (isRTL ? 'בונה...' : 'Building...') : (isRTL ? ' הוסף גם ארוחות' : ' Add meals too')}</Button>}
  {!state.plan && (
  <div style={{ padding:'8px 12px', background:`${t.color.warning}15`, borderRadius: t.radius.sm, fontSize: t.font.xs, color: t.color.warning }}>
- אין תכנית אימון פעילה - עבור ל"אימונים"כדי לאמץ אחת
+ {isRTL ? 'אין תכנית אימון פעילה - עבור ל"אימונים"כדי לאמץ אחת' : 'No active training plan — go to "Workouts" to pick one'}
  </div>
  )}
  </div>
  </Card>
 
  <Card style={{ padding: 16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
- <Button variant="ghost"onClick={prevWeek}>→ שבוע קודם</Button>
+ <Button variant="ghost"onClick={prevWeek}>→ {isRTL ? 'שבוע קודם' : 'Previous week'}</Button>
  <div style={{ fontWeight: 700 }}>{formatWeekRange(weekStart)}</div>
- <Button variant="ghost"onClick={nextWeek}>שבוע הבא ←</Button>
+ <Button variant="ghost"onClick={nextWeek}>{isRTL ? 'שבוע הבא' : 'Next week'} ←</Button>
  </Card>
 
  {events.length === 0 ? (
- <EmptyState icon=" "title="אין אירועים לשבוע זה"subtitle="אמץ תכנית אימון או צור תכנית ארוחות שבועית כדי לראות לו״ז"/>
+ <EmptyState icon=" "title={isRTL ? 'אין אירועים לשבוע זה' : 'No events this week'} subtitle={isRTL ? 'אמץ תכנית אימון או צור תכנית ארוחות שבועית כדי לראות לו״ז' : 'Adopt a training plan or generate a weekly meal plan to see your schedule'} />
  ) : (
  <div style={{ display:'grid', gap: 10 }}>
  {[0,1,2,3,4,5,6].map(dayIdx => {
@@ -114,9 +126,9 @@ function WeekView() {
  <Card key={dayIdx} style={{ padding: 18 }}>
  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12, paddingBottom: 10, borderBottom:`1px solid ${t.color.border}` }}>
  <div style={{ fontWeight: 700, color: t.color.gold, fontSize: t.font.lg }}>
- {DAYS_HE[dayIdx]} · {day.getDate()}/{day.getMonth() + 1}
+ {(isRTL ? DAYS_HE : DAYS_EN)[dayIdx]} · {day.getDate()}/{day.getMonth() + 1}
  </div>
- <Badge>{dayEvents.length} אירועים</Badge>
+ <Badge>{dayEvents.length} {isRTL ? 'אירועים' : 'events'}</Badge>
  </div>
  <div style={{ display:'grid', gap: 8 }}>
  {dayEvents.sort((a, b) => a.start - b.start).map((ev, i) => (
@@ -163,36 +175,37 @@ function formatWeekRange(start) {
 
 function Settings() {
  const { state, updateProfile } = useApp()
+ const { isRTL } = useI18n()
  const prefs = state.profile.calendarPrefs || { workoutHour: 18, mealTimes: {'בוקר': 8,'צהריים': 13,'ערב': 20,'נשנוש': 16 }, reminders: true }
  const set = (patch) => updateProfile({ calendarPrefs: { ...prefs, ...patch } })
 
  return (
  <div style={{ display:'grid', gap: 16 }}>
  <Card>
- <SectionHeader title="שעות ברירת מחדל"subtitle="השעות בהן ננקבע אירועים בלו״ז"/>
+ <SectionHeader title={isRTL ? 'שעות ברירת מחדל' : 'Default times'} subtitle={isRTL ? 'השעות בהן ננקבע אירועים בלו״ז' : 'Hours we schedule events at'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
- <TimePicker label="אימון"value={prefs.workoutHour} onChange={v => set({ workoutHour: v })} />
+ <TimePicker label={isRTL ? 'אימון' : 'Workout'} value={prefs.workoutHour} onChange={v => set({ workoutHour: v })} />
  {Object.entries(prefs.mealTimes).map(([name, hour]) => (
- <TimePicker key={name} label={name} value={hour} onChange={v => set({ mealTimes: { ...prefs.mealTimes, [name]: v } })} />
+ <TimePicker key={name} label={mealLabel(name, isRTL)} value={hour} onChange={v => set({ mealTimes: { ...prefs.mealTimes, [name]: v } })} />
  ))}
  </div>
  </Card>
 
  <Card>
- <SectionHeader title="תזכורות"/>
+ <SectionHeader title={isRTL ? 'תזכורות' : 'Reminders'} />
  <label style={{ display:'flex', alignItems:'center', gap: 10, cursor:'pointer', padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md }}>
  <input type="checkbox"checked={prefs.reminders !== false} onChange={e => set({ reminders: e.target.checked })} style={{ width: 20, height: 20, accentColor: t.color.gold }} />
  <div>
- <div style={{ fontWeight: 600 }}>הוסף תזכורות VALARM לאירועים</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>אימונים: 30 דק׳ לפני · ארוחות: 15 דק׳ לפני</div>
+ <div style={{ fontWeight: 600 }}>{isRTL ? 'הוסף תזכורות VALARM לאירועים' : 'Add VALARM reminders to events'}</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{isRTL ? 'אימונים: 30 דק׳ לפני · ארוחות: 15 דק׳ לפני' : 'Workouts: 30 min before · Meals: 15 min before'}</div>
  </div>
  </label>
  </Card>
 
  <Card>
- <SectionHeader title="שילוב עתידי"/>
+ <SectionHeader title={isRTL ? 'שילוב עתידי' : 'Future integration'} />
  <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.7 }}>
- <b style={{ color: t.color.gold }}>סנכרון דו-כיווני מלא</b> (OAuth 2.0 עם Google Calendar API) יגיע בגרסה הבאה עם ה-Backend. בינתיים - ייצוא ICS + Deep Links זה כמעט אותו הדבר, וללא הרשאות מיוחדות.
+ <b style={{ color: t.color.gold }}>{isRTL ? 'סנכרון דו-כיווני מלא' : 'Full two-way sync'}</b> {isRTL ? '(OAuth 2.0 עם Google Calendar API) יגיע בגרסה הבאה עם ה-Backend. בינתיים - ייצוא ICS + Deep Links זה כמעט אותו הדבר, וללא הרשאות מיוחדות.' : '(OAuth 2.0 with Google Calendar API) will arrive in the next version with the backend. Meanwhile — ICS export + deep links is almost the same, with no extra permissions needed.'}
  </div>
  </Card>
  </div>

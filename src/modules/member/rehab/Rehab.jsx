@@ -277,10 +277,11 @@ function StartFlow({ onDone }) {
 }
 
 function Library() {
+ const { isRTL } = useI18n()
  const [selected, setSelected] = useState(null)
  return (
  <div style={{ display:'grid', gap: 16 }}>
- <SectionHeader title="ספריית פרוטוקולים"subtitle="עיין בכל אזורי הגוף - בחר לצפייה מלאה"/>
+ <SectionHeader title={isRTL ? 'ספריית פרוטוקולים' : 'Protocol library'} subtitle={isRTL ? 'עיין בכל אזורי הגוף - בחר לצפייה מלאה' : 'Browse all body areas — pick one to view'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
  {bodyAreas.map(a => {
  const p = protocols[a.id]
@@ -290,7 +291,7 @@ function Library() {
  <span style={{ fontSize: 30 }}>{a.icon}</span>
  <div>
  <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{a.name}</div>
- {p && <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{p.duration} שבועות</div>}
+ {p && <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{p.duration} {isRTL ? 'שבועות' : 'weeks'}</div>}
  </div>
  </div>
  <div style={{ display:'flex', gap: 4, flexWrap:'wrap'}}>
@@ -307,7 +308,7 @@ function Library() {
  <div style={{ fontSize: t.font.lg, fontWeight: 700, color: t.color.gold }}>{protocols[selected.id].title}</div>
  {protocols[selected.id].weeks.map(w => (
  <div key={w.week} style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md }}>
- <Badge color={t.color.gold}>שבוע {w.week}</Badge>
+ <Badge color={t.color.gold}>{isRTL ? 'שבוע' : 'Week'} {w.week}</Badge>
  <div style={{ fontWeight: 700, marginTop: 6, marginBottom: 8 }}>{w.focus}</div>
  <div style={{ display:'grid', gap: 4 }}>
  {w.exercises.map((e, i) => <div key={i} style={{ fontSize: t.font.sm }}>{i+1}. {e}</div>)}
@@ -323,6 +324,7 @@ function Library() {
 
 // Row for a single rehab exercise: number + name + expand for video/cues
 function RehabExerciseRow({ index, exercise }) {
+ const { isRTL } = useI18n()
  const [open, setOpen] = useState(false)
  const cues = rehabCuesFor(exercise)
  const hasVideo = !!cues?.ytId
@@ -340,7 +342,7 @@ function RehabExerciseRow({ index, exercise }) {
  borderRadius: t.radius.pill, padding:'4px 12px',
  cursor:'pointer', fontFamily:'inherit', fontSize: 11, fontWeight: 700,
  whiteSpace:'nowrap',
- }}>{hasVideo ? '▶ סרטון':' הסבר'}</button>
+ }}>{hasVideo ? (isRTL ? '▶ סרטון' : '▶ Video') : (isRTL ? ' הסבר' : ' Explain')}</button>
  ) : null}
  </div>
  {open && cues && (
@@ -348,7 +350,7 @@ function RehabExerciseRow({ index, exercise }) {
  {hasVideo && (
  <div style={{ marginBottom: 12 }}>
  <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginBottom: 6 }}>
- סרטון הסבר{cues.ytBy ? ` · ${cues.ytBy}` :''}
+ {isRTL ? 'סרטון הסבר' : 'Instructional video'}{cues.ytBy ? ` · ${cues.ytBy}` :''}
  </div>
  <div style={{ position:'relative', paddingBottom:'56.25%', height: 0, borderRadius: t.radius.sm, overflow:'hidden', background:'#000'}}>
  <iframe
@@ -363,7 +365,7 @@ function RehabExerciseRow({ index, exercise }) {
  )}
  {cues.cues && (
  <div style={{ marginBottom: 10 }}>
- <div style={{ fontSize: t.font.xs, fontWeight: 700, color: t.color.gold, marginBottom: 4 }}> דגשים</div>
+ <div style={{ fontSize: t.font.xs, fontWeight: 700, color: t.color.gold, marginBottom: 4 }}> {isRTL ? 'דגשים' : 'Cues'}</div>
  <ul style={{ margin: 0, paddingRight: 16, fontSize: t.font.xs, lineHeight: 1.6, color: t.color.text }}>
  {cues.cues.map((c, i) => <li key={i}>{c}</li>)}
  </ul>
@@ -371,7 +373,7 @@ function RehabExerciseRow({ index, exercise }) {
  )}
  {cues.warn && (
  <div>
- <div style={{ fontSize: t.font.xs, fontWeight: 700, color: t.color.warning, marginBottom: 4 }}> שים לב</div>
+ <div style={{ fontSize: t.font.xs, fontWeight: 700, color: t.color.warning, marginBottom: 4 }}> {isRTL ? 'שים לב' : 'Watch out'}</div>
  <ul style={{ margin: 0, paddingRight: 16, fontSize: t.font.xs, lineHeight: 1.6, color: t.color.text }}>
  {cues.warn.map((w, i) => <li key={i}>{w}</li>)}
  </ul>
