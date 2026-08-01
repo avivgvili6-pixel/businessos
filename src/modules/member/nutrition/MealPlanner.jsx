@@ -56,7 +56,7 @@ export function MealPlanner() {
  </div>
  <div style={{ display:'grid', gap: 8 }}>
  {d.meals.map((m, j) => {
- const recipe = getRecipeByName(m.idea) || recipes.find(r => m.idea && m.idea.split('')[0] && r.name.startsWith(m.idea.split('')[0]))
+ const recipe = getRecipeByName(m.idea) || recipes.find(r => m.idea && m.idea.split(' ')[0] && r.name.startsWith(m.idea.split(' ')[0]))
  return (
  <div key={j} onClick={() => recipe && setRecipeModal(recipe)} style={{
  padding: 8, background: t.color.bgSoft, borderRadius: t.radius.sm,

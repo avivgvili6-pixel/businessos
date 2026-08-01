@@ -13,7 +13,7 @@ import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/c
 export function Home({ go }) {
  const { state } = useApp()
  const { profile, habits, moodCheckins, mealLogs, workoutLogs } = state
- const first = profile.name?.split('')[0] || 'אלוף'
+ const first = profile.name?.split(' ')[0] || 'אלוף'
  const insights = React.useMemo(() => runEngine(state), [state])
  const topInsight = insights[0]
  const _bmr = bmr(profile)

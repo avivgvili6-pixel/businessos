@@ -268,7 +268,7 @@ function StepFinish({ data }) {
  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12, textAlign:'center'}}>
  {[
  { label:'BMI', val: (data.weightKg / ((data.heightCm/100)**2)).toFixed(1) },
- { label:'מטרה', val: goalAdjustments[data.goalKey]?.label.split('')[0] || '-'},
+ { label:'מטרה', val: goalAdjustments[data.goalKey]?.label.split(' ')[0] || '-'},
  { label:'תזונה', val: dietTemplates[data.dietKey]?.label || '-' },
  ].map((s, i) => (
  <div key={i} style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md }}>

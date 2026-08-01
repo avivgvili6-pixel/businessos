@@ -11,8 +11,8 @@ export function Sparkline({ data, height = 40, color, fill = true }) {
  const c = color || t.color.gold
  return (
  <svg viewBox={`0 0 ${w} ${h}`} width="100%"height={h} preserveAspectRatio="none">
- {fill && <polygon points={`0,${h} ${pts.join('')} ${w},${h}`} fill={c} opacity="0.15"/>}
- <polyline points={pts.join('')} fill="none"stroke={c} strokeWidth="2"strokeLinejoin="round"strokeLinecap="round"/>
+ {fill && <polygon points={`0,${h} ${pts.join(' ')} ${w},${h}`} fill={c} opacity="0.15"/>}
+ <polyline points={pts.join(' ')} fill="none" stroke={c} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
  </svg>
  )
 }
