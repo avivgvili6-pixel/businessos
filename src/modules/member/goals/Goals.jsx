@@ -75,16 +75,16 @@ export function Goals({ go }) {
  stroke={10}
  color={progress.pct >= 80 ? t.color.success : progress.pct >= 50 ? t.color.gold : t.color.warning}
  label={`${progress.pct}%`}
- sublabel="למטרה"
+ sublabel={isRTL ? 'למטרה' : 'to goal'}
  />
  <div style={{ display:'grid', gap: 10 }}>
  <div>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>מתחילת המטרה</div>
- <div style={{ fontWeight: 700 }}>{daysSince === 0 ? 'התחלת היום ': `יום ${daysSince} בדרך`}</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>{isRTL ? 'מתחילת המטרה' : 'Since goal started'}</div>
+ <div style={{ fontWeight: 700 }}>{daysSince === 0 ? (isRTL ? 'התחלת היום ' : 'Started today') : (isRTL ? `יום ${daysSince} בדרך` : `Day ${daysSince} on the way`)}</div>
  </div>
  {progress.currentValue != null && progress.targetValue != null && (
  <div>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>נותר להשיג</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 4 }}>{isRTL ? 'נותר להשיג' : 'Remaining'}</div>
  <div style={{ fontWeight: 700, color: t.color.gold }}>
  {Math.abs(progress.targetValue - progress.currentValue).toFixed(1)} {active.metric?.unit || ''}
  </div>
@@ -99,20 +99,20 @@ export function Goals({ go }) {
  <Card>
  <SectionHeader title={progress.metricLabel} action={
  <Button size="sm"onClick={() => { setCheckinFor(active); setCheckinValue(String(progress.currentValue || '')) }}>
- + עדכן מדד
+ + {isRTL ? 'עדכן מדד' : 'Update metric'}
  </Button>
  } />
  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 12, textAlign:'center'}} className="hfos-metric-grid">
  <div style={{ padding: 16, background: t.color.bgSoft, borderRadius: t.radius.md }}>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>נקודת התחלה</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{isRTL ? 'נקודת התחלה' : 'Start'}</div>
  <div style={{ fontSize: t.font.xl, fontWeight: 800, color: t.color.textDim }}>{progress.startValue ?? '—'}</div>
  </div>
  <div style={{ padding: 16, background: t.color.goldGlow, borderRadius: t.radius.md, border:`1px solid ${t.color.gold}` }}>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>כרגע</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{isRTL ? 'כרגע' : 'Now'}</div>
  <div style={{ fontSize: t.font.xxl, fontWeight: 800, color: t.color.gold }}>{progress.currentValue}</div>
  </div>
  <div style={{ padding: 16, background: t.color.bgSoft, borderRadius: t.radius.md }}>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>יעד</div>
+ <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{isRTL ? 'יעד' : 'Target'}</div>
  <div style={{ fontSize: t.font.xl, fontWeight: 800, color: t.color.success }}>{progress.targetValue}</div>
  </div>
  </div>
