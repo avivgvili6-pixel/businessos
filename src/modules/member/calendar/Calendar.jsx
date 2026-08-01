@@ -213,47 +213,49 @@ function Settings() {
 }
 
 function TimePicker({ label, value, onChange }) {
+ const { isRTL } = useI18n()
  return (
  <div>
  <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>{label}</div>
- <Input type="number"min={0} max={23} value={value} onChange={e => onChange(+e.target.value)} placeholder="שעה"/>
+ <Input type="number"min={0} max={23} value={value} onChange={e => onChange(+e.target.value)} placeholder={isRTL ? 'שעה' : 'Hour'} />
  </div>
  )
 }
 
 function Help() {
+ const { isRTL } = useI18n()
  return (
  <Card style={{ padding: 24 }}>
- <SectionHeader title="איך זה עובד"/>
+ <SectionHeader title={isRTL ? 'איך זה עובד' : 'How it works'} />
  <div style={{ display:'grid', gap: 16, fontSize: t.font.md, lineHeight: 1.7 }}>
  <div>
- <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> אופציה 1 - ייבוא של שבוע שלם</div>
+ <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> {isRTL ? 'אופציה 1 - ייבוא של שבוע שלם' : 'Option 1 — import an entire week'}</div>
  <div style={{ color: t.color.textDim }}>
- לחץ "הורד קובץ ICS לשבוע"ופתח אותו. Google Calendar / Apple Calendar / Outlook - כולם יזהו את הפורמט ויציעו לך לייבא הכל בבת אחת. אירועים חוזרים אוטומטית עם התזכורות והפרטים המלאים.
+ {isRTL ? 'לחץ "הורד קובץ ICS לשבוע"ופתח אותו. Google Calendar / Apple Calendar / Outlook - כולם יזהו את הפורמט ויציעו לך לייבא הכל בבת אחת. אירועים חוזרים אוטומטית עם התזכורות והפרטים המלאים.' : 'Click "Download weekly ICS" and open it. Google Calendar / Apple Calendar / Outlook all recognize the format and offer to import everything at once. Recurring events with reminders and full details.'}
  </div>
  </div>
  <div>
- <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> אופציה 2 - הוספה בקליק</div>
+ <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> {isRTL ? 'אופציה 2 - הוספה בקליק' : 'Option 2 — one-click add'}</div>
  <div style={{ color: t.color.textDim }}>
- כל אירוע מציג כפתור "+ Google Calendar"שפותח את היומן שלך עם כל השדות מולאים מראש. אתה רק לוחץ "שמור".
+ {isRTL ? 'כל אירוע מציג כפתור "+ Google Calendar"שפותח את היומן שלך עם כל השדות מולאים מראש. אתה רק לוחץ "שמור".' : 'Every event shows a "+ Google Calendar" button that opens your calendar with all fields pre-filled. Just hit Save.'}
  </div>
  </div>
  <div>
- <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> גישה מהמובייל</div>
+ <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> {isRTL ? 'גישה מהמובייל' : 'Mobile access'}</div>
  <div style={{ color: t.color.textDim }}>
- אם אתה במובייל, קובץ ICS יורד ל-Files ואפשר לפתוח אותו ישירות מהיומן. Google Calendar App מזהה את הפורמט אוטומטית.
+ {isRTL ? 'אם אתה במובייל, קובץ ICS יורד ל-Files ואפשר לפתוח אותו ישירות מהיומן. Google Calendar App מזהה את הפורמט אוטומטית.' : 'On mobile, the ICS file downloads to Files and can be opened directly from your calendar. Google Calendar App recognizes the format automatically.'}
  </div>
  </div>
  <div>
- <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> פרטיות</div>
+ <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> {isRTL ? 'פרטיות' : 'Privacy'}</div>
  <div style={{ color: t.color.textDim }}>
- הכל קורה במכשיר שלך. לא נשלחות שום נתונים לשרת. אין חיבור ל-Google או OAuth - רק פורמט קובץ סטנדרטי.
+ {isRTL ? 'הכל קורה במכשיר שלך. לא נשלחות שום נתונים לשרת. אין חיבור ל-Google או OAuth - רק פורמט קובץ סטנדרטי.' : 'Everything happens on your device. No data is sent to any server. No Google or OAuth connection — just a standard file format.'}
  </div>
  </div>
  <div>
- <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> בעתיד</div>
+ <div style={{ fontWeight: 700, color: t.color.gold, marginBottom: 6 }}> {isRTL ? 'בעתיד' : 'Coming later'}</div>
  <div style={{ color: t.color.textDim }}>
- סנכרון דו-כיווני מלא (שינוי במקום אחד = עדכון בשני) יתאפשר עם חיבור Backend. בינתיים הפורמט הזה סוגר 95% מהצורך.
+ {isRTL ? 'סנכרון דו-כיווני מלא (שינוי במקום אחד = עדכון בשני) יתאפשר עם חיבור Backend. בינתיים הפורמט הזה סוגר 95% מהצורך.' : 'Full two-way sync (change here = update there) will land with the backend integration. Meanwhile this format covers 95% of the need.'}
  </div>
  </div>
  </div>

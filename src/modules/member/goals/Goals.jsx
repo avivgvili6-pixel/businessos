@@ -6,9 +6,11 @@ import { Sparkline } from '../../../components/charts/Charts'
 import { GoalBuilder } from './GoalBuilder'
 import { PlanBuilder } from './PlanBuilder'
 import { DIRECTIONS } from '../../../data/goals'
+import { useI18n } from '../../../i18n/i18n'
 
 export function Goals({ go }) {
  const { state, removeGoal, checkinGoal } = useApp()
+ const { isRTL } = useI18n()
  const [building, setBuilding] = useState(false)
  const [buildingPlan, setBuildingPlan] = useState(false)
  const [checkinFor, setCheckinFor] = useState(null)
@@ -21,18 +23,18 @@ export function Goals({ go }) {
  return <GoalBuilder onDone={() => setBuilding(false)} />
  }
  if (buildingPlan) {
- return <PlanBuilder onDone={() => { setBuildingPlan(false); alert('התכנית ההוליסטית שלך נשמרה! עבור ל"אימונים"לראות את התכנית') }} onCancel={() => setBuildingPlan(false)} />
+ return <PlanBuilder onDone={() => { setBuildingPlan(false); alert(isRTL ? 'התכנית ההוליסטית שלך נשמרה! עבור ל"אימונים"לראות את התכנית' : 'Your holistic plan is saved! Go to "Workouts" to see it') }} onCancel={() => setBuildingPlan(false)} />
  }
 
  if (!active) {
  return (
  <Card style={{ padding: 32, textAlign:'center'}}>
  <div style={{ fontSize: 56, marginBottom: 16 }}> </div>
- <h2 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 8 }}>עדיין אין לך מטרה פעילה</h2>
+ <h2 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 8 }}>{isRTL ? 'עדיין אין לך מטרה פעילה' : 'No active goal yet'}</h2>
  <div style={{ color: t.color.textDim, marginBottom: 24, maxWidth: 480, margin:'0 auto 24px', lineHeight: 1.6 }}>
- מטרה מדידה היא הדבר החשוב ביותר להתקדמות. גם אם אתה לא בטוח מה - נגלה יחד בעזרת שאלות מנחות.
+ {isRTL ? 'מטרה מדידה היא הדבר החשוב ביותר להתקדמות. גם אם אתה לא בטוח מה - נגלה יחד בעזרת שאלות מנחות.' : 'A measurable goal is the single most important thing for progress. Not sure what yours is? We\'ll find it together with a short guided flow.'}
  </div>
- <Button size="lg"onClick={() => setBuilding(true)} icon=" ">בואו נבנה מטרה</Button>
+ <Button size="lg"onClick={() => setBuilding(true)} icon=" ">{isRTL ? 'בואו נבנה מטרה' : 'Let\'s build a goal'}</Button>
  </Card>
  )
  }
@@ -55,7 +57,7 @@ export function Goals({ go }) {
  <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 28, position:'relative', overflow:'hidden'}}>
  <div style={{ position:'absolute', top:-30, left:-30, width:180, height:180, background:t.color.goldGlow, borderRadius:'50%', filter:'blur(40px)'}} />
  <div style={{ display:'flex', gap: 8, alignItems:'center', marginBottom: 12 }}>
- <Badge> המטרה הפעילה שלך</Badge>
+ <Badge> {isRTL ? 'המטרה הפעילה שלך' : 'Your active goal'}</Badge>
  {dir && <Badge color={t.color.textDim}>{dir.icon} {dir.label}</Badge>}
  </div>
  <h1 style={{ fontSize: t.font.hero, fontWeight: 900, marginBottom: 12, lineHeight: 1.1 }}>{active.title}</h1>
