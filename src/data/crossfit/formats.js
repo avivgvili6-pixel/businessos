@@ -14,37 +14,37 @@ export const FORMATS = {
   amrap: {
     id: 'amrap', he: 'AMRAP', label: 'סיבובים מקסימליים',
     description: 'As Many Rounds As Possible',
-    icon: '🔄',
+    icon: '',
     timerType: 'amrap',
   },
   for_time: {
     id: 'for_time', he: 'For Time', label: 'כמה שיותר מהר',
     description: 'Complete as fast as possible',
-    icon: '⚡',
+    icon: '',
     timerType: 'for_time',
   },
   intervals: {
     id: 'intervals', he: 'Intervals', label: 'אינטרוולים',
     description: 'Timed work/rest periods',
-    icon: '📊',
+    icon: '',
     timerType: 'intervals',
   },
   chipper: {
     id: 'chipper', he: 'Chipper', label: 'צ׳יפר',
     description: 'רשימה סדרתית של תרגילים בכמות גדולה',
-    icon: '📋',
+    icon: '',
     timerType: 'for_time',
   },
   strength_metcon: {
     id: 'strength_metcon', he: 'Strength + MetCon', label: 'כוח + מטקון',
     description: 'חלק כוח ואחריו חלק מטאבולי',
-    icon: '💪',
+    icon: '',
     timerType: 'compound',
   },
   random: {
     id: 'random', he: 'Random', label: 'הפתעה',
     description: 'המערכת תבחר פורמט',
-    icon: '🎲',
+    icon: '',
     timerType: 'auto',
   },
 }

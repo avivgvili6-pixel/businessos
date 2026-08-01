@@ -41,10 +41,10 @@ export const TRANSLATIONS = {
 
     // Login
     'login.welcome':          'ברוכים הבאים',
-    'login.welcome_back':     'שמח לראות אותך שוב 👋',
-    'login.new_user_title':   'בואי נכיר ✨',
+    'login.welcome_back':     'שמח לראות אותך שוב ',
+    'login.new_user_title':   'בואי נכיר ',
     'login.forgot_title':     'שכחת סיסמה?',
-    'login.forgot_sent_title':'📧 נשלח מייל איפוס',
+    'login.forgot_sent_title':' נשלח מייל איפוס',
     'login.reset_title':      'בחר/י סיסמה חדשה',
     'login.existing_user':    'משתמש קיים',
     'login.existing_desc':    'יש לי חשבון — כניסה עם סיסמה',
@@ -204,10 +204,10 @@ export const TRANSLATIONS = {
 
     // Login
     'login.welcome':          'Welcome',
-    'login.welcome_back':     'Good to see you again 👋',
-    'login.new_user_title':   'Let\'s get you started ✨',
+    'login.welcome_back':     'Good to see you again ',
+    'login.new_user_title':   'Let\'s get you started ',
     'login.forgot_title':     'Forgot password?',
-    'login.forgot_sent_title':'📧 Reset email sent',
+    'login.forgot_sent_title':' Reset email sent',
     'login.reset_title':      'Choose a new password',
     'login.existing_user':    'Existing user',
     'login.existing_desc':    'I have an account — sign in with password',

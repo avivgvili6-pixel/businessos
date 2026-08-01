@@ -2,16 +2,16 @@
 // and red flags. Content is educational - never replaces a physiotherapist visit.
 
 export const bodyAreas = [
-  { id:'shoulder',    name:'כתף',           icon:'💪', common:['אימפינג׳מנט','דלקת שרוול המסובבים','חוסר יציבות'] },
-  { id:'lower_back',  name:'גב תחתון',      icon:'🔥', common:['כאב שריר','דיסק','חוסר יציבות ליבה'] },
-  { id:'upper_back',  name:'גב עליון',      icon:'🧍', common:['יציבה קדמית','כאב בין השכמות','נוקשות'] },
-  { id:'neck',        name:'צוואר',         icon:'🦴', common:['תסמונת הצוואר','כאבי ראש צוואריים'] },
-  { id:'knee',        name:'ברך',           icon:'🦵', common:['כאב פיקה','גיד פיקה','ITB','מיניסקוס'] },
-  { id:'hip',         name:'ירך',           icon:'🦴', common:['הבזק ירך','חולשת ישבן','בורסיטיס'] },
-  { id:'ankle',       name:'קרסול',         icon:'🦶', common:['נקע חוזר','פנטר פאשיה','אכילס'] },
-  { id:'wrist_elbow', name:'מרפק/שורש-יד',   icon:'💪', common:['מרפק טניס','מרפק גולף','תעלת שורש היד'] },
-  { id:'core',        name:'ליבה',          icon:'🎯', common:['חולשת ליבה','דיאסטזיס','שרירי בטן חלשים'] },
-  { id:'glutes',      name:'ישבן',          icon:'🍑', common:['אמנזיה של הישבן','פירי-פורמיס','חולשת גלוט מדיוס'] },
+  { id:'shoulder',    name:'כתף',           icon:'', common:['אימפינג׳מנט','דלקת שרוול המסובבים','חוסר יציבות'] },
+  { id:'lower_back',  name:'גב תחתון',      icon:'', common:['כאב שריר','דיסק','חוסר יציבות ליבה'] },
+  { id:'upper_back',  name:'גב עליון',      icon:'', common:['יציבה קדמית','כאב בין השכמות','נוקשות'] },
+  { id:'neck',        name:'צוואר',         icon:'', common:['תסמונת הצוואר','כאבי ראש צוואריים'] },
+  { id:'knee',        name:'ברך',           icon:'', common:['כאב פיקה','גיד פיקה','ITB','מיניסקוס'] },
+  { id:'hip',         name:'ירך',           icon:'', common:['הבזק ירך','חולשת ישבן','בורסיטיס'] },
+  { id:'ankle',       name:'קרסול',         icon:'', common:['נקע חוזר','פנטר פאשיה','אכילס'] },
+  { id:'wrist_elbow', name:'מרפק/שורש-יד',   icon:'', common:['מרפק טניס','מרפק גולף','תעלת שורש היד'] },
+  { id:'core',        name:'ליבה',          icon:'', common:['חולשת ליבה','דיאסטזיס','שרירי בטן חלשים'] },
+  { id:'glutes',      name:'ישבן',          icon:'', common:['אמנזיה של הישבן','פירי-פורמיס','חולשת גלוט מדיוס'] },
 ]
 
 // Assessment questions - shown when starting a rehab program

@@ -121,7 +121,7 @@ export function workoutEvent({ session, date, plan, defaults = {} }) {
   }
   return {
     id: `workout-${session.name}-${start.toISOString()}`,
-    title: `💪 ${session.name}${plan?.name ? ' · ' + plan.name : ''}`,
+    title: ` ${session.name}${plan?.name ? ' · ' + plan.name : ''}`,
     start, end,
     description: lines.join('\n'),
     location: defaults.location || 'חדר כושר',
@@ -137,7 +137,7 @@ export function mealEvent({ meal, date, defaults = {} }) {
   const end = new Date(start.getTime() + 30 * 60 * 1000)
   return {
     id: `meal-${meal.name}-${start.toISOString()}`,
-    title: `🍽 ${meal.name}${meal.idea ? ' · ' + meal.idea : ''}`,
+    title: ` ${meal.name}${meal.idea ? ' · ' + meal.idea : ''}`,
     start, end,
     description: `${meal.kcal || 0} קק"ל${meal.idea ? '\n' + meal.idea : ''}`,
     category: 'Nutrition',

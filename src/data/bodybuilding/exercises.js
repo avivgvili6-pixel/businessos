@@ -49,18 +49,18 @@ export const MUSCLE_GROUPS = {
 }
 
 export const EQUIPMENT = {
-  barbell:       { he: 'מוט משקולות', icon: '🏋️' },
-  dumbbell:      { he: 'משקולות יד', icon: '💪' },
-  cable:         { he: 'כבל', icon: '🔗' },
-  machine:       { he: 'מכונה', icon: '⚙️' },
-  smith_machine: { he: 'סמית מכונה', icon: '📐' },
-  kettlebell:    { he: 'קטלבל', icon: '🔔' },
-  band:          { he: 'גומייה', icon: '➰' },
-  suspension:    { he: 'רצועות TRX', icon: '🪢' },
-  bodyweight:    { he: 'משקל גוף', icon: '🧍' },
+  barbell:       { he: 'מוט משקולות', icon: '' },
+  dumbbell:      { he: 'משקולות יד', icon: '' },
+  cable:         { he: 'כבל', icon: '' },
+  machine:       { he: 'מכונה', icon: '' },
+  smith_machine: { he: 'סמית מכונה', icon: '' },
+  kettlebell:    { he: 'קטלבל', icon: '' },
+  band:          { he: 'גומייה', icon: '' },
+  suspension:    { he: 'רצועות TRX', icon: '' },
+  bodyweight:    { he: 'משקל גוף', icon: '' },
   ez_bar:        { he: 'EZ Bar', icon: '〰️' },
   ring:          { he: 'טבעות', icon: '⭕' },
-  plate:         { he: 'פלטה', icon: '💿' },
+  plate:         { he: 'פלטה', icon: '' },
   none:          { he: 'ללא', icon: '—' },
 }
 

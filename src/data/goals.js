@@ -2,12 +2,12 @@
 
 // 6 broad directions - the "north star" the user picks first
 export const DIRECTIONS = [
-  { id:'aesthetics',  label:'להיראות טוב יותר',    icon:'💪', desc:'חיטוב, מסת שריר, שינוי הרכב גוף' },
-  { id:'health',      label:'בריאות ואריכות ימים',  icon:'❤️', desc:'לחץ דם, סוכר, לב, מניעת מחלות' },
-  { id:'performance', label:'ביצועים ספורטיביים',   icon:'🏆', desc:'להיות חזק/מהיר/בעל סבולת יותר' },
-  { id:'energy',      label:'אנרגיה יומיומית',      icon:'⚡', desc:'להתעורר מלא כוח, לא להיות עייף' },
-  { id:'mental',      label:'שקט נפשי וחוסן',       icon:'🧠', desc:'סטרס, חרדה, מצב-רוח, שינה' },
-  { id:'lifestyle',   label:'הרגלים ואיזון',        icon:'🌊', desc:'שגרה בריאה, אכילה מודעת, פחות מסכים' },
+  { id:'aesthetics',  label:'להיראות טוב יותר',    icon:'', desc:'חיטוב, מסת שריר, שינוי הרכב גוף' },
+  { id:'health',      label:'בריאות ואריכות ימים',  icon:'', desc:'לחץ דם, סוכר, לב, מניעת מחלות' },
+  { id:'performance', label:'ביצועים ספורטיביים',   icon:'', desc:'להיות חזק/מהיר/בעל סבולת יותר' },
+  { id:'energy',      label:'אנרגיה יומיומית',      icon:'', desc:'להתעורר מלא כוח, לא להיות עייף' },
+  { id:'mental',      label:'שקט נפשי וחוסן',       icon:'', desc:'סטרס, חרדה, מצב-רוח, שינה' },
+  { id:'lifestyle',   label:'הרגלים ואיזון',        icon:'', desc:'שגרה בריאה, אכילה מודעת, פחות מסכים' },
 ]
 
 // SMART goal templates - each attached to a direction + measurable KPI

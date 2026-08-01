@@ -3,10 +3,10 @@
 // number of moves and the right block structure.
 
 export const LOCATIONS = [
-  { id:'home',    label:'בית',           icon:'🏠', defaultEquipment:['bodyweight'] },
-  { id:'hotel',   label:'מלון / חופשה',  icon:'🏨', defaultEquipment:['bodyweight','bands'] },
-  { id:'outdoor', label:'חוץ / פארק',    icon:'🌳', defaultEquipment:['bodyweight'] },
-  { id:'gym',     label:'חדר כושר מלא',  icon:'🏋️', defaultEquipment:['bodyweight','dumbbells','barbell','kettlebell','machines','bands'] },
+  { id:'home',    label:'בית',           icon:'', defaultEquipment:['bodyweight'] },
+  { id:'hotel',   label:'מלון / חופשה',  icon:'', defaultEquipment:['bodyweight','bands'] },
+  { id:'outdoor', label:'חוץ / פארק',    icon:'', defaultEquipment:['bodyweight'] },
+  { id:'gym',     label:'חדר כושר מלא',  icon:'', defaultEquipment:['bodyweight','dumbbells','barbell','kettlebell','machines','bands'] },
 ]
 
 export const EQUIPMENT = [
@@ -22,12 +22,12 @@ export const EQUIPMENT = [
 ]
 
 export const STYLES = [
-  { id:'bodybuilding', label:'בודיבילדינג',  icon:'💪', desc:'היפרטרופיה - 3-4 סטים × 8-12 חזרות, פוקוס על שריר' },
-  { id:'crossfit',     label:'CrossFit',      icon:'🔥', desc:'MetCon - AMRAP/EMOM/For Time עם תרגילים מתחלפים' },
-  { id:'running',      label:'ריצה',           icon:'🏃', desc:'אירובי - אינטרוולים/טמפו/ריצה קלה' },
-  { id:'yoga',         label:'יוגה',           icon:'🧘', desc:'זרימה - שמש A/B, לוחמים, מתיחות' },
-  { id:'functional',   label:'פונקציונלי',    icon:'⚡', desc:'תנועות מורכבות רב-מפרקיות, מעברי גוף' },
-  { id:'mobility',     label:'מוביליטי',      icon:'🌊', desc:'טווח תנועה + שחרור - התאוששות אקטיבית' },
+  { id:'bodybuilding', label:'בודיבילדינג',  icon:'', desc:'היפרטרופיה - 3-4 סטים × 8-12 חזרות, פוקוס על שריר' },
+  { id:'crossfit',     label:'CrossFit',      icon:'', desc:'MetCon - AMRAP/EMOM/For Time עם תרגילים מתחלפים' },
+  { id:'running',      label:'ריצה',           icon:'', desc:'אירובי - אינטרוולים/טמפו/ריצה קלה' },
+  { id:'yoga',         label:'יוגה',           icon:'', desc:'זרימה - שמש A/B, לוחמים, מתיחות' },
+  { id:'functional',   label:'פונקציונלי',    icon:'', desc:'תנועות מורכבות רב-מפרקיות, מעברי גוף' },
+  { id:'mobility',     label:'מוביליטי',      icon:'', desc:'טווח תנועה + שחרור - התאוששות אקטיבית' },
 ]
 
 export const GOALS = [

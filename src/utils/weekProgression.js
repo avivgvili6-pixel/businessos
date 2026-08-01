@@ -5,10 +5,10 @@
 const MS_DAY = 86400000
 export const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard', 'elite']
 export const DIFFICULTY_LABELS = {
-  easy:   { icon: '🟢', label: 'קל',      hint: 'התחלה נוחה או שבוע דלוד' },
-  medium: { icon: '🟡', label: 'בינוני',  hint: 'המומלץ ברוב השבועות' },
-  hard:   { icon: '🟠', label: 'מתקדם',   hint: 'לוחצים על המערכת' },
-  elite:  { icon: '🔴', label: 'אליט',    hint: 'רמה תחרותית - סופרסטים, דרופסטים, AMRAP' },
+  easy:   { icon: '', label: 'קל',      hint: 'התחלה נוחה או שבוע דלוד' },
+  medium: { icon: '', label: 'בינוני',  hint: 'המומלץ ברוב השבועות' },
+  hard:   { icon: '', label: 'מתקדם',   hint: 'לוחצים על המערכת' },
+  elite:  { icon: '', label: 'אליט',    hint: 'רמה תחרותית - סופרסטים, דרופסטים, AMRAP' },
 }
 
 // Detect program style from programId - determines which difficulty profile

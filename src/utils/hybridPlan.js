@@ -7,27 +7,27 @@ import { programs } from '../data/programs'
 // Style metadata mirrors the WORKOUT_STYLES in PlanBuilder but expanded
 export const STYLES = {
   bodybuilding: {
-    id: 'bodybuilding', icon: '💪', label: 'בודיבילדינג',
+    id: 'bodybuilding', icon: '', label: 'בודיבילדינג',
     programId: 'ppl_hypertrophy', color: '#c8a84b',
     intensity: 'high', category: 'strength',
   },
   powerlifting: {
-    id: 'powerlifting', icon: '🏋️', label: 'כוח מירבי',
+    id: 'powerlifting', icon: '', label: 'כוח מירבי',
     programId: 'wendler_531', color: '#e05a5a',
     intensity: 'very-high', category: 'strength',
   },
   crossfit: {
-    id: 'crossfit', icon: '🔥', label: 'CrossFit',
+    id: 'crossfit', icon: '', label: 'CrossFit',
     programId: 'crossfit_wods', color: '#e0a05a',
     intensity: 'very-high', category: 'metcon',
   },
   bodyweight: {
-    id: 'bodyweight', icon: '🤸', label: 'משקל גוף',
+    id: 'bodyweight', icon: '', label: 'משקל גוף',
     programId: 'stronglifts_5x5', color: '#5ac889',
     intensity: 'medium', category: 'strength',
   },
   yoga: {
-    id: 'yoga', icon: '🧘', label: 'יוגה',
+    id: 'yoga', icon: '', label: 'יוגה',
     programId: null, color: '#a05ae0',
     intensity: 'low', category: 'recovery',
     sessionTemplate: { name: 'Yoga Flow', exercises: [
@@ -40,7 +40,7 @@ export const STYLES = {
     ]},
   },
   endurance: {
-    id: 'endurance', icon: '🏃', label: 'סבולת',
+    id: 'endurance', icon: '', label: 'סבולת',
     programId: null, color: '#5aa0ff',
     intensity: 'medium-high', category: 'cardio',
     sessionTemplate: { name: 'Endurance Run', exercises: [

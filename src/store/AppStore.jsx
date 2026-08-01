@@ -26,10 +26,10 @@ const initialState = {
   mealLogs: {},             // { [dateKey]: [{foodId, grams}] }
   moodCheckins: [],         // {date, mood, energy, stress, sleepHours, note}
   habits: [
-    { id:'water',   name:'שתיית 3 ליטר מים', icon:'💧', streak:0, doneToday:false },
-    { id:'sleep',   name:'8 שעות שינה',      icon:'😴', streak:0, doneToday:false },
-    { id:'steps',   name:'10,000 צעדים',     icon:'🚶', streak:0, doneToday:false },
-    { id:'stretch', name:'10 דק׳ מתיחות',    icon:'🧘', streak:0, doneToday:false },
+    { id:'water',   name:'שתיית 3 ליטר מים', icon:'', streak:0, doneToday:false },
+    { id:'sleep',   name:'8 שעות שינה',      icon:'', streak:0, doneToday:false },
+    { id:'steps',   name:'10,000 צעדים',     icon:'', streak:0, doneToday:false },
+    { id:'stretch', name:'10 דק׳ מתיחות',    icon:'', streak:0, doneToday:false },
   ],
   bloodTests: [],           // {date, values:{markerId: value}}
   wearable: null,           // last synced snapshot
