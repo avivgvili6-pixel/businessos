@@ -1,13 +1,13 @@
-// Bodybuilding exercise catalog — HEVY-style.
+// Bodybuilding exercise catalog — the reference app-style.
 // Each exercise = name + (equipment variant) as a separate entry, with:
 //   • primaryMuscle (single) + secondaryMuscles (array)
 //   • equipment enum
-//   • 7-step "how to" instructions (matches HEVY's numbered format)
+//   • 7-step "how to" instructions (matches the reference app's numbered format)
 //   • rmPercentages (for %1RM prescription)
 //   • contraindications (matches state.profile.injuries keys)
 //
 // Coverage: ~280 exercises across 20 muscle groups, all major equipment.
-// Alphabetical A-Z sort is the default browse order (like HEVY).
+// Alphabetical A-Z sort is the default browse order (like the reference app).
 // Muscle-group filter uses primaryMuscle. Search uses he+en.
 
 export const MUSCLE_GROUPS = {
@@ -748,7 +748,7 @@ export function searchExercises(query) {
   )
 }
 
-// Popular exercises (curated top-20 like HEVY's "Popular Exercises" section)
+// Popular exercises (curated top-20 like the reference app's "Popular Exercises" section)
 export const POPULAR_EXERCISE_IDS = [
   'bench_press_bb', 'bench_press_db', 'bent_over_row_bb', 'bicep_curl_db',
   'cable_fly_cross', 'deadlift_bb', 'face_pull', 'hammer_curl_db',

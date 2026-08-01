@@ -5,7 +5,7 @@ import { useApp } from '../../../../store/AppStore'
 import { MUSCLE_GROUPS, EQUIPMENT } from '../../../../data/bodybuilding/exercises'
 import { strengthLevelFor } from '../../../../data/bodybuilding/strengthStandards'
 
-// Exercise detail modal — HEVY's 4-tab structure: Summary / History / How to / Leaderboard.
+// Exercise detail modal — the reference's 4-tab structure: Summary / History / How to / Leaderboard.
 export function ExerciseDetail({ exercise, open, onClose }) {
   const [tab, setTab] = useState('summary')
   const { state } = useApp()

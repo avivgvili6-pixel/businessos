@@ -29,7 +29,7 @@ export function Train() {
     <>
       <Tabs tabs={[
         { key:'plan',     label: tr('train.tab.plan') },
-        { key:'bb',       label: tr('train.tab.bb', '🏋️ אימוני כוח (Hevy-style)') },
+        { key:'bb',       label: tr('train.tab.bb', '🏋️ אימוני כוח') },
         { key:'crossfit', label: tr('train.tab.crossfit') },
         { key:'programs', label: tr('train.tab.programs') },
         { key:'import',   label: tr('train.tab.import') },

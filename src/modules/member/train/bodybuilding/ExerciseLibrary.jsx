@@ -4,7 +4,7 @@ import { Card, Input, Badge, Modal, Button, Tabs } from '../../../../components/
 import { EXERCISES, MUSCLE_GROUPS, EQUIPMENT, POPULAR_EXERCISES } from '../../../../data/bodybuilding/exercises'
 import { ExerciseDetail } from './ExerciseDetail'
 
-// HEVY-style exercise library — A-Z alphabetical + muscle-group + equipment filters.
+// Standard exercise library — A-Z alphabetical + muscle-group + equipment filters.
 export function ExerciseLibrary() {
   const [query, setQuery] = useState('')
   const [muscleFilter, setMuscleFilter] = useState(null)
@@ -23,7 +23,7 @@ export function ExerciseLibrary() {
         e.he.toLowerCase().includes(q) || e.en.toLowerCase().includes(q)
       )
     }
-    // Sort A-Z by English name (like HEVY)
+    // Sort A-Z by English name (like the reference)
     return [...list].sort((a, b) => a.en.localeCompare(b.en))
   }, [query, muscleFilter, equipmentFilter])
 

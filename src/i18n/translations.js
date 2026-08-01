@@ -152,7 +152,7 @@ export const TRANSLATIONS = {
     'wod.intent.competition_desc':'ספציפי למתחרים',
 
     // Bodybuilding module
-    'train.tab.bb':       '🏋️ אימוני כוח (Hevy-style)',
+    'train.tab.bb':       '🏋️ אימוני כוח',
     'bb.tab.trainer':     '🎯 המחולל',
     'bb.tab.programs':    '📚 תוכניות',
     'bb.tab.routines':    '📋 Routines',
@@ -315,7 +315,7 @@ export const TRANSLATIONS = {
     'wod.intent.competition_desc':'Sport-specific',
 
     // Bodybuilding module
-    'train.tab.bb':       '🏋️ Strength (Hevy-style)',
+    'train.tab.bb':       '🏋️ Strength',
     'bb.tab.trainer':     '🎯 Trainer',
     'bb.tab.programs':    '📚 Programs',
     'bb.tab.routines':    '📋 Routines',

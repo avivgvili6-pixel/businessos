@@ -128,7 +128,7 @@ export const ROUTINES = [
     item('plank', [set(0, 30), set(0, 30), set(0, 30)], { rest: 60, notes: 'סקנד' }),
   ]),
 
-  // ═══════════════════ FULL BODY (Advanced Gym - HEVY reference) ═══════════════════
+  // ═══════════════════ FULL BODY (Advanced Gym - reference reference) ═══════════════════
   rt('adv_full_1', 'Advanced Full Body 1', '🏋️', [
     item('warm_up', [set(0, 1)], { rest: 0 }),
     item('bench_press_bb', [set(60, 8), set(70, 6), set(80, 5), set(85, 5), set(85, 5), set(85, 5)], { rest: 150, notes: '6 sets · 5-20 reps' }),

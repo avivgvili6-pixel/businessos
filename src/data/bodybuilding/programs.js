@@ -1,4 +1,4 @@
-// 26 pre-built programs — mirrors HEVY's Explore Programs catalog.
+// 26 pre-built programs — mirrors the reference app's Explore Programs catalog.
 // Programs organize routines into weekly training plans.
 // Filters: Level × Goal × Equipment (approved by user).
 
@@ -246,7 +246,7 @@ export const FEATURED_PROGRAM_IDS = [
   'beginner_fb_home',
 ]
 
-// Routine categories for the "Routines" section (like HEVY's category grid)
+// Routine categories for the "Routines" section (like the reference app's category grid)
 export const ROUTINE_CATEGORIES = [
   { key: 'at_home',    he: 'בית',           en: 'At home',       icon: '🏠', filter: p => p.equipment === 'none' },
   { key: 'travel',     he: 'נסיעות',        en: 'Travel',        icon: '✈️', filter: p => p.id === 'travel_no_equipment' },

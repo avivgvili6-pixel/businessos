@@ -5,7 +5,7 @@ import { useApp } from '../../../../store/AppStore'
 import { EXERCISES, EXERCISE_BY_ID, EQUIPMENT } from '../../../../data/bodybuilding/exercises'
 import { calculateWarmup } from '../../../../data/bodybuilding/calculators'
 
-// Routine builder — HEVY-style create/edit routine with add exercise + sets table.
+// Routine builder — Standard create/edit routine with add exercise + sets table.
 export function RoutineBuilder({ routine, open, onClose }) {
   const { bbSaveRoutine, state } = useApp()
   const [name, setName] = useState(routine?.name || '')

@@ -1,4 +1,4 @@
-// Strength Level Index — HEVY-style classification of user's strength per lift.
+// Strength Level Index — Standard classification of user's strength per lift.
 // Based on Strength Standards (strengthlevel.com) research: aggregated data
 // from ~1M lifters, adjusted for sex+age+bodyweight.
 //
