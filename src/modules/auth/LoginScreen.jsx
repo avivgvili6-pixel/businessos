@@ -226,14 +226,18 @@ export function LoginScreen() {
  const code = err?.code || err?.name
 
  if (/invalid.?login|invalid.?credentials|invalid_grant/i.test(raw) || code === 'invalid_credentials') return 'מייל או סיסמה שגויים.'
- if (/user.?not.?found|no.?user.?found/i.test(raw)) return 'לא נמצא משתמש עם המייל הזה.'
- if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') return 'המייל הזה כבר רשום.'
- if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) return 'סיסמה חלשה מדי.'
- if (/email.?not.?confirmed/i.test(raw)) return 'המייל שלך לא אושר. פנה למנהל.'
- if (status === 429 || /rate.?limit|too many/i.test(raw)) return 'יותר מדי ניסיונות. המתן דקה.'
- if (/failed to fetch|networkerror|connection/i.test(raw) || code === 'NETWORK') return 'בעיית חיבור לאינטרנט.'
- if (raw && !/^[\{\[\]\}]+$/.test(raw.trim())) return code ? `${raw} (${code})` : raw
- return 'משהו השתבש. נסה שוב.'
+ if (/user.?not.?found|no.?user.?found/i.test(raw)) return 'לא נמצא משתמש עם המייל הזה — אולי צריך להירשם קודם (״אני חדש״).'
+ if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') return 'המייל הזה כבר רשום. תנסה להיכנס במקום להירשם.'
+ if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) return 'סיסמה חלשה מדי — לפחות 8 תווים, עם אות ומספר.'
+ if (/email.?not.?confirmed/i.test(raw)) return 'המייל עדיין לא אושר. פנה למנהל: israelgrip@gmail.com'
+ if (status === 429 || /rate.?limit|too.?many|for security purposes/i.test(raw)) return 'יותר מדי ניסיונות בזמן קצר. המתן דקה ונסה שוב.'
+ if (/redirect.?url|redirect_uri|not.?allowed/i.test(raw)) return 'הגדרת Redirect URL של Supabase חסרה. פנה למנהל: israelgrip@gmail.com'
+ if (/failed to fetch|networkerror|connection|network.?request/i.test(raw) || code === 'NETWORK') return 'בעיית חיבור לאינטרנט — נסה שוב או בדוק את החיבור.'
+ if (/invalid.?email|email.?invalid/i.test(raw)) return 'כתובת מייל לא תקינה.'
+ if (raw && raw.trim() && !/^[\{\[\]\}]+$/.test(raw.trim())) return code ? `${raw} (${code})` : raw
+ if (status) return `שגיאה מהשרת (סטטוס ${status}). פנה למנהל: israelgrip@gmail.com`
+ if (code) return `שגיאה: ${code}. פנה למנהל: israelgrip@gmail.com`
+ return 'משהו השתבש. פנה למנהל: israelgrip@gmail.com'
  }
 
  const submitLogin = async (e) => {
