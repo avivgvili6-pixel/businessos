@@ -38,7 +38,7 @@ import { PersonalRequests } from './modules/admin/personal-requests/PersonalRequ
 import { MemberPhotos } from './modules/admin/member-photos/MemberPhotos'
 
 function AppRouter() {
-  const { user, effectiveRole, loading } = useAuth()
+  const { user, effectiveRole, loading, passwordRecovery } = useAuth()
   const { state, setRole } = useApp()
   const [page, setPage] = useState('home')
 
@@ -56,6 +56,11 @@ function AppRouter() {
       </div>
     </div>
   )
+
+  // Password recovery: user landed from reset-email link. Even though a session
+  // exists (that's how Supabase authenticates the recovery), we MUST show the
+  // LoginScreen so they can set a new password before entering the app.
+  if (passwordRecovery) return <LoginScreen />
 
   // Not logged in → login screen
   if (!user) return <LoginScreen />
