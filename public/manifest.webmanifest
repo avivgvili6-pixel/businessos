@@ -1,18 +1,18 @@
 {
-  "name": "Holistic Fitness OS",
-  "short_name": "Holistic FIT",
-  "description": "אפליקציה הוליסטית למתחם כושר - אימונים, תזונה, מנטלי, שיקום, והתקדמות",
+  "name": "Selano — Performance System",
+  "short_name": "Selano",
+  "description": "מערכת ביצועים הוליסטית לאימונים, תזונה, שיקום, מנטליות והתקדמות.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0d0d14",
-  "theme_color": "#c8a84b",
+  "background_color": "#14120f",
+  "theme_color": "#a52a3a",
   "lang": "he",
   "dir": "rtl",
   "icons": [
     {
-      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='90' fill='%23c8a84b'/><text y='.87em' font-size='340' x='90' fill='%230d0d14' font-weight='900' font-family='Heebo,sans-serif'>H</text></svg>",
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='90' fill='%2314120f'/><text y='.86em' font-size='380' x='95' fill='%23a52a3a' font-weight='700' font-family='sans-serif'>S</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
