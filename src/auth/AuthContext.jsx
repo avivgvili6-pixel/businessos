@@ -20,6 +20,9 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(supabaseEnabled)
   const [viewAs, setViewAsState] = useState(null)
+  // When true, LoginScreen shows the "set new password" form instead of normal login.
+  // Set by Supabase's PASSWORD_RECOVERY event when the user lands from a reset email.
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   // Handle URL invite param (?coach=email) - still works
   useEffect(() => {
@@ -54,8 +57,11 @@ export function AuthProvider({ children }) {
     })
 
     // Listen to auth changes
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
+      // PASSWORD_RECOVERY fires when the user lands from a "reset password" email link.
+      // Supabase gives us a temporary session that lets us call updateUser({password}).
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
       setSession(session)
       if (session?.user) {
         const u = await hydrateUser(session.user)
@@ -242,9 +248,55 @@ export function AuthProvider({ children }) {
     return { user: data?.user, session: data?.session, needsConfirmation: !data?.session }
   }
 
+  // Send password reset email. Works for both "forgot password" AND for
+  // legacy users who never had a password (magic-link era) — the reset email
+  // is how they set their first password.
+  const sendPasswordReset = async (email) => {
+    const normalizedEmail = (email || '').trim().toLowerCase()
+    if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('כתובת מייל לא תקינה')
+    if (!supabaseEnabled) throw new Error('לא זמין במצב פיילוט מקומי')
+
+    let response
+    try {
+      response = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: window.location.origin + window.location.pathname,
+      })
+    } catch (networkErr) {
+      const w = new Error(networkErr?.message || 'בעיית רשת - נסה שוב')
+      w.code = networkErr?.code || 'NETWORK'
+      w.cause = networkErr
+      console.error('[supabase.resetPasswordForEmail] network error:', networkErr)
+      throw w
+    }
+    const { error } = response
+    if (error) {
+      const w = new Error(error.message || 'שגיאה בשליחת מייל האיפוס')
+      w.code = error.code; w.status = error.status; w.name = error.name || 'AuthApiError'; w.cause = error
+      console.error('[supabase.resetPasswordForEmail] auth error:', { message: error.message, code: error.code, status: error.status })
+      throw w
+    }
+    return { ok: true, email: normalizedEmail }
+  }
+
+  // Set a new password (used both after PASSWORD_RECOVERY and by any
+  // authenticated user who wants to change their password from settings).
+  const updatePassword = async (newPassword) => {
+    if (!newPassword || newPassword.length < 6) throw new Error('סיסמה חייבת להכיל לפחות 6 תווים')
+    if (!supabaseEnabled) throw new Error('לא זמין במצב פיילוט מקומי')
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      const w = new Error(error.message || 'שגיאה בעדכון הסיסמה')
+      w.code = error.code; w.status = error.status; w.name = error.name || 'AuthApiError'; w.cause = error
+      throw w
+    }
+    setPasswordRecovery(false)
+    return { ok: true }
+  }
+
   const logout = async () => {
     if (supabaseEnabled) await supabase.auth.signOut()
-    setUser(null); setViewAsState(null)
+    setUser(null); setViewAsState(null); setPasswordRecovery(false)
   }
 
   const setViewAs = (role) => {
@@ -268,7 +320,8 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthCtx.Provider value={{
-      user, session, loading, login, loginWithPassword, signupWithPassword, logout,
+      user, session, loading, login, loginWithPassword, signupWithPassword,
+      sendPasswordReset, updatePassword, passwordRecovery, logout,
       inviteCoach, revokeCoach, listCoaches,
       viewAs, setViewAs, effectiveRole,
       supabaseEnabled,

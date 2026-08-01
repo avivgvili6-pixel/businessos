@@ -14,17 +14,27 @@ const LAST_EMAIL_KEY = 'hfos:last_email'
 const LAST_NAME_KEY = 'hfos:last_name'
 
 export function LoginScreen() {
-  const { loginWithPassword, signupWithPassword, supabaseEnabled } = useAuth()
+  const {
+    loginWithPassword, signupWithPassword, sendPasswordReset,
+    updatePassword, passwordRecovery, supabaseEnabled,
+  } = useAuth()
 
   const rememberedEmail = storage.get(LAST_EMAIL_KEY) || ''
   const rememberedName = storage.get(LAST_NAME_KEY) || ''
-  const [step, setStep] = useState(rememberedEmail ? 'existing' : 'chooser')
+  // If landed from a reset-password email, jump straight to the reset form.
+  const initialStep = passwordRecovery ? 'reset-password' : (rememberedEmail ? 'existing' : 'chooser')
+  const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState(rememberedEmail)
   const [name, setName] = useState(rememberedName)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  // If passwordRecovery arrives late (event fires after mount), switch view.
+  React.useEffect(() => {
+    if (passwordRecovery) setStep('reset-password')
+  }, [passwordRecovery])
 
   // Coach request state
   const [specialty, setSpecialty] = useState('')
@@ -112,6 +122,36 @@ export function LoginScreen() {
     } finally { setBusy(false) }
   }
 
+  const submitForgot = async (e) => {
+    e?.preventDefault?.()
+    setError(''); setBusy(true)
+    try {
+      if (!normalizedEmail || !normalizedEmail.includes('@')) {
+        setError('כתובת מייל לא תקינה'); setBusy(false); return
+      }
+      await sendPasswordReset(normalizedEmail)
+      storage.set(LAST_EMAIL_KEY, normalizedEmail)
+      setStep('forgot-sent')
+    } catch (err) {
+      setError(humanizeError(err))
+    } finally { setBusy(false) }
+  }
+
+  const submitNewPassword = async (e) => {
+    e?.preventDefault?.()
+    setError(''); setBusy(true)
+    try {
+      if (!password || password.length < 6) {
+        setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return
+      }
+      await updatePassword(password)
+      // updatePassword clears passwordRecovery → App will detect logged-in user
+      // and auto-navigate to the home screen. Nothing else to do here.
+    } catch (err) {
+      setError(humanizeError(err))
+    } finally { setBusy(false) }
+  }
+
   const submitCoachRequest = () => {
     if (!email || !name || !specialty) { setError('שם, מייל, ותחום התמחות חובה'); return }
     const requests = storage.get('coach-requests') || []
@@ -158,6 +198,9 @@ export function LoginScreen() {
             {step === 'chooser' && 'ברוכים הבאים'}
             {step === 'existing' && 'שמח לראות אותך שוב 👋'}
             {step === 'new' && 'בואי נכיר ✨'}
+            {step === 'forgot' && '🔑 שכחת סיסמה?'}
+            {step === 'forgot-sent' && '📧 נשלח מייל איפוס'}
+            {step === 'reset-password' && '🔒 בחר/י סיסמה חדשה'}
             {step === 'coach-request' && 'הרשמה כמאמן'}
             {step === 'coach-pending' && 'הבקשה נשלחה'}
           </h1>
@@ -229,12 +272,95 @@ export function LoginScreen() {
               {busy ? 'נכנס...' : '🚀 כניסה'}
             </Button>
 
+            <div style={{ textAlign: 'center', marginTop: 2 }}>
+              <button type="button" onClick={() => { setError(''); setPassword(''); setStep('forgot') }}
+                style={{ ...ghostBtn(t), color: t.color.gold, fontSize: t.font.sm }}>
+                🔑 שכחתי סיסמה / לא יצרתי סיסמה עדיין
+              </button>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
               <button type="button" onClick={() => setStep('chooser')} style={ghostBtn(t)}>→ חזור</button>
               {rememberedEmail && (
                 <button type="button" onClick={forgetMe} style={ghostBtn(t)}>שכח אותי</button>
               )}
             </div>
+          </form>
+        )}
+
+        {/* FORGOT PASSWORD: email only → send reset link */}
+        {step === 'forgot' && (
+          <form onSubmit={submitForgot} noValidate style={{ display: 'grid', gap: 14 }}>
+            <div style={{ fontSize: t.font.sm, color: t.color.textDim, textAlign: 'center', marginBottom: 4, lineHeight: 1.6 }}>
+              נשלח למייל שלך קישור לאיפוס.<br />
+              <b style={{ color: t.color.text }}>גם אם עוד לא יצרת סיסמה</b> — זה יאפשר לך לקבוע אחת עכשיו.
+            </div>
+            <Input
+              label="מייל"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              autoFocus
+              required
+              error={error ? String(error) : ''}
+            />
+            <Button type="submit" size="lg" disabled={busy || !email} style={{ marginTop: 4 }}>
+              {busy ? 'שולח...' : '✉️ שלח לי קישור איפוס'}
+            </Button>
+            <button type="button" onClick={() => { setError(''); setStep('existing') }} style={{ ...ghostBtn(t), textAlign: 'center' }}>
+              → חזור לכניסה
+            </button>
+          </form>
+        )}
+
+        {/* FORGOT SENT confirmation */}
+        {step === 'forgot-sent' && (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%', background: t.color.gold, color: '#0d0d14',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
+              marginBottom: 16, boxShadow: t.shadow.glow,
+            }}>✉️</div>
+            <div style={{ marginBottom: 16, fontSize: t.font.md, color: t.color.text, lineHeight: 1.6 }}>
+              שלחנו קישור איפוס למייל:<br />
+              <b style={{ color: t.color.gold }}>{email}</b>
+            </div>
+            <div style={{ padding: 14, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.7, marginBottom: 16 }}>
+              📧 פתח את המייל ולחץ על הקישור — תועבר לאפליקציה לקבוע סיסמה חדשה.
+              <br /><br />
+              💡 לא רואה? בדוק בספאם. הקישור פעיל שעה.
+            </div>
+            <Button variant="ghost" onClick={() => { setStep('existing'); setError('') }}>← חזור לכניסה</Button>
+          </div>
+        )}
+
+        {/* RESET PASSWORD: user landed from email reset link */}
+        {step === 'reset-password' && (
+          <form onSubmit={submitNewPassword} noValidate style={{ display: 'grid', gap: 14 }}>
+            <div style={{ fontSize: t.font.sm, color: t.color.textDim, textAlign: 'center', marginBottom: 4, lineHeight: 1.6 }}>
+              קבעת/י סיסמה חדשה לחשבון שלך.<br />
+              <b style={{ color: t.color.text }}>שמור/י אותה — היא תשמש לכניסות הבאות.</b>
+            </div>
+            <div>
+              <Input
+                label="סיסמה חדשה"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="לפחות 6 תווים"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password"
+                autoFocus
+                error={error ? String(error) : ''}
+              />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={showPwBtn(t)}>
+                {showPassword ? '🙈 הסתר' : '👁 הצג סיסמה'}
+              </button>
+            </div>
+            <Button type="submit" size="lg" disabled={busy || !password} style={{ marginTop: 4 }}>
+              {busy ? 'שומר...' : '✓ קבע סיסמה והיכנס'}
+            </Button>
           </form>
         )}
 
