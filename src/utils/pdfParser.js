@@ -10,8 +10,23 @@ async function getPdfjs() {
   if (!_pdfjsPromise) {
     _pdfjsPromise = (async () => {
       const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      const workerModule = await import('pdfjs-dist/legacy/build/pdf.worker.mjs?url')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default
+      // Prefer a real Worker (module-type) so mobile Safari + Chromium behave
+      // identically. Fall back to disableWorker if the browser rejects it.
+      try {
+        const workerUrl = new URL(
+          'pdfjs-dist/legacy/build/pdf.worker.mjs',
+          import.meta.url,
+        )
+        pdfjsLib.GlobalWorkerOptions.workerPort = new Worker(workerUrl, { type: 'module' })
+      } catch {
+        try {
+          const workerModule = await import('pdfjs-dist/legacy/build/pdf.worker.mjs?url')
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default
+        } catch {
+          // last resort — run inline (slower, but works when workers are blocked)
+          pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+        }
+      }
       return pdfjsLib
     })()
   }
@@ -19,18 +34,71 @@ async function getPdfjs() {
 }
 
 // ─── Extraction ────────────────────────────────────────
+// Throws typed errors so the UI can show a specific message:
+//   err.code === 'password'   → PDF is password-protected
+//   err.code === 'invalid'    → not a real PDF / corrupt
+//   err.code === 'empty'      → PDF has zero pages
+//   err.code === 'scanned'    → PDF has pages but no text layer
+//   err.code === 'worker'     → pdf.js worker refused to start
 export async function extractTextFromPDF(file) {
-  const pdfjsLib = await getPdfjs()
-  const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-  const out = []
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i)
-    const content = await page.getTextContent()
-    // Group items by line using y-coordinate proximity
-    const lines = groupItemsIntoLines(content.items)
-    out.push(...lines)
+  let pdfjsLib
+  try {
+    pdfjsLib = await getPdfjs()
+  } catch (err) {
+    const e = new Error('pdf.js failed to load: ' + (err?.message || err))
+    e.code = 'worker'
+    throw e
   }
+
+  let arrayBuffer
+  try {
+    arrayBuffer = await file.arrayBuffer()
+  } catch (err) {
+    const e = new Error('Failed to read file bytes: ' + (err?.message || err))
+    e.code = 'invalid'
+    throw e
+  }
+
+  let pdf
+  try {
+    pdf = await pdfjsLib.getDocument({ data: arrayBuffer, isEvalSupported: false }).promise
+  } catch (err) {
+    const name = err?.name || ''
+    const msg = String(err?.message || err)
+    const e = new Error(msg)
+    if (name === 'PasswordException' || /password/i.test(msg)) e.code = 'password'
+    else if (name === 'InvalidPDFException' || /invalid|structure|missing/i.test(msg)) e.code = 'invalid'
+    else e.code = 'invalid'
+    throw e
+  }
+
+  if (!pdf || !pdf.numPages) {
+    const e = new Error('PDF has no pages')
+    e.code = 'empty'
+    throw e
+  }
+
+  const out = []
+  let totalTextChars = 0
+  for (let i = 1; i <= pdf.numPages; i++) {
+    try {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      const lines = groupItemsIntoLines(content.items)
+      for (const l of lines) totalTextChars += l.length
+      out.push(...lines)
+    } catch (err) {
+      // one page failing shouldn't kill the whole doc
+      console.warn(`[pdf] page ${i} failed:`, err)
+    }
+  }
+
+  if (totalTextChars < 20) {
+    const e = new Error('PDF appears to contain no extractable text')
+    e.code = 'scanned'
+    throw e
+  }
+
   return out.join('\n')
 }
 
@@ -85,7 +153,7 @@ export function parseWorkoutText(text) {
     // Exercise?
     const ex = parseExerciseLine(line)
     if (ex) {
-      if (!currentSession) currentSession = { name: 'אימון 1', exercises: [] }
+      if (!currentSession) currentSession = { name: 'Workout 1', exercises: [] }
       currentSession.exercises.push(ex)
     }
   }
@@ -94,7 +162,7 @@ export function parseWorkoutText(text) {
   // Fallback if no sessions detected but exercises exist - lump into one
   if (!sessions.length) {
     const exs = lines.map(parseExerciseLine).filter(Boolean)
-    if (exs.length) return [{ name: 'התכנית שיובאה', exercises: exs }]
+    if (exs.length) return [{ name: 'Imported plan', exercises: exs }]
   }
 
   return sessions
