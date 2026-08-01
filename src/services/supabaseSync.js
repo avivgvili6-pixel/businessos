@@ -165,9 +165,13 @@ export async function listAllMembers() {
   const attemptSelect = async (cols) => {
     return supabase.from('profiles').select(cols).order('created_at', { ascending: false })
   }
-  let { data, error } = await attemptSelect('id, email, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at')
+  let { data, error } = await attemptSelect('id, email, name, phone, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at')
   if (error && /column.*does not exist/i.test(error.message || '')) {
-    ({ data, error } = await attemptSelect('id, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+    // Retry without phone (older schema)
+    ;({ data, error } = await attemptSelect('id, email, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+    if (error && /column.*does not exist/i.test(error.message || '')) {
+      ;({ data, error } = await attemptSelect('id, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+    }
   }
   if (error) { console.warn('[supabaseSync] list members failed:', error.message); return [] }
   return data || []

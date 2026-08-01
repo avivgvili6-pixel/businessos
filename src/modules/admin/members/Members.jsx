@@ -269,6 +269,7 @@ function normalizeMember(row, engagement) {
     id: row.id,
     name: row.name || (row.email ? row.email.split('@')[0] : 'ללא שם'),
     email: row.email || '',
+    phone: row.phone || '',
     role: row.role || 'member',
     status,
     onboarded: !!row.onboarded,
@@ -282,6 +283,19 @@ function normalizeMember(row, engagement) {
     createdAt: row.created_at,
   }
 }
+
+// Normalize an Israeli/intl phone to WhatsApp's format (972 country code, no + or spaces)
+function normalizePhoneForWA(raw) {
+  const digits = (raw || '').replace(/\D/g, '')
+  if (!digits) return ''
+  // Local Israeli (starts with 0) → strip leading 0, prefix 972
+  if (/^0\d{8,9}$/.test(digits)) return '972' + digits.slice(1)
+  // Already intl (starts with 972 or 1 or any other country) — return as-is
+  if (digits.length >= 10) return digits
+  return digits
+}
+
+const MEMBER_PHONE_KEY = (id) => `hfos:member_phone:${id}`
 
 function daysBetween(a, b) {
   return Math.max(0, Math.floor((b.getTime() - a.getTime()) / 86400000))
@@ -455,10 +469,72 @@ function NoticeBanner({ tone, children }) {
 
 // ─── Drawer for member detail ─────────────────────────────
 function MemberDrawer({ member, onClose }) {
+  const { setViewAs } = useAuth()
   if (!member) return null
 
   // Password recovery action state
   const [resetState, setResetState] = useState({ status: 'idle', message: '' })
+
+  // ── Contact actions ──
+  // Try stored phone → localStorage fallback → prompt admin once (and remember)
+  const getPhoneForMember = () => {
+    if (member.phone) return member.phone
+    try {
+      const stored = localStorage.getItem(MEMBER_PHONE_KEY(member.id))
+      if (stored) return stored
+    } catch {}
+    const entered = prompt(`אין מספר טלפון שמור ל־${member.name}. הזן/י מספר (למשל 0501234567):`)
+    if (entered && entered.trim()) {
+      try { localStorage.setItem(MEMBER_PHONE_KEY(member.id), entered.trim()) } catch {}
+      return entered.trim()
+    }
+    return null
+  }
+
+  const sendWhatsApp = () => {
+    const raw = getPhoneForMember()
+    if (!raw) return
+    const phone = normalizePhoneForWA(raw)
+    if (!phone) { alert('מספר טלפון לא תקין.'); return }
+    const greeting = `היי ${member.name?.split(' ')[0] || ''}, מה נשמע?`
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(greeting)}`
+    window.open(url, '_blank', 'noopener')
+  }
+
+  const sendEmail = () => {
+    if (!member.email) { alert('אין מייל רשום למתאמן/ת.'); return }
+    const subject = 'מ־Selano'
+    const body = `היי ${member.name?.split(' ')[0] || ''},\n\n`
+    window.location.href = `mailto:${member.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  const scheduleMeeting = () => {
+    // Google Calendar deep-link with pre-filled event
+    const title = `פגישה עם ${member.name}`
+    const details = member.email
+      ? `אימון/סקירת התקדמות עם ${member.name} (${member.email})`
+      : `אימון/סקירת התקדמות עם ${member.name}`
+    // Default to tomorrow 10:00–11:00 local time — coach adjusts in Calendar
+    const now = new Date()
+    now.setDate(now.getDate() + 1)
+    now.setHours(10, 0, 0, 0)
+    const end = new Date(now.getTime() + 60 * 60 * 1000)
+    const fmt = (d) => d.toISOString().replace(/[-:]|\.\d{3}/g, '')
+    const url = new URL('https://calendar.google.com/calendar/render')
+    url.searchParams.set('action', 'TEMPLATE')
+    url.searchParams.set('text', title)
+    url.searchParams.set('details', details)
+    url.searchParams.set('dates', `${fmt(now)}/${fmt(end)}`)
+    if (member.email) url.searchParams.set('add', member.email)
+    window.open(url.toString(), '_blank', 'noopener')
+  }
+
+  const viewAsMember = () => {
+    // Uses existing view-as switcher — closes drawer and switches the app
+    // into member view so the admin sees the trainee's screens.
+    setViewAs('member')
+    onClose()
+  }
   const sendReset = async () => {
     if (!member.email) {
       setResetState({ status: 'error', message: 'למתאמן/ת אין מייל רשום — אי אפשר לשלוח איפוס.' })
@@ -600,13 +676,36 @@ function MemberDrawer({ member, onClose }) {
           )}
         </div>
 
+        {/* Contact + admin actions */}
         <div style={{
-          display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap',
-          paddingTop: 8, borderTop: `1px solid ${t.color.border}`,
+          paddingTop: 16, borderTop: `1px solid ${t.color.border}`,
+          display: 'grid', gap: 10,
         }}>
-          <SButton variant="ghost">שלח הודעה</SButton>
-          <SButton variant="ghost">קבע פגישה</SButton>
-          <SButton variant="light">צפה כמתאמן</SButton>
+          <div>
+            <Kicker color="silver" dash={false}>שלח הודעה</Kicker>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <SButton variant="ghost" onClick={sendWhatsApp}>
+              WhatsApp
+            </SButton>
+            <SButton variant="ghost" onClick={sendEmail} disabled={!member.email}>
+              מייל
+            </SButton>
+            <SButton variant="ghost" onClick={scheduleMeeting}>
+              קבע פגישה (Google Calendar)
+            </SButton>
+            <div style={{ flex: 1 }} />
+            <SButton variant="light" onClick={viewAsMember}>
+              צפה כמתאמן
+            </SButton>
+          </div>
+          <div style={{
+            fontFamily: t.font.family.mono, fontSize: 10,
+            letterSpacing: '0.16em', color: t.color.silver3,
+            textTransform: 'uppercase',
+          }}>
+            WhatsApp פותח שיחה חדשה · מייל דרך אפליקציית מייל ברירת המחדל · פגישה — טיוטה ב־Google Calendar
+          </div>
         </div>
       </div>
 
