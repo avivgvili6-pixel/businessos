@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Selano — Outwork yesterday.">
+  <defs>
+    <radialGradient id="wineGlow" cx="80%" cy="20%" r="70%">
+      <stop offset="0%"  stop-color="#a52a3a" stop-opacity="0.50"/>
+      <stop offset="55%" stop-color="#a52a3a" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#a52a3a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="silverGlow" cx="15%" cy="90%" r="55%">
+      <stop offset="0%"  stop-color="#c8c4ba" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#c8c4ba" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="silver" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#fafaf7"/>
+      <stop offset="55%"  stop-color="#eeece5"/>
+      <stop offset="100%" stop-color="#928e83"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground -->
+  <rect width="1200" height="630" fill="#14120f"/>
+  <rect width="1200" height="630" fill="url(#wineGlow)"/>
+  <rect width="1200" height="630" fill="url(#silverGlow)"/>
+
+  <!-- Editorial rule (top) -->
+  <rect x="72" y="72" width="60" height="2" fill="#a52a3a"/>
+  <!-- Kicker mono caps -->
+  <text x="148" y="80" font-family="'Space Mono', ui-monospace, monospace"
+        font-size="20" fill="#928e83" letter-spacing="7">SELANO · PERFORMANCE SYSTEM</text>
+
+  <!-- Main slogan — display italic, brand hero -->
+  <g style="font-family: 'Barlow', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;">
+    <text x="72" y="320"
+          font-weight="700"
+          font-style="italic"
+          font-size="168"
+          letter-spacing="-5"
+          fill="url(#silver)">FORGED FOR</text>
+    <text x="72" y="470"
+          font-weight="700"
+          font-style="italic"
+          font-size="168"
+          letter-spacing="-5"
+          fill="url(#silver)">PERFORMANCE<tspan fill="#a52a3a">.</tspan></text>
+  </g>
+
+  <!-- Bottom bar — subtle wine hairline + tagline -->
+  <rect x="72" y="546" width="60" height="2" fill="#a52a3a"/>
+  <text x="148" y="554" font-family="'Space Mono', ui-monospace, monospace"
+        font-size="18" fill="#928e83" letter-spacing="6">BUILT · TRACKED · UNSTOPPABLE</text>
+
+  <!-- URL at bottom right -->
+  <text x="1128" y="554" text-anchor="end" font-family="'Space Mono', ui-monospace, monospace"
+        font-size="16" fill="#5c584f" letter-spacing="4">selano.app</text>
+</svg>

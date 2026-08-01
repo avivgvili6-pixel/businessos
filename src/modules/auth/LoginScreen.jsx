@@ -350,40 +350,72 @@ export function LoginScreen() {
  alignItems:'stretch',
  minHeight:'100vh',
  }}>
- {/* Wordmark — no emoji, no square logo, just the brand */}
+ {/* Wordmark + hero slogan — brand hits before anything else */}
  <div style={{
- textAlign:'center', marginBottom: 40,
+ textAlign:'center', marginBottom: 36,
  }}>
  <div style={{
+ fontFamily:'"Space Mono", ui-monospace, monospace',
+ fontSize: 10, letterSpacing:'0.32em',
+ textTransform:'uppercase',
+ color: AUTH.mute, marginBottom: 14,
+ }}>Performance System</div>
+ <div style={{
  fontFamily:'"Barlow", "SF Pro Display", -apple-system, "Inter", sans-serif',
- fontSize: 28, fontWeight: 700,
+ fontSize: 30, fontWeight: 700,
  letterSpacing:'-0.035em',
  color: AUTH.ink, lineHeight: 1,
+ marginBottom: 26,
  }}>
  <span style={{ color: AUTH.wine }}>S</span>elano
  </div>
+
+ {/* The slogan — italic, oversized, dominant */}
+ <div style={{
+ fontFamily:'"Barlow", "SF Pro Display", -apple-system, "Inter", sans-serif',
+ fontStyle:'italic',
+ fontWeight: 700,
+ fontSize:'clamp(38px, 10vw, 54px)',
+ letterSpacing:'-0.045em',
+ lineHeight: 0.92,
+ color: AUTH.ink,
+ textTransform:'uppercase',
+ marginTop: 6,
+ direction:'ltr',
+ }}>
+ Forged for<br/>performance<span style={{ color: AUTH.wine }}>.</span>
  </div>
 
- {/* Step title — Nike style: sentence case, tight, bold */}
- <div style={{ marginBottom: 24 }}>
- <h1 style={{
- fontFamily:'"Barlow", "SF Pro Display", -apple-system, "Inter", sans-serif',
- fontSize: 26, fontWeight: 700,
- letterSpacing:'-0.02em',
- color: AUTH.ink,
- lineHeight: 1.15,
- textAlign:'center',
- margin: 0,
+ <div style={{
+ fontFamily:'"Space Mono", ui-monospace, monospace',
+ fontSize: 10, letterSpacing:'0.28em',
+ textTransform:'uppercase',
+ color: AUTH.mute, marginTop: 16,
+ direction:'ltr',
+ }}>Built · Tracked · Unstoppable</div>
+ </div>
+
+ {/* Step context — tiny mono caps, subordinate to the hero slogan above */}
+ <div style={{
+ fontFamily:'"Space Mono", ui-monospace, monospace',
+ fontSize: 10, letterSpacing:'0.28em',
+ textTransform:'uppercase',
+ textAlign:'center', color: AUTH.mute,
+ marginBottom: 20,
+ display:'flex', alignItems:'center', justifyContent:'center', gap: 12,
  }}>
- {step === 'chooser'&& (isRTL ? 'ברוך הבא ל-Selano.':'Welcome to Selano.')}
- {step === 'existing'&& (isRTL ? 'שמחים לראות אותך שוב.':'Welcome back.')}
- {step === 'new'&& (isRTL ? 'בוא ניצור לך חשבון.': "Let's create your account.")}
- {step === 'forgot'&& (isRTL ? 'איפוס סיסמה.':'Reset your password.')}
- {step === 'forgot-sent'&& (isRTL ? 'שלחנו לך מייל.':'Check your email.')}
- {step === 'reset-password'&& (isRTL ? 'קבע סיסמה חדשה.':'Set a new password.')}
- {step === 'coach-request'&& (isRTL ? 'הצטרפות כמאמן.':'Coach signup.')}
- {step === 'coach-pending'&& (isRTL ? 'הבקשה נשלחה.':'Request sent.')}
- </h1>
+ <span style={{ width: 24, height: 1, background: AUTH.hairline }} />
+ <span>
+ {step === 'chooser'&& (isRTL ? 'התחל':'Begin')}
+ {step === 'existing'&& (isRTL ? 'כניסה':'Sign in')}
+ {step === 'new'&& (isRTL ? 'הרשמה':'Create account')}
+ {step === 'forgot'&& (isRTL ? 'איפוס סיסמה':'Reset password')}
+ {step === 'forgot-sent'&& (isRTL ? 'נשלח מייל':'Email sent')}
+ {step === 'reset-password'&& (isRTL ? 'סיסמה חדשה':'New password')}
+ {step === 'coach-request'&& (isRTL ? 'הרשמת מאמן':'Coach signup')}
+ {step === 'coach-pending'&& (isRTL ? 'הבקשה נשלחה':'Request sent')}
+ </span>
+ <span style={{ width: 24, height: 1, background: AUTH.hairline }} />
  </div>
 
  {/* CHOOSER */}

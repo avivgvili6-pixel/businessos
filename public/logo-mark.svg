@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Selano">
+  <defs>
+    <!-- Wine glow from top-right, like a spark in a dark forge -->
+    <radialGradient id="glow" cx="72%" cy="18%" r="65%">
+      <stop offset="0%"  stop-color="#a52a3a" stop-opacity="0.42"/>
+      <stop offset="55%" stop-color="#a52a3a" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#a52a3a" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Brushed-metal gradient for the mark itself -->
+    <linearGradient id="steel" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%"   stop-color="#fafaf7"/>
+      <stop offset="45%"  stop-color="#eeece5"/>
+      <stop offset="100%" stop-color="#8a867d"/>
+    </linearGradient>
+    <linearGradient id="steelEdge" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#c8c4ba"/>
+      <stop offset="100%" stop-color="#fafaf7"/>
+    </linearGradient>
+    <linearGradient id="wineBlade" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#a52a3a"/>
+      <stop offset="100%" stop-color="#6f1622"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground: warm-charcoal rounded tile -->
+  <rect width="512" height="512" rx="112" fill="#14120f"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!--
+    The Selano "S" — cut-forged form.
+    Three horizontal beams (top / middle / bottom) connected by
+    two counter-diagonal spurs. Every open terminal is sliced at
+    45° like it was cut on an anvil. Slight italic slant (-6°)
+    gives it motion.
+  -->
+  <g transform="translate(4 -2) skewX(-6)">
+    <g fill="url(#steel)" stroke="url(#steelEdge)" stroke-width="1" stroke-linejoin="miter">
+      <!-- Top beam: rounded top-left corner, chisel-cut right -->
+      <path d="
+        M 168 128
+        L 356 128
+        Q 372 128 372 144
+        L 372 196
+        L 320 196
+        L 320 180
+        L 168 180
+        Z
+      "/>
+      <!-- Upper diagonal spur: cut ends, thick blade -->
+      <path d="
+        M 168 180
+        L 320 180
+        L 320 196
+        L 232 260
+        L 168 260
+        Z
+      "/>
+      <!-- Middle beam: two-sided chisel -->
+      <path d="
+        M 168 232
+        L 344 232
+        Q 360 232 360 248
+        L 360 292
+        Q 360 308 344 308
+        L 168 308
+        L 168 292
+        L 320 292
+        L 320 248
+        L 168 248
+        Z
+      "/>
+      <!-- Lower diagonal spur -->
+      <path d="
+        M 192 280
+        L 344 280
+        L 344 296
+        L 280 360
+        L 192 360
+        Z
+      "/>
+      <!-- Bottom beam: chisel-cut left, rounded bottom-right -->
+      <path d="
+        M 192 340
+        L 344 340
+        L 344 392
+        Q 344 408 328 408
+        L 176 408
+        L 176 356
+        L 192 356
+        Z
+      "/>
+    </g>
+  </g>
+
+  <!-- Wine "spark" — the forge signature, top-right chip -->
+  <path d="M 402 100 L 434 100 L 434 132 Z" fill="url(#wineBlade)"/>
+  <path d="M 402 100 L 418 116 L 434 100 L 434 132 Z" fill="#6f1622" opacity="0.65"/>
+
+  <!-- Wine hallmark bar at bottom — the anvil line -->
+  <rect x="176" y="440" width="120" height="4" rx="2" fill="#a52a3a"/>
+  <rect x="308" y="440" width="20" height="4" rx="2" fill="#a52a3a" opacity="0.55"/>
+  <rect x="336" y="440" width="10" height="4" rx="2" fill="#a52a3a" opacity="0.3"/>
+</svg>
