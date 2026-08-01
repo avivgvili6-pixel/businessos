@@ -225,27 +225,41 @@ export function LoginScreen() {
  const status = err?.status
  const code = err?.code || err?.name
 
- if (/invalid.?login|invalid.?credentials|invalid_grant/i.test(raw) || code === 'invalid_credentials') return 'מייל או סיסמה שגויים.'
- if (/user.?not.?found|no.?user.?found/i.test(raw)) return 'לא נמצא משתמש עם המייל הזה — אולי צריך להירשם קודם (״אני חדש״).'
- if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') return 'המייל הזה כבר רשום. תנסה להיכנס במקום להירשם.'
- if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) return 'סיסמה חלשה מדי — לפחות 8 תווים, עם אות ומספר.'
- if (/email.?not.?confirmed/i.test(raw)) return 'המייל עדיין לא אושר. פנה למנהל: israelgrip@gmail.com'
- if (status === 429 || /rate.?limit|too.?many|for security purposes/i.test(raw)) return 'יותר מדי ניסיונות בזמן קצר. המתן דקה ונסה שוב.'
- if (/redirect.?url|redirect_uri|not.?allowed/i.test(raw)) return 'הגדרת Redirect URL של Supabase חסרה. פנה למנהל: israelgrip@gmail.com'
- if (/failed to fetch|networkerror|connection|network.?request/i.test(raw) || code === 'NETWORK') return 'בעיית חיבור לאינטרנט — נסה שוב או בדוק את החיבור.'
- if (/invalid.?email|email.?invalid/i.test(raw)) return 'כתובת מייל לא תקינה.'
+ const heb = isRTL
+ if (/invalid.?login|invalid.?credentials|invalid_grant/i.test(raw) || code === 'invalid_credentials') return heb ? 'מייל או סיסמה שגויים.' : 'Incorrect email or password.'
+ if (/user.?not.?found|no.?user.?found/i.test(raw)) return heb ? 'לא נמצא משתמש עם המייל הזה — אולי צריך להירשם קודם (״אני חדש״).' : 'No user found with this email — you may need to sign up first ("I\'m new").'
+ if (/user.?already.?registered|already.?exists/i.test(raw) || code === 'user_already_exists') return heb ? 'המייל הזה כבר רשום. תנסה להיכנס במקום להירשם.' : 'This email is already registered. Sign in instead.'
+ if (/password.?should.?be.?at.?least|weak.?password/i.test(raw)) return heb ? 'סיסמה חלשה מדי — לפחות 8 תווים, עם אות ומספר.' : 'Password too weak — at least 8 characters, with a letter and a number.'
+ if (/email.?not.?confirmed/i.test(raw)) return heb ? 'המייל עדיין לא אושר. פנה למנהל: israelgrip@gmail.com' : 'Email not confirmed yet. Contact admin: israelgrip@gmail.com'
+ if (status === 429 || /rate.?limit|too.?many|for security purposes/i.test(raw)) return heb ? 'יותר מדי ניסיונות בזמן קצר. המתן דקה ונסה שוב.' : 'Too many attempts. Wait a minute and try again.'
+ if (/redirect.?url|redirect_uri|not.?allowed/i.test(raw)) return heb ? 'הגדרת Redirect URL של Supabase חסרה. פנה למנהל: israelgrip@gmail.com' : 'Missing Supabase Redirect URL config. Contact admin: israelgrip@gmail.com'
+ if (/failed to fetch|networkerror|connection|network.?request/i.test(raw) || code === 'NETWORK') return heb ? 'בעיית חיבור לאינטרנט — נסה שוב או בדוק את החיבור.' : 'Network error — try again or check your connection.'
+ if (/invalid.?email|email.?invalid/i.test(raw)) return heb ? 'כתובת מייל לא תקינה.' : 'Invalid email address.'
  if (raw && raw.trim() && !/^[\{\[\]\}]+$/.test(raw.trim())) return code ? `${raw} (${code})` : raw
- if (status) return `שגיאה מהשרת (סטטוס ${status}). פנה למנהל: israelgrip@gmail.com`
- if (code) return `שגיאה: ${code}. פנה למנהל: israelgrip@gmail.com`
- return 'משהו השתבש. פנה למנהל: israelgrip@gmail.com'
+ if (status) return heb ? `שגיאה מהשרת (סטטוס ${status}). פנה למנהל: israelgrip@gmail.com` : `Server error (status ${status}). Contact admin: israelgrip@gmail.com`
+ if (code) return heb ? `שגיאה: ${code}. פנה למנהל: israelgrip@gmail.com` : `Error: ${code}. Contact admin: israelgrip@gmail.com`
+ return heb ? 'משהו השתבש. פנה למנהל: israelgrip@gmail.com' : 'Something went wrong. Contact admin: israelgrip@gmail.com'
+ }
+
+ // Bilingual validation error helper
+ const vErr = {
+   invalidEmail: () => isRTL ? 'כתובת מייל לא תקינה' : 'Invalid email address',
+   shortPassword: () => isRTL ? 'הסיסמה חייבת להכיל לפחות 6 תווים' : 'Password must be at least 6 characters',
+   missingName: () => isRTL ? 'חסר שם' : 'Name is required',
+   needsConfirm: () => isRTL
+     ? 'נרשמת בהצלחה. מנהל המערכת צריך לאשר את חשבונך. פנה: israelgrip@gmail.com'
+     : 'Signup successful. Admin needs to approve your account. Contact: israelgrip@gmail.com',
+   coachRequired: () => isRTL
+     ? 'שם, מייל, ותחום התמחות חובה'
+     : 'Name, email, and specialty are required',
  }
 
  const submitLogin = async (e) => {
  e?.preventDefault?.()
  setError(''); setBusy(true)
  try {
- if (!normalizedEmail || !normalizedEmail.includes('@')) { setError('כתובת מייל לא תקינה'); setBusy(false); return }
- if (!password || password.length < 6) { setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return }
+ if (!normalizedEmail || !normalizedEmail.includes('@')) { setError(vErr.invalidEmail()); setBusy(false); return }
+ if (!password || password.length < 6) { setError(vErr.shortPassword()); setBusy(false); return }
  await loginWithPassword(normalizedEmail, password)
  storage.set(LAST_EMAIL_KEY, normalizedEmail)
  } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
@@ -255,14 +269,14 @@ export function LoginScreen() {
  e?.preventDefault?.()
  setError(''); setBusy(true)
  try {
- if (!name?.trim()) { setError('חסר שם'); setBusy(false); return }
- if (!normalizedEmail || !normalizedEmail.includes('@')) { setError('כתובת מייל לא תקינה'); setBusy(false); return }
- if (!password || password.length < 6) { setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return }
+ if (!name?.trim()) { setError(vErr.missingName()); setBusy(false); return }
+ if (!normalizedEmail || !normalizedEmail.includes('@')) { setError(vErr.invalidEmail()); setBusy(false); return }
+ if (!password || password.length < 6) { setError(vErr.shortPassword()); setBusy(false); return }
  const result = await signupWithPassword(normalizedEmail, password, name)
  storage.set(LAST_EMAIL_KEY, normalizedEmail)
  storage.set(LAST_NAME_KEY, name)
  if (result?.needsConfirmation) {
- setError('נרשמת בהצלחה. מנהל המערכת צריך לאשר את חשבונך. פנה: israelgrip@gmail.com')
+ setError(vErr.needsConfirm())
  }
  } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
  }
@@ -271,7 +285,7 @@ export function LoginScreen() {
  e?.preventDefault?.()
  setError(''); setBusy(true)
  try {
- if (!normalizedEmail || !normalizedEmail.includes('@')) { setError('כתובת מייל לא תקינה'); setBusy(false); return }
+ if (!normalizedEmail || !normalizedEmail.includes('@')) { setError(vErr.invalidEmail()); setBusy(false); return }
  await sendPasswordReset(normalizedEmail)
  storage.set(LAST_EMAIL_KEY, normalizedEmail)
  setStep('forgot-sent')
@@ -282,13 +296,13 @@ export function LoginScreen() {
  e?.preventDefault?.()
  setError(''); setBusy(true)
  try {
- if (!password || password.length < 6) { setError('הסיסמה חייבת להכיל לפחות 6 תווים'); setBusy(false); return }
+ if (!password || password.length < 6) { setError(vErr.shortPassword()); setBusy(false); return }
  await updatePassword(password)
  } catch (err) { setError(humanizeError(err)) } finally { setBusy(false) }
  }
 
  const submitCoachRequest = () => {
- if (!email || !name || !specialty) { setError('שם, מייל, ותחום התמחות חובה'); return }
+ if (!email || !name || !specialty) { setError(vErr.coachRequired()); return }
  const requests = storage.get('coach-requests') || []
  const req = {
  email: normalizedEmail, name, specialty, experience, phone,

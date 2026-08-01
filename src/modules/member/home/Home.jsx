@@ -9,11 +9,13 @@ import { runEngine, severityColor } from '../../../engine/adaptationEngine'
 import { DailyBoost } from '../../../components/notifications/DailyBoost'
 import { PhotoReminder } from '../../../components/reminders/PhotoReminder'
 import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/components/primitives'
+import { useI18n } from '../../../i18n/i18n'
 
 export function Home({ go }) {
  const { state } = useApp()
+ const { isRTL } = useI18n()
  const { profile, habits, moodCheckins, mealLogs, workoutLogs } = state
- const first = profile.name?.split(' ')[0] || 'אלוף'
+ const first = profile.name?.split(' ')[0] || (isRTL ? 'אלוף' : 'Champion')
  const insights = React.useMemo(() => runEngine(state), [state])
  const topInsight = insights[0]
  const _bmr = bmr(profile)
@@ -60,7 +62,7 @@ export function Home({ go }) {
  <div style={{ marginBottom: 10 }}>
  <Kicker>{greeting()}</Kicker>
  </div>
- <SectionHead size="h1"emphasis="מוכן?"style={{ fontSize: 34, marginBottom: 10 }} className="hfos-hero-title">
+ <SectionHead size="h1" emphasis={isRTL ? 'מוכן?' : 'Ready?'} style={{ fontSize: 34, marginBottom: 10 }} className="hfos-hero-title">
  {first},
  </SectionHead>
  <div style={{
@@ -80,25 +82,25 @@ export function Home({ go }) {
  {/* Quick stats */}
  <div className="hfos-kpis"style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
  <Card style={{ padding: 16 }}>
- <Stat icon=" "label="קלוריות"value={`${todayKcal}/${kcalTarget}`} />
+ <Stat icon=" " label={isRTL ? 'קלוריות' : 'Calories'} value={`${todayKcal}/${kcalTarget}`} />
  <ProgressBar value={todayKcal} max={kcalTarget} style={{ marginTop: 8 }} />
  </Card>
  <Card style={{ padding: 16 }}>
- <Stat icon=" "label="אימונים השבוע"value={weekWorkouts(workoutLogs)} delta={`${workoutLogs.length} סה״כ`} deltaColor={t.color.textDim} />
+ <Stat icon=" " label={isRTL ? 'אימונים השבוע' : 'Workouts this week'} value={weekWorkouts(workoutLogs)} delta={`${workoutLogs.length} ${isRTL ? 'סה״כ' : 'total'}`} deltaColor={t.color.textDim} />
  </Card>
  <Card style={{ padding: 16 }}>
- <Stat icon=" "label="הרגלים היום"value={`${habitDone}/${habits.length}`} />
+ <Stat icon=" " label={isRTL ? 'הרגלים היום' : 'Habits today'} value={`${habitDone}/${habits.length}`} />
  <ProgressBar value={habitDone} max={habits.length} color={t.color.success} style={{ marginTop: 8 }} />
  </Card>
  <Card style={{ padding: 16 }}>
- <Stat icon=" "label="מצב רוח"value={lastMood ? `${lastMood.mood}/10` :'—'} delta={lastMood ? `אנרגיה ${lastMood.energy}/10` :'טרם נבדק'} deltaColor={t.color.textDim} />
+ <Stat icon=" " label={isRTL ? 'מצב רוח' : 'Mood'} value={lastMood ? `${lastMood.mood}/10` : '—'} delta={lastMood ? (isRTL ? `אנרגיה ${lastMood.energy}/10` : `Energy ${lastMood.energy}/10`) : (isRTL ? 'טרם נבדק' : 'Not checked in')} deltaColor={t.color.textDim} />
  </Card>
  </div>
 
  {/* Focus row */}
  <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 20 }} className="hfos-grid-2">
  <Card>
- <SectionHeader title="השבוע במבט"subtitle="פעילות + מקרו"/>
+ <SectionHeader title={isRTL ? 'השבוע במבט' : 'Week at a glance'} subtitle={isRTL ? 'פעילות + מקרו' : 'Activity + macros'} />
  <BarChart
  labels={DAYS_SHORT_HE}
  data={sampleWeekActivity(state)}
@@ -107,12 +109,12 @@ export function Home({ go }) {
  />
  </Card>
  <Card>
- <SectionHeader title="פעולות מהירות"/>
+ <SectionHeader title={isRTL ? 'פעולות מהירות' : 'Quick actions'} />
  <div style={{ display:'grid', gap: 10 }}>
- <QuickAction icon=" "text="התחל אימון היום"onClick={() => go('train')} />
- <QuickAction icon=" "text="הוסף ארוחה"onClick={() => go('nutrition')} />
- <QuickAction icon=" "text="Check-in מנטלי"onClick={() => go('mind')} />
- <QuickAction icon=" "text="סמן הרגל"onClick={() => go('habits')} />
+ <QuickAction icon=" " text={isRTL ? 'התחל אימון היום' : "Start today's workout"} onClick={() => go('train')} />
+ <QuickAction icon=" " text={isRTL ? 'הוסף ארוחה' : 'Log a meal'} onClick={() => go('nutrition')} />
+ <QuickAction icon=" " text={isRTL ? 'Check-in מנטלי' : 'Mental check-in'} onClick={() => go('mind')} />
+ <QuickAction icon=" " text={isRTL ? 'סמן הרגל' : 'Mark a habit'} onClick={() => go('habits')} />
  </div>
  </Card>
  </div>
@@ -120,14 +122,16 @@ export function Home({ go }) {
  {/* Macros ring + AI insight */}
  <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr', gap: 20 }} className="hfos-grid-2">
  <Card>
- <SectionHeader title="יעדי מקרו יומיים"/>
+ <SectionHeader title={isRTL ? 'יעדי מקרו יומיים' : 'Daily macro targets'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12, marginTop: 8 }}>
- <MacroTile label="חלבון"value={target.protein} unit="ג׳"color={t.color.info} />
- <MacroTile label="פחמימות"value={target.carbs} unit="ג׳"color={t.color.gold} />
- <MacroTile label="שומן"value={target.fat} unit="ג׳"color={t.color.warning} />
+ <MacroTile label={isRTL ? 'חלבון' : 'Protein'} value={target.protein} unit={isRTL ? 'ג׳' : 'g'} color={t.color.info} />
+ <MacroTile label={isRTL ? 'פחמימות' : 'Carbs'} value={target.carbs} unit={isRTL ? 'ג׳' : 'g'} color={t.color.gold} />
+ <MacroTile label={isRTL ? 'שומן' : 'Fat'} value={target.fat} unit={isRTL ? 'ג׳' : 'g'} color={t.color.warning} />
  </div>
  <div style={{ marginTop: 14, padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm, fontSize: t.font.sm, color: t.color.textDim }}>
- מים מומלץ: {waterLiters(profile.weightKg, profile.activity)} ליטר · תזונה: {diet.label}
+ {isRTL
+   ? `מים מומלץ: ${waterLiters(profile.weightKg, profile.activity)} ליטר · תזונה: ${diet.label}`
+   : `Water target: ${waterLiters(profile.weightKg, profile.activity)}L · Diet: ${diet.label}`}
  </div>
  </Card>
  <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgSoft} 100%)`, position:'relative', overflow:'hidden', cursor:'pointer'}} onClick={() => go('insights')}>

@@ -169,7 +169,7 @@ function LanguageSwitcher() {
  cursor:'pointer', letterSpacing: 0.5,
  }}
  >
- {l === 'he'? ' עברית':' English'}
+ {l === 'he' ? 'עברית' : 'English'}
  </button>
  )
  })}
@@ -195,16 +195,17 @@ function BrandBlock({ isAdmin }) {
  fontFamily: t.font.family.mono,
  fontSize: 9, letterSpacing:'0.28em',
  color: t.color.silver2, textTransform:'uppercase',
- }}>{isAdmin ? 'Admin Console':'Performance System'}</div>
+ }}>{isAdmin ? 'Admin Console' : 'Performance System'}</div>
  </div>
  )
 }
 
 function ViewAsSwitcher({ effectiveRole, onSwitch }) {
+ const { isRTL } = useI18n()
  const roles = [
- { key:'admin', label:'מנהל', disabled: false },
- { key:'coach', label:'מאמן', disabled: true },
- { key:'member', label:'מתאמן', disabled: false },
+ { key:'admin', label: isRTL ? 'מנהל' : 'Admin', disabled: false },
+ { key:'coach', label: isRTL ? 'מאמן' : 'Coach', disabled: true },
+ { key:'member', label: isRTL ? 'מתאמן' : 'Member', disabled: false },
  ]
  return (
  <div>
@@ -212,7 +213,7 @@ function ViewAsSwitcher({ effectiveRole, onSwitch }) {
  fontFamily: t.font.family.mono, fontSize: 9,
  letterSpacing:'0.28em', color: t.color.silver2,
  marginBottom: 8, paddingRight: 4, textTransform:'uppercase',
- }}>View as</div>
+ }}>{isRTL ? 'צפייה כ־' : 'View as'}</div>
  <div style={{
  display:'flex', background: t.color.panel, borderRadius: t.radius.md,
  padding: 3, gap: 2, border: `1px solid ${t.color.border}`,
@@ -220,14 +221,19 @@ function ViewAsSwitcher({ effectiveRole, onSwitch }) {
  {roles.map(r => {
  const active = effectiveRole === r.key
  const handleClick = () => {
- if (r.disabled) { alert(`תצוגת ${r.label} עדיין בבנייה.`); return }
+ if (r.disabled) {
+ alert(isRTL ? `תצוגת ${r.label} עדיין בבנייה.` : `${r.label} view coming soon.`)
+ return
+ }
  onSwitch(r.key)
  }
  return (
  <button
  key={r.key}
  onClick={handleClick}
- title={r.disabled ? `${r.label} — בבנייה` : `צפה כ־${r.label}`}
+ title={r.disabled
+   ? (isRTL ? `${r.label} — בבנייה` : `${r.label} — coming soon`)
+   : (isRTL ? `צפה כ־${r.label}` : `View as ${r.label}`)}
  style={{
  flex: 1, padding:'8px 4px', border:'none',
  cursor: r.disabled ? 'not-allowed':'pointer',
@@ -247,8 +253,12 @@ function ViewAsSwitcher({ effectiveRole, onSwitch }) {
 }
 
 function UserBlock({ user, onLogout }) {
+ const { isRTL } = useI18n()
  if (!user) return null
- const roleLabel = { admin:'מנהל', coach:'מאמן', member:'מתאמן'}[user.role] || 'משתמש'
+ const roleLabelMap = isRTL
+   ? { admin: 'מנהל', coach: 'מאמן', member: 'מתאמן' }
+   : { admin: 'Admin', coach: 'Coach', member: 'Member' }
+ const roleLabel = roleLabelMap[user.role] || (isRTL ? 'משתמש' : 'User')
  const roleColor = { admin: t.color.gold, coach: t.color.info, member: t.color.success }[user.role]
  return (
  <div style={{ background: t.color.bgSoft, borderRadius: t.radius.md, padding: 10, display:'flex', alignItems:'center', gap: 10 }}>
@@ -260,10 +270,10 @@ function UserBlock({ user, onLogout }) {
  <div style={{ fontSize: 12, fontWeight: 700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{user.name}</div>
  <div style={{ fontSize: 10, color: roleColor, fontWeight: 600 }}>{roleLabel}</div>
  </div>
- <button onClick={onLogout} title="יציאה"style={{
+ <button onClick={onLogout} title={isRTL ? 'יציאה' : 'Log out'} style={{
  background:'transparent', border: `1px solid ${t.color.border}`, color: t.color.textDim,
  borderRadius: 6, padding:'4px 8px', cursor:'pointer', fontFamily:'inherit', fontSize: 11,
- }}>יציאה</button>
+ }}>{isRTL ? 'יציאה' : 'Log out'}</button>
  </div>
  )
 }

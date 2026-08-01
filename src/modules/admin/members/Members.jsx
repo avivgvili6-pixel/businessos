@@ -6,12 +6,14 @@ import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/c
 import { useAuth } from '../../../auth/AuthContext'
 import { supabaseEnabled } from '../../../lib/supabase'
 import { listAllMembers, memberEngagementSummary, adminSendPasswordRecovery } from '../../../services/supabaseSync'
+import { useI18n } from '../../../i18n/i18n'
 
 // Real admin roster — reads live from Supabase profiles table.
 // The old mockMembers demo is available behind a toggle for UI preview.
 
 export function Members() {
   const { user } = useAuth()
+  const { isRTL } = useI18n()
   const [q, setQ] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
@@ -39,7 +41,7 @@ export function Members() {
         setEngagement(eng)
       } catch (err) {
         console.error('[Members] load failed:', err)
-        if (mounted) setError(err.message || 'שגיאה בטעינת מתאמנים')
+        if (mounted) setError(err.message || (isRTL ? 'שגיאה בטעינת מתאמנים' : 'Failed to load members'))
       } finally {
         if (mounted) setLoading(false)
       }
@@ -101,12 +103,14 @@ export function Members() {
         }} />
 
         <div style={{ position: 'relative', zIndex: 2, marginBottom: 16 }}>
-          <Kicker>קונסולת מנהל</Kicker>
+          <Kicker>{isRTL ? 'קונסולת מנהל' : 'Admin console'}</Kicker>
         </div>
 
         <div style={{ position: 'relative', zIndex: 2, marginBottom: 20 }}>
-          <SectionHead size="h2" emphasis={counts.total ? `${counts.total} רשומים` : 'עדיין ריק'}>
-            המתאמנים שלך
+          <SectionHead size="h2" emphasis={counts.total
+            ? `${counts.total} ${isRTL ? 'רשומים' : 'registered'}`
+            : (isRTL ? 'עדיין ריק' : 'Empty so far')}>
+            {isRTL ? 'המתאמנים שלך' : 'Your members'}
           </SectionHead>
         </div>
 
@@ -117,10 +121,10 @@ export function Members() {
           gap: 1, background: t.color.border, borderRadius: t.radius.md, overflow: 'hidden',
           marginBottom: 20,
         }}>
-          <CountCell label="סה״כ" value={counts.total} />
-          <CountCell label="פעילים" value={counts.active} tone="wine" />
-          <CountCell label="מאמנים" value={counts.coaches} />
-          <CountCell label="מנהלים" value={counts.admins} />
+          <CountCell label={isRTL ? 'סה״כ' : 'Total'} value={counts.total} />
+          <CountCell label={isRTL ? 'פעילים' : 'Active'} value={counts.active} tone="wine" />
+          <CountCell label={isRTL ? 'מאמנים' : 'Coaches'} value={counts.coaches} />
+          <CountCell label={isRTL ? 'מנהלים' : 'Admins'} value={counts.admins} />
         </div>
 
         {/* Invite link */}
@@ -132,7 +136,7 @@ export function Members() {
           border: `1px solid ${t.color.border}`,
           borderRadius: t.radius.md,
         }}>
-          <Label color={t.color.silver3}>קישור הזמנה</Label>
+          <Label color={t.color.silver3}>{isRTL ? 'קישור הזמנה' : 'Invite link'}</Label>
           <div style={{
             flex: 1, minWidth: 200,
             fontFamily: t.font.family.mono, fontSize: 12,
@@ -141,7 +145,7 @@ export function Members() {
             direction: 'ltr',
           }}>{inviteLink}</div>
           <SButton variant={copied ? 'quiet' : 'light'} size="sm" onClick={copyInvite}>
-            {copied ? 'הועתק' : 'העתק'}
+            {copied ? (isRTL ? 'הועתק' : 'Copied') : (isRTL ? 'העתק' : 'Copy')}
           </SButton>
         </div>
       </div>
@@ -149,17 +153,21 @@ export function Members() {
       {/* Setup notice / demo toggle */}
       {!supabaseEnabled && (
         <NoticeBanner tone="warn">
-          Supabase לא מוגדר במערכת (VITE_SUPABASE_URL חסר). המתאמנים לא יסונכרנו בין מכשירים. הפעל "תצוגת דמו" כדי לראות את המבנה עם נתונים לדוגמה.
+          {isRTL
+            ? 'Supabase לא מוגדר במערכת (VITE_SUPABASE_URL חסר). המתאמנים לא יסונכרנו בין מכשירים. הפעל "תצוגת דמו" כדי לראות את המבנה עם נתונים לדוגמה.'
+            : 'Supabase is not configured (VITE_SUPABASE_URL missing). Members won\'t sync across devices. Turn on "Demo view" to preview the layout with sample data.'}
         </NoticeBanner>
       )}
       {supabaseEnabled && error && (
         <NoticeBanner tone="danger">
-          שגיאה בטעינה מ-Supabase: {error}
+          {isRTL ? 'שגיאה בטעינה מ-Supabase: ' : 'Supabase load error: '}{error}
         </NoticeBanner>
       )}
       {supabaseEnabled && !loading && !error && normalized.length === 0 && !showDemo && (
         <NoticeBanner tone="info">
-          אין עדיין רשומות של מתאמנים. שלח את קישור ההזמנה, ומיד שהמתאמנים נרשמים הם יופיעו כאן.
+          {isRTL
+            ? 'אין עדיין רשומות של מתאמנים. שלח את קישור ההזמנה, ומיד שהמתאמנים נרשמים הם יופיעו כאן.'
+            : 'No members registered yet. Share the invite link — as soon as they sign up they\'ll appear here.'}
         </NoticeBanner>
       )}
 
@@ -171,25 +179,25 @@ export function Members() {
         <div style={{
           display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10,
         }} className="hfos-grid-members">
-          <Input placeholder="חפש לפי שם או מייל…" value={q} onChange={e => setQ(e.target.value)} />
+          <Input placeholder={isRTL ? 'חפש לפי שם או מייל…' : 'Search by name or email…'} value={q} onChange={e => setQ(e.target.value)} />
           <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-            <option value="">כל התפקידים</option>
-            <option value="member">מתאמן</option>
-            <option value="coach">מאמן</option>
-            <option value="admin">מנהל</option>
+            <option value="">{isRTL ? 'כל התפקידים' : 'All roles'}</option>
+            <option value="member">{isRTL ? 'מתאמן' : 'Member'}</option>
+            <option value="coach">{isRTL ? 'מאמן' : 'Coach'}</option>
+            <option value="admin">{isRTL ? 'מנהל' : 'Admin'}</option>
           </Select>
           <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="">כל הסטטוסים</option>
-            <option value="active">פעיל</option>
-            <option value="onboarding">בתהליך</option>
-            <option value="idle">לא פעיל</option>
+            <option value="">{isRTL ? 'כל הסטטוסים' : 'All statuses'}</option>
+            <option value="active">{isRTL ? 'פעיל' : 'Active'}</option>
+            <option value="onboarding">{isRTL ? 'בתהליך' : 'Onboarding'}</option>
+            <option value="idle">{isRTL ? 'לא פעיל' : 'Idle'}</option>
           </Select>
           <SButton
             variant={showDemo ? 'primary' : 'ghost'}
             size="sm"
             onClick={() => setShowDemo(v => !v)}
           >
-            {showDemo ? 'כבה דמו' : 'תצוגת דמו'}
+            {showDemo ? (isRTL ? 'כבה דמו' : 'Hide demo') : (isRTL ? 'תצוגת דמו' : 'Demo view')}
           </SButton>
         </div>
       </div>
@@ -201,7 +209,7 @@ export function Members() {
           background: t.color.panel, border: `1px solid ${t.color.border}`,
           borderRadius: t.radius.lg,
         }}>
-          <Label color={t.color.silver2}>טוען מתאמנים מ-Supabase…</Label>
+          <Label color={t.color.silver2}>{isRTL ? 'טוען מתאמנים מ-Supabase…' : 'Loading members from Supabase…'}</Label>
         </div>
       )}
 
@@ -216,15 +224,20 @@ export function Members() {
             borderBottom: `1px solid ${t.color.border}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
           }}>
-            <Kicker color="silver" dash={false}>{showDemo ? 'תצוגת דמו' : 'נתונים חיים'}</Kicker>
-            <Label color={t.color.silver3}>{filtered.length} מתוך {normalized.length}</Label>
+            <Kicker color="silver" dash={false}>{showDemo
+              ? (isRTL ? 'תצוגת דמו' : 'Demo view')
+              : (isRTL ? 'נתונים חיים' : 'Live data')}</Kicker>
+            <Label color={t.color.silver3}>{filtered.length} {isRTL ? 'מתוך' : 'of'} {normalized.length}</Label>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
-                  {['מתאמן', 'תפקיד', 'מטרה', 'סטטוס', 'תמונות', 'הצטרף'].map(h => (
+                  {(isRTL
+                    ? ['מתאמן', 'תפקיד', 'מטרה', 'סטטוס', 'תמונות', 'הצטרף']
+                    : ['Member', 'Role', 'Goal', 'Status', 'Photos', 'Joined']
+                  ).map(h => (
                     <th key={h} style={{
                       textAlign: 'right', padding: '12px 16px',
                       fontFamily: t.font.family.mono, fontSize: 10,
