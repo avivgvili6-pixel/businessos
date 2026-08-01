@@ -3,24 +3,26 @@ import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Button, Input, Select, Badge, Modal, EmptyState } from '../../../components/ui/UI'
 import { foods, portionSizes, lookupBarcode } from '../../../data/foods'
+import { useI18n } from '../../../i18n/i18n'
 
 // Enhanced picker with search, barcode, custom-food entry, and portion-size hints.
 // Aggregates the user's recent/frequent meals so they can 1-tap add favorites.
 export function FoodPickerPro({ open, onClose, onAdd }) {
  const { state, addCustomFood } = useApp()
+ const { isRTL } = useI18n()
  const [tab, setTab] = useState('recent')
  const allFoods = useMemo(() => [...state.customFoods, ...foods], [state.customFoods])
  const recent = useMemo(() => computeRecentMeals(state.mealLogs), [state.mealLogs])
 
  if (!open) return null
  return (
- <Modal open={open} onClose={onClose} title="הוסף מזון"width={680}>
+ <Modal open={open} onClose={onClose} title={isRTL ? 'הוסף מזון' : 'Add food'} width={680}>
  <div style={{ display:'flex', gap: 4, background: t.color.bgSoft, padding: 4, borderRadius: t.radius.md, marginBottom: 16 }}>
  {[
- { key:'recent', label:`⭐ המרשמים שלי${recent.length ? ` (${recent.length})` :''}` },
- { key:'search', label:'חיפוש' },
- { key:'barcode', label:'ברקוד' },
- { key:'custom', label:'מזון אישי' },
+ { key:'recent', label: `${isRTL ? 'המרשמים שלי' : 'My recipes'}${recent.length ? ` (${recent.length})` : ''}` },
+ { key:'search', label: isRTL ? 'חיפוש' : 'Search' },
+ { key:'barcode', label: isRTL ? 'ברקוד' : 'Barcode' },
+ { key:'custom', label: isRTL ? 'מזון אישי' : 'Custom food' },
  ].map(x => (
  <button key={x.key} onClick={() => setTab(x.key)} style={{
  flex: 1, padding:'8px 8px', border:'none',
@@ -169,17 +171,26 @@ function SearchTab({ foods: foodList, onAdd }) {
 }
 
 function BarcodeTab({ onAdd, onSave }) {
+ const { isRTL } = useI18n()
  const [barcode, setBarcode] = useState('')
  const [status, setStatus] = useState(null) // null | 'loading'| 'found'| 'not-found'
  const [result, setResult] = useState(null)
  const [grams, setGrams] = useState(100)
+ const [scanning, setScanning] = useState(false)
 
- const scan = async () => {
- if (!barcode.trim()) return
+ const scanCode = async (code) => {
  setStatus('loading'); setResult(null)
- const r = await lookupBarcode(barcode.trim())
+ const r = await lookupBarcode(code.trim())
  if (r) { setResult(r); setStatus('found') }
  else setStatus('not-found')
+ }
+
+ const scan = () => barcode.trim() && scanCode(barcode.trim())
+
+ const onDetected = (code) => {
+ setBarcode(code)
+ setScanning(false)
+ scanCode(code)
  }
 
  const commit = (alsoSave) => {
@@ -199,27 +210,63 @@ function BarcodeTab({ onAdd, onSave }) {
 
  return (
  <div>
+ {scanning && (
+ <LazyBarcodeScanner
+   onDetected={onDetected}
+   onClose={() => setScanning(false)}
+ />
+ )}
+
  <div style={{
  background: t.color.bgSoft, borderRadius: t.radius.lg, padding: 20, textAlign:'center',
  border: `2px dashed ${t.color.border}`, marginBottom: 14,
  }}>
- <div style={{ fontSize: 44, marginBottom: 6, opacity: .6 }}> </div>
- <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginBottom: 12 }}>
- הצמד את המצלמה לברקוד או הקלד ידנית
+ <div style={{ marginBottom: 14 }}>
+   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke={t.color.silver2} strokeWidth="1.6" strokeLinecap="round" style={{ opacity: 0.7 }}>
+     <rect x="6" y="12" width="28" height="16" rx="2"/>
+     <line x1="10" y1="16" x2="10" y2="24"/>
+     <line x1="14" y1="16" x2="14" y2="24"/>
+     <line x1="17" y1="16" x2="17" y2="24"/>
+     <line x1="21" y1="16" x2="21" y2="24"/>
+     <line x1="25" y1="16" x2="25" y2="24"/>
+     <line x1="30" y1="16" x2="30" y2="24"/>
+   </svg>
  </div>
+ <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginBottom: 14 }}>
+ {isRTL ? 'סרוק עם המצלמה או הקלד ידנית' : 'Scan with the camera or type it in'}
+ </div>
+
+ <Button
+   variant="primary"
+   onClick={() => setScanning(true)}
+   style={{ marginBottom: 12, minWidth: 200 }}
+ >
+   {isRTL ? 'פתח מצלמה לסריקה' : 'Open camera to scan'}
+ </Button>
+
  <div style={{ display:'flex', gap: 8, maxWidth: 380, margin:'0 auto'}}>
- <Input placeholder="ברקוד (EAN-13)..."value={barcode} onChange={e => setBarcode(e.target.value)} />
- <Button onClick={scan} disabled={status === 'loading'}>{status === 'loading'? '...':'חפש'}</Button>
+ <Input
+   placeholder={isRTL ? 'ברקוד (EAN-13)…' : 'Barcode (EAN-13)…'}
+   value={barcode}
+   onChange={e => setBarcode(e.target.value)}
+ />
+ <Button onClick={scan} disabled={status === 'loading'}>
+   {status === 'loading' ? '…' : (isRTL ? 'חפש' : 'Look up')}
+ </Button>
  </div>
  <button onClick={tryDemo} style={{
  marginTop: 10, background:'none', border:'none', color: t.color.gold,
  fontSize: t.font.xs, cursor:'pointer', textDecoration:'underline', fontFamily:'inherit',
- }}>נסה עם ברקוד לדוגמה</button>
+ }}>{isRTL ? 'נסה עם ברקוד לדוגמה' : 'Try with a sample barcode'}</button>
  </div>
 
  {status === 'not-found'&& (
  <Card style={{ padding: 14, background:`${t.color.warning}15`, borderColor: t.color.warning }}>
- <div style={{ fontSize: t.font.sm, color: t.color.warning }}>לא נמצא במאגר. תוכל להוסיף אותו ידנית דרך "מזון אישי".</div>
+ <div style={{ fontSize: t.font.sm, color: t.color.warning }}>
+   {isRTL
+     ? 'לא נמצא במאגר. תוכל להוסיף אותו ידנית דרך "מזון אישי".'
+     : 'Not found in the database. Add it manually via "Custom food".'}
+ </div>
  </Card>
  )}
 
@@ -231,26 +278,41 @@ function BarcodeTab({ onAdd, onSave }) {
  <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{result.name}</div>
  {result.brand && <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{result.brand}</div>}
  <Badge color={result.source === 'openfoodfacts'? t.color.info : t.color.gold} style={{ marginTop: 6 }}>
- {result.source === 'openfoodfacts'? ' OpenFoodFacts':' מאגר מקומי'}
+ {result.source === 'openfoodfacts' ? 'OpenFoodFacts' : (isRTL ? 'מאגר מקומי' : 'Local database')}
  </Badge>
  </div>
  </div>
 
  <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
- <MacroTile label="קק״ל"value={result.kcal} color={t.color.gold} />
- <MacroTile label="חלבון"value={result.p} color={t.color.info} />
- <MacroTile label="פחמ׳"value={result.c} color={t.color.text} />
- <MacroTile label="שומן"value={result.f} color={t.color.warning} />
+ <MacroTile label={isRTL ? 'קק״ל' : 'kcal'} value={result.kcal} color={t.color.gold} />
+ <MacroTile label={isRTL ? 'חלבון' : 'Protein'} value={result.p} color={t.color.info} />
+ <MacroTile label={isRTL ? 'פחמ׳' : 'Carbs'} value={result.c} color={t.color.text} />
+ <MacroTile label={isRTL ? 'שומן' : 'Fat'} value={result.f} color={t.color.warning} />
  </div>
 
  <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto', gap: 10, alignItems:'end'}}>
- <Input type="number"label="גרם"value={grams} onChange={e => setGrams(+e.target.value || 0)} />
- <Button variant="ghost"onClick={() => commit(true)}>הוסף + שמור למאגר</Button>
- <Button onClick={() => commit(false)}>הוסף ({Math.round(result.kcal * grams/100)} קק״ל)</Button>
+ <Input type="number" label={isRTL ? 'גרם' : 'Grams'} value={grams} onChange={e => setGrams(+e.target.value || 0)} />
+ <Button variant="ghost" onClick={() => commit(true)}>{isRTL ? 'הוסף + שמור למאגר' : 'Add + save to library'}</Button>
+ <Button onClick={() => commit(false)}>
+   {isRTL ? `הוסף (${Math.round(result.kcal * grams/100)} קק״ל)` : `Add (${Math.round(result.kcal * grams/100)} kcal)`}
+ </Button>
  </div>
  </Card>
  )}
  </div>
+ )
+}
+
+// Lazy-import the scanner only when the user actually opens the camera —
+// keeps the BarcodeDetector code out of the initial bundle.
+const LazyScanner = React.lazy(() =>
+ import('../../../components/nutrition/BarcodeScanner').then(m => ({ default: m.BarcodeScanner }))
+)
+function LazyBarcodeScanner(props) {
+ return (
+   <React.Suspense fallback={null}>
+     <LazyScanner {...props} />
+   </React.Suspense>
  )
 }
 
