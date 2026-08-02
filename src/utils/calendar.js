@@ -160,28 +160,80 @@ export function habitEvent({ habit, date, defaults = {} }) {
 }
 
 // ─── Weekly schedule builder ────────────────────────────
-// Given the user's plan + meal plan + habits and a starting Sunday,
-// build a full 7-day schedule of events at the times they prefer.
-export function buildWeeklySchedule({ plan, mealTimes, habitTimes, weekStart, mealPlan }) {
+// Given the user's plan + meal plan + habits + logged meals + logged
+// workouts, and a starting Sunday, build a full 7-day schedule of events.
+// Uses "logged" (real) entries where available, falling back to planned.
+export function buildWeeklySchedule({ plan, mealTimes, habitTimes, weekStart, mealPlan, mealLogs, workoutLogs }) {
   const events = []
   const start = new Date(weekStart)
   start.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(start); weekEnd.setDate(start.getDate() + 7)
 
-  // Workouts - one per day the plan has
+  // 1. Logged workouts (real, past)
+  if (Array.isArray(workoutLogs)) {
+    for (const log of workoutLogs) {
+      const dt = new Date(log.date || log.completedAt || log.timestamp || 0)
+      if (isNaN(dt) || dt < start || dt >= weekEnd) continue
+      events.push({
+        id: `logged-workout-${log.id || dt.toISOString()}`,
+        title: log.name || log.sessionName || 'אימון שבוצע',
+        start: dt, end: new Date(dt.getTime() + 60 * 60 * 1000),
+        description: `${log.exercises?.length || 0} תרגילים${log.duration ? ` · ${log.duration} דק׳` : ''}`,
+        category: 'Fitness',
+        logged: true,
+      })
+    }
+  }
+
+  // 2. Planned workouts (upcoming, one per day the plan has)
+  //    Skip days where we already have a logged workout.
   if (plan?.sessions?.length) {
-    const workoutTime = { h: 18, m: 0 } // default 18:00
+    const workoutTime = { h: 18, m: 0 }
+    const loggedDays = new Set(
+      events.filter(e => e.logged && e.category === 'Fitness').map(e => e.start.toDateString())
+    )
     for (let i = 0; i < Math.min(7, plan.sessions.length); i++) {
       const day = new Date(start); day.setDate(start.getDate() + i)
       day.setHours(workoutTime.h, workoutTime.m, 0, 0)
+      if (loggedDays.has(day.toDateString())) continue
       events.push(workoutEvent({ session: plan.sessions[i], date: day, plan }))
     }
   }
 
-  // Meals - from the weekly meal plan
+  // 3. Logged meals (real, from mealLogs by dateKey)
+  if (mealLogs && typeof mealLogs === 'object') {
+    const times = mealTimes || { 'בוקר': 8, 'צהריים': 13, 'ערב': 20, 'נשנוש': 16 }
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start); day.setDate(start.getDate() + d)
+      const key = day.toISOString().slice(0, 10)
+      const dayMeals = mealLogs[key] || []
+      dayMeals.forEach((m, idx) => {
+        // Use meal time by index (breakfast, lunch, dinner, snack) as best-effort
+        const timeKeys = ['בוקר', 'צהריים', 'ערב', 'נשנוש']
+        const hour = times[timeKeys[idx] || 'צהריים'] ?? (8 + idx * 4)
+        const dt = new Date(start); dt.setDate(start.getDate() + d); dt.setHours(hour, 0, 0, 0)
+        events.push({
+          id: `logged-meal-${key}-${idx}`,
+          title: m.name || 'ארוחה',
+          start: dt, end: new Date(dt.getTime() + 30 * 60 * 1000),
+          description: `${Math.round(m.kcal || 0)} קק"ל · ${Math.round(m.p || 0)}P / ${Math.round(m.c || 0)}C / ${Math.round(m.f || 0)}F`,
+          category: 'Nutrition',
+          logged: true,
+        })
+      })
+    }
+  }
+
+  // 4. Planned meals (from AI weekly plan, only for days without logged meals)
   if (mealPlan?.days?.length) {
     const times = mealTimes || { 'בוקר': 8, 'צהריים': 13, 'ערב': 20, 'נשנוש': 16 }
+    const loggedMealDays = new Set(
+      events.filter(e => e.logged && e.category === 'Nutrition').map(e => e.start.toDateString())
+    )
     for (let d = 0; d < Math.min(7, mealPlan.days.length); d++) {
       const day = mealPlan.days[d]
+      const dayCheck = new Date(start); dayCheck.setDate(start.getDate() + d)
+      if (loggedMealDays.has(dayCheck.toDateString())) continue
       for (const meal of day.meals) {
         const hour = times[meal.name] ?? 12
         const dt = new Date(start); dt.setDate(start.getDate() + d); dt.setHours(hour, 0, 0, 0)
@@ -190,7 +242,7 @@ export function buildWeeklySchedule({ plan, mealTimes, habitTimes, weekStart, me
     }
   }
 
-  // Habits - daily reminders
+  // 5. Habits — daily reminders
   if (habitTimes?.length) {
     for (const { habit, hour } of habitTimes) {
       for (let d = 0; d < 7; d++) {

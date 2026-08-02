@@ -69,8 +69,10 @@ function WeekView() {
  mealPlan,
  weekStart,
  mealTimes,
+ mealLogs: state.mealLogs,
+ workoutLogs: state.workoutLogs,
  }).map(e => ({ ...e, reminderMinutes: reminders ? e.reminderMinutes : undefined })),
- [state.plan, mealPlan, weekStart, mealTimes, reminders])
+ [state.plan, mealPlan, weekStart, mealTimes, reminders, state.mealLogs, state.workoutLogs])
 
  const eventsByDay = useMemo(() => {
  const map = {}
@@ -145,25 +147,40 @@ function WeekView() {
 }
 
 function EventCard({ event }) {
+ const { isRTL } = useI18n()
  const time = `${String(event.start.getHours()).padStart(2,'0')}:${String(event.start.getMinutes()).padStart(2,'0')}`
  const isWorkout = event.category === 'Fitness'
  const isMeal = event.category === 'Nutrition'
  const color = isWorkout ? t.color.gold : isMeal ? t.color.info : t.color.success
+ const logged = event.logged
  return (
- <div style={{ display:'flex', gap: 12, padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md, alignItems:'center'}}>
+ <div style={{
+ display:'flex', gap: 12, padding: 12,
+ background: logged ? 'rgba(74,156,106,0.06)' : t.color.bgSoft,
+ borderRadius: t.radius.md, alignItems:'center',
+ border: logged ? '1px solid rgba(74,156,106,0.3)' : '1px solid transparent',
+ }}>
  <div style={{ width: 4, height: 40, background: color, borderRadius: 2 }} />
  <div style={{ minWidth: 50, textAlign:'center'}}>
  <div style={{ fontWeight: 700, fontFamily:'Space Mono, monospace', color }}>{time}</div>
  </div>
  <div style={{ flex: 1, minWidth: 0 }}>
+ <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
  <div style={{ fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{event.title}</div>
+ {logged && <span style={{
+ fontFamily:'Space Mono, monospace', fontSize: 9, letterSpacing:'0.16em', textTransform:'uppercase',
+ color:'#4a9c6a', fontWeight: 700, flexShrink: 0,
+ }}>· {isRTL ? 'בוצע' : 'done'}</span>}
+ </div>
  {event.description && <div style={{ fontSize: t.font.xs, color: t.color.textDim, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{event.description.split('\n')[0]}</div>}
  </div>
+ {!logged && (
  <a href={googleCalendarUrl(event)} target="_blank"rel="noopener noreferrer"style={{
  padding:'6px 12px', background: t.color.bgCard, border:`1px solid ${t.color.border}`,
  borderRadius: t.radius.pill, color: t.color.gold, textDecoration:'none',
  fontSize: t.font.xs, fontWeight: 600, whiteSpace:'nowrap',
  }}>+ Google Calendar</a>
+ )}
  </div>
  )
 }
