@@ -51,7 +51,7 @@ export function Onboarding() {
  return (
  <div style={{ minHeight:'100vh', background: t.color.bg, padding: t.space.lg, direction:'rtl', color: t.color.text, display:'flex', alignItems:'center' }}>
  <div style={{ maxWidth: 900, margin:'0 auto', width:'100%' }}>
- <HealthAcknowledgment onConfirm={afterHealthAck} />
+ <HealthAcknowledgment onConfirm={afterHealthAck} initialName={data.name || initialName} />
  </div>
  </div>
  )

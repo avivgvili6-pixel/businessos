@@ -147,6 +147,47 @@ export async function signedPhotoUrl(storagePath, expiresSec = 3600) {
   return data?.signedUrl
 }
 
+// ─── HEALTH DISCLAIMER SIGNATURE ────────────────────────────────────
+// Sync the signed health declaration to the user's profile row.
+// Requires a `health_ack` jsonb column on the profiles table:
+//    alter table profiles add column if not exists health_ack jsonb;
+// If the column doesn't exist yet, this silently fails — the record
+// still lives in localStorage so the app keeps working.
+export async function syncHealthAck(record) {
+  if (!supabaseEnabled || !record) return { skipped: true }
+  const { data: session } = await supabase.auth.getUser()
+  const userId = session?.user?.id
+  if (!userId) return { skipped: true }
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ health_ack: record })
+      .eq('id', userId)
+    if (error) console.warn('[supabaseSync] health_ack sync failed:', error.message)
+    return { error }
+  } catch (err) {
+    console.warn('[supabaseSync] health_ack sync exception:', err?.message || err)
+    return { error: err }
+  }
+}
+
+// Admin — read a specific member's signed declaration
+export async function fetchHealthAck(userId) {
+  if (!supabaseEnabled || !userId) return null
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('health_ack')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) { console.warn('[supabaseSync] fetch health_ack:', error.message); return null }
+    return data?.health_ack || null
+  } catch (err) {
+    console.warn('[supabaseSync] fetch health_ack exception:', err?.message || err)
+    return null
+  }
+}
+
 // List photos (own for members, all for admin thanks to RLS policy)
 export async function listProgressPhotos(userId = null) {
   if (!supabaseEnabled) return []
