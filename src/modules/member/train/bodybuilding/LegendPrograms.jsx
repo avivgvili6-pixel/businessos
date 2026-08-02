@@ -6,6 +6,7 @@ import { useI18n } from '../../../../i18n/i18n'
 import {
   LEGEND_PROGRAMS, LEGEND_TAGS, LEGEND_LEVELS, NEXT_UPDATE_TARGET,
 } from '../../../../data/bodybuilding/legendPrograms'
+import { ExerciseGuideButton } from '../../../../components/train/ExerciseGuidePopover'
 
 // Browse curated bodybuilder programs, view detail, adopt one as a
 // personal routine (materialized into the user's saved routines so
@@ -336,23 +337,24 @@ function SessionCard({ session, accent }) {
         {session.exercises.map((ex, i) => (
           <div key={i} style={{
             display: 'grid', gridTemplateColumns: '1fr auto', gap: 8,
-            padding: '8px 10px',
+            padding: '10px 12px',
             background: t.color.bgSoft, borderRadius: t.radius.sm,
-            alignItems: 'baseline',
+            alignItems: 'center',
           }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: t.color.ink }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: t.color.ink, marginBottom: 4 }}>
                 {ex.name}
               </div>
               {ex.note && (
-                <div style={{ fontSize: 10, color: t.color.silver2, marginTop: 2, fontStyle: 'italic' }}>
+                <div style={{ fontSize: 10, color: t.color.silver2, marginBottom: 6, fontStyle: 'italic' }}>
                   {ex.note}
                 </div>
               )}
+              <ExerciseGuideButton exerciseName={ex.name} compact />
             </div>
             <div style={{
               fontFamily: 'monospace', fontSize: 11, color: accent,
-              whiteSpace: 'nowrap', fontWeight: 600,
+              whiteSpace: 'nowrap', fontWeight: 600, alignSelf: 'flex-start',
             }}>
               {ex.sets}×{ex.reps}
               {ex.rest && <span style={{ color: t.color.silver2, marginInlineStart: 6 }}>· {ex.rest}ש׳</span>}

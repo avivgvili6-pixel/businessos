@@ -3,6 +3,7 @@ import { t } from '../../../../theme/tokens'
 import { Modal, Card, Button, Input, Badge } from '../../../../components/ui/UI'
 import { useApp } from '../../../../store/AppStore'
 import { EXERCISES, EXERCISE_BY_ID, EQUIPMENT, MUSCLE_GROUPS } from '../../../../data/bodybuilding/exercisesUnified'
+import { ExerciseGuideButton } from '../../../../components/train/ExerciseGuidePopover'
 
 // ─── Level & goal presets ─────────────────────────────────
 // 4 levels, each layers on intensifiers (supersets, dropsets)
@@ -533,9 +534,10 @@ function ExerciseInRoutine({ exerciseInRoutine: ex, idx, onUpdate, onDelete, onT
         borderBottomRightRadius: isSupersetTopHalf ? 0 : undefined,
       }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 22 }}>{EQUIPMENT[ex.equipment]?.icon || ''}</span>
-          <b style={{ color: t.color.wineLight, flex: 1, fontSize: t.font.md }}>{exercise.he}</b>
+          <b style={{ color: t.color.wineLight, flex: 1, minWidth: 100, fontSize: t.font.md }}>{exercise.he}</b>
+          <ExerciseGuideButton exercise={exercise} compact />
           <button onClick={onDelete} style={{
             background: 'transparent', border: `1px solid ${t.color.border}`,
             color: t.color.textDim, cursor: 'pointer', padding: '4px 8px',
@@ -695,17 +697,24 @@ function ExercisePicker({ open, onClose, onSelect }) {
           </div>
         )}
         {list.map(ex => (
-          <button key={ex.id} onClick={() => onSelect(ex)} style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: 10,
+          <div key={ex.id} style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: 10,
             background: t.color.bgSoft, border: `1px solid ${t.color.border}`,
-            borderRadius: t.radius.sm, cursor: 'pointer', textAlign: 'right',
-            fontFamily: 'inherit', color: t.color.text,
+            borderRadius: t.radius.sm,
           }}>
-            <span style={{ fontSize: 18 }}>{EQUIPMENT[ex.equipment]?.icon || ''}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: t.color.wineLight, fontWeight: 600 }}>{ex.he}</div>
-              <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{ex.en}</div>
-            </div>
+            <button onClick={() => onSelect(ex)} style={{
+              display: 'flex', alignItems: 'center', gap: 12, flex: 1,
+              background: 'transparent', border: 'none', padding: 0,
+              cursor: 'pointer', textAlign: 'right', fontFamily: 'inherit',
+              color: t.color.text, minWidth: 0,
+            }}>
+              <span style={{ fontSize: 18 }}>{EQUIPMENT[ex.equipment]?.icon || ''}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: t.color.wineLight, fontWeight: 600 }}>{ex.he}</div>
+                <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{ex.en}</div>
+              </div>
+            </button>
+            <ExerciseGuideButton exercise={ex} compact />
             {ex.source === 'general' && (
               <span style={{
                 fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase',
@@ -713,7 +722,7 @@ function ExercisePicker({ open, onClose, onSelect }) {
                 border: `1px solid ${t.color.border}`, borderRadius: 3,
               }}>Lib</span>
             )}
-          </button>
+          </div>
         ))}
       </div>
       <div style={{ marginTop: 8, fontSize: 11, color: t.color.silver2, textAlign: 'center' }}>
