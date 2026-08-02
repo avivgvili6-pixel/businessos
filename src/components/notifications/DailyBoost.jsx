@@ -1,136 +1,98 @@
 import React, { useEffect, useState } from 'react'
 import { t } from '../../theme/tokens'
-import { Card, Button, Badge } from '../ui/UI'
 import { quoteOfDay } from '../../data/motivation'
 import { todayKey } from '../../utils/date'
+import { useI18n } from '../../i18n/i18n'
 
-// Daily motivation card - shown on home page.
-// Also handles Web Notifications API opt-in for those who want a
-// push-style reminder when the app is open at a specific time.
+// Daily motivation — shown as a floating toast when the user opens
+// the home page for the first time each day, then auto-dismisses.
+// Not a permanent card (used to take too much room on the dashboard).
 
-const NOTIF_KEY = 'hfos:daily_notif'
 const LAST_SHOWN_KEY = 'hfos:daily_shown'
-const NOTIF_TIME_KEY = 'hfos:notif_time'// "HH:MM"
+const AUTO_DISMISS_MS = 7000
 
-export function DailyBoost({ userName }) {
- const [permission, setPermission] = useState(typeof Notification !== 'undefined'? Notification.permission :'default')
- const [dismissed, setDismissed] = useState(() => localStorage.getItem(LAST_SHOWN_KEY) === todayKey())
- const [showOptIn, setShowOptIn] = useState(false)
+export function DailyBoost() {
+  const { isRTL } = useI18n()
+  const [visible, setVisible] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const quote = quoteOfDay()
 
- const quote = quoteOfDay()
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (localStorage.getItem(LAST_SHOWN_KEY) === todayKey()) return
+    // Mount hidden, transition to visible so CSS animation runs
+    const enterTimer = setTimeout(() => setVisible(true), 250)
+    const leaveTimer = setTimeout(() => setLeaving(true), AUTO_DISMISS_MS)
+    const removeTimer = setTimeout(() => {
+      localStorage.setItem(LAST_SHOWN_KEY, todayKey())
+      setVisible(false)
+    }, AUTO_DISMISS_MS + 500)
+    return () => { clearTimeout(enterTimer); clearTimeout(leaveTimer); clearTimeout(removeTimer) }
+  }, [])
 
- // Fire an in-app Web Notification at the user-picked time (roughly)
- useEffect(() => {
- if (typeof Notification === 'undefined') return
- if (permission !== 'granted') return
- if (localStorage.getItem(NOTIF_KEY) === todayKey()) return
+  const dismiss = () => {
+    localStorage.setItem(LAST_SHOWN_KEY, todayKey())
+    setLeaving(true)
+    setTimeout(() => setVisible(false), 300)
+  }
 
- const notifTime = localStorage.getItem(NOTIF_TIME_KEY) || '08:00'
- const [nH, nM] = notifTime.split(':').map(Number)
- const now = new Date()
- const [curH, curM] = [now.getHours(), now.getMinutes()]
- // If we're past the notif time today AND haven't shown one yet - show now
- if (curH > nH || (curH === nH && curM >= nM)) {
- try {
- new Notification('המשפט של היום', {
- body: quote.text,
- badge:'/logo.svg',
- icon:'/logo.svg',
- tag:'hfos-daily',
- })
- localStorage.setItem(NOTIF_KEY, todayKey())
- } catch (e) { /* silent */ }
- }
- }, [permission, quote])
+  if (!visible) return null
 
- const dismiss = () => {
- localStorage.setItem(LAST_SHOWN_KEY, todayKey())
- setDismissed(true)
- }
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 'calc(24px + env(safe-area-inset-bottom))',
+      insetInlineStart: '50%',
+      transform: `translateX(${isRTL ? '50%' : '-50%'}) ${leaving ? 'translateY(20px)' : 'translateY(0)'}`,
+      opacity: leaving ? 0 : 1,
+      transition: 'opacity 300ms ease, transform 300ms ease',
+      zIndex: 400,
+      maxWidth: 'min(440px, calc(100vw - 32px))',
+      pointerEvents: 'auto',
+    }}>
+      <div style={{
+        position: 'relative',
+        padding: '18px 44px 18px 20px',
+        background: `linear-gradient(135deg, ${t.color.charcoal} 0%, ${t.color.bgElevated} 100%)`,
+        border: `1px solid ${t.color.wineLight}44`,
+        borderRadius: t.radius.lg,
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)',
+        color: t.color.text,
+      }}>
+        <button
+          onClick={dismiss}
+          aria-label={isRTL ? 'סגור' : 'Close'}
+          style={{
+            position: 'absolute',
+            top: 8, insetInlineEnd: 8,
+            width: 28, height: 28,
+            background: 'transparent', border: 'none',
+            color: t.color.silver2, cursor: 'pointer',
+            fontSize: 20, lineHeight: 1,
+          }}
+        >×</button>
 
- const requestPerm = async () => {
- try {
- const result = await Notification.requestPermission()
- setPermission(result)
- if (result === 'granted') {
- localStorage.setItem(NOTIF_TIME_KEY,'08:00')
- setShowOptIn(false)
- }
- } catch (e) { /* silent */ }
- }
+        <div style={{
+          fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: '0.28em',
+          textTransform: 'uppercase', color: t.color.wineLight, marginBottom: 8,
+        }}>
+          {isRTL ? 'המשפט של היום' : 'Quote of the day'}
+        </div>
 
- if (dismissed) return null
+        <div style={{
+          fontSize: 15, lineHeight: 1.55, fontStyle: 'italic',
+          color: t.color.bone, marginBottom: 8,
+        }}>
+          &ldquo;{quote.text}&rdquo;
+        </div>
 
- return (
- <Card style={{
- padding: 20,
- background: `linear-gradient(135deg, ${t.color.goldGlow} 0%, ${t.color.bgElevated} 100%)`,
- border: `1px solid ${t.color.gold}`,
- position:'relative',
- animation:'hfos-slide-in 0.5s ease',
- }}>
- <button onClick={dismiss} aria-label="סגור"style={{
- position:'absolute', top: 10, left: 10, background:'transparent',
- border:'none', color: t.color.textDim, cursor:'pointer',
- fontSize: 18, width: 24, height: 24,
- }}> </button>
-
- <div style={{ display:'flex', alignItems:'center', gap: 8, marginBottom: 10 }}>
- <span style={{ fontSize: 24 }}> </span>
- <Badge color={t.color.gold}>המשפט של היום</Badge>
- </div>
-
- <div style={{
- fontSize: t.font.lg, fontWeight: 700, lineHeight: 1.5,
- color: t.color.text, marginBottom: 8, fontStyle:'italic',
- }}>
- "{quote.text}"
- </div>
-
- <div style={{ fontSize: t.font.xs, color: t.color.gold, fontWeight: 600, marginBottom: 12 }}>
- — {quote.author}
- </div>
-
- {/* Notification opt-in */}
- {permission === 'default'&& !showOptIn && typeof Notification !== 'undefined'&& (
- <button onClick={() => setShowOptIn(true)} style={{
- background:'transparent', border:'none', color: t.color.gold,
- fontFamily:'inherit', fontSize: t.font.xs, cursor:'pointer',
- textDecoration:'underline',
- }}> קבל תזכורת בוקר בכל יום</button>
- )}
-
- {showOptIn && permission !== 'granted'&& (
- <div style={{ padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm, marginTop: 10 }}>
- <div style={{ fontSize: t.font.sm, marginBottom: 8 }}>
- האם תרצה לקבל תזכורת בוקר יומית עם משפט מוטיבציה?
- </div>
- <div style={{ display:'flex', gap: 8 }}>
- <Button size="sm"onClick={requestPerm}>כן, אני מוכן</Button>
- <Button variant="ghost"size="sm" onClick={() => setShowOptIn(false)}>לא עכשיו</Button>
- </div>
- </div>
- )}
-
- {permission === 'granted'&& (
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
- מקבל תזכורות בבוקר · <button onClick={() => {
- const newT = prompt('שעה לתזכורת (HH:MM):', localStorage.getItem(NOTIF_TIME_KEY) || '08:00')
- if (newT && /^\d{1,2}:\d{2}$/.test(newT)) localStorage.setItem(NOTIF_TIME_KEY, newT)
- }} style={{
- background:'transparent', border:'none', color: t.color.gold,
- cursor:'pointer', fontFamily:'inherit', fontSize:'inherit',
- textDecoration:'underline',
- }}>שנה שעה</button>
- </div>
- )}
-
- <style>{`
- @keyframes hfos-slide-in {
- from { transform: translateY(-10px); opacity: 0 }
- to { transform: translateY(0); opacity: 1 }
- }
- `}</style>
- </Card>
- )
+        <div style={{
+          fontSize: 11, color: t.color.silver2, fontWeight: 500,
+          letterSpacing: '0.02em',
+        }}>
+          — {quote.author}
+        </div>
+      </div>
+    </div>
+  )
 }

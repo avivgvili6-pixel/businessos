@@ -5,8 +5,9 @@ import { Card, Button, Input, Select, Badge, SectionHeader, Tabs } from '../../.
 import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/calc'
 import { KEY_LIFTS } from '../../../data/programs'
 import { useI18n } from '../../../i18n/i18n'
+import { ProgressPhotosCard } from './ProgressPhotosCard'
 
-export function Profile() {
+export function Profile({ go }) {
  const { state, updateProfile, setWearable, set1RM, reset } = useApp()
  const { isRTL } = useI18n()
  const [tab, setTab] = useState('info')
@@ -17,10 +18,13 @@ export function Profile() {
  <>
  <Tabs tabs={[
  { key:'info', label: isRTL ? 'פרטים' : 'Details'},
+ { key:'photos', label: isRTL ? 'תמונות התקדמות' : 'Progress photos'},
  { key:'strength', label: isRTL ? 'יכולת מירבית (1RM)' : 'Max strength (1RM)'},
  { key:'integrations', label: isRTL ? 'אינטגרציות' : 'Integrations'},
  { key:'settings', label: isRTL ? 'הגדרות' : 'Settings'},
  ]} active={tab} onChange={setTab} />
+
+ {tab === 'photos' && <ProgressPhotosCard go={go} />}
 
  {tab === 'strength'&& <StrengthTab oneRMs={p.oneRMs || {}} set1RM={set1RM} personalRecords={state.personalRecords} />}
 

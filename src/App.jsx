@@ -86,7 +86,7 @@ function AppRouter() {
  personal: <Personal />,
  ondemand: <OnDemand />,
  reminders: <Reminders />,
- profile: <Profile />,
+ profile: <Profile go={setPage} />,
  }
  const adminPages = {
  overview: <Overview />,
