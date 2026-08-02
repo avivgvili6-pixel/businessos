@@ -5,21 +5,66 @@ import { useApp } from '../../../../store/AppStore'
 import { EXERCISE_BY_ID, EQUIPMENT } from '../../../../data/bodybuilding/exercises'
 import { calculatePlates, platesNotation } from '../../../../data/bodybuilding/calculators'
 import { Kicker, SectionHead, Label, Button as SButton } from '../../../../design/components/primitives'
+import { ExerciseGuideButton } from '../../../../components/train/ExerciseGuidePopover'
+
+// Progress persists across close/reopen — user asked for
+// "לא להתאפס אחרי אימון אלא אם לחצי על לאפס".
+const storageKey = (routineId) => `hfos:runner_state:${routineId}`
+
+const buildInitialLive = (routine) => (routine.exercises || []).map(ex => ({
+  ...ex,
+  collapsed: false,
+  sets: (ex.sets || []).map(s => ({ ...s, completed: false, actualWeight: s.weight, actualReps: s.reps })),
+}))
+
+const loadPersistedLive = (routine) => {
+  if (typeof window === 'undefined') return buildInitialLive(routine)
+  try {
+    const raw = localStorage.getItem(storageKey(routine.id))
+    if (!raw) return buildInitialLive(routine)
+    const stored = JSON.parse(raw)
+    // Merge stored state onto the fresh routine template so schema changes
+    // in the routine (added/removed exercises) don't crash the runner.
+    const fresh = buildInitialLive(routine)
+    fresh.forEach((ex, i) => {
+      const storedEx = stored[i]
+      if (!storedEx) return
+      ex.collapsed = !!storedEx.collapsed
+      ex.sets.forEach((s, j) => {
+        const storedSet = storedEx.sets?.[j]
+        if (!storedSet) return
+        s.completed = !!storedSet.completed
+        if (Number.isFinite(storedSet.actualWeight)) s.actualWeight = storedSet.actualWeight
+        if (Number.isFinite(storedSet.actualReps)) s.actualReps = storedSet.actualReps
+      })
+    })
+    return fresh
+  } catch {
+    return buildInitialLive(routine)
+  }
+}
 
 // Live routine runner — user goes through exercises, logs sets, uses rest timer.
 export function RoutineRunner({ routine, open, onClose }) {
  const { logWorkout, bbUpdateExercisePR, state } = useApp()
  const settings = state.workoutSettings || {}
 
- // Working state: array parallel to routine.exercises, each with completed[si]=true/false + actual weight/reps
- const [live, setLive] = useState(() => (routine.exercises || []).map(ex => ({
- ...ex,
- sets: (ex.sets || []).map(s => ({ ...s, completed: false, actualWeight: s.weight, actualReps: s.reps })),
- })))
+ // Working state: array parallel to routine.exercises, each with
+ // completed[si]=true/false + actual weight/reps + a per-exercise
+ // collapsed flag. Persisted to localStorage per-routine.
+ const [live, setLive] = useState(() => loadPersistedLive(routine))
  const [restEnd, setRestEnd] = useState(null) // Date.now() when rest ends, or null
  const [now, setNow] = useState(Date.now())
  const [plateOpen, setPlateOpen] = useState(null) // { weight } to calculate plates for
  const startedAt = useRef(Date.now())
+
+ // Persist on every change
+ useEffect(() => {
+   if (typeof window === 'undefined') return
+   try {
+     localStorage.setItem(storageKey(routine.id), JSON.stringify(live))
+   } catch {}
+ }, [live, routine.id])
 
  useEffect(() => {
  if (!restEnd) return
@@ -72,6 +117,21 @@ export function RoutineRunner({ routine, open, onClose }) {
  setRestEnd(prev => prev + delta * 1000)
  }
  const skipRest = () => setRestEnd(null)
+
+ const toggleCollapse = (exIdx) => {
+   setLive(prev => prev.map((ex, i) => i !== exIdx ? ex : { ...ex, collapsed: !ex.collapsed }))
+ }
+
+ const resetProgress = () => {
+   const anyChecked = live.some(ex => ex.sets.some(s => s.completed))
+   const msg = anyChecked
+     ? 'לאפס את כל הסימונים והמשקלים בשגרה הזאת? הפעולה לא הפיכה.'
+     : 'לאפס את השגרה למצב ההתחלתי?'
+   if (!confirm(msg)) return
+   const fresh = buildInitialLive(routine)
+   setLive(fresh)
+   try { localStorage.removeItem(storageKey(routine.id)) } catch {}
+ }
 
  const finish = () => {
  // Total session volume
@@ -156,17 +216,37 @@ export function RoutineRunner({ routine, open, onClose }) {
  if (!exercise) return null
  const totalWorking = ex.sets.filter(s => s.type !== 'warmup').length
  const completedWorking = ex.sets.filter(s => s.type !== 'warmup'&& s.completed).length
+ const allDone = totalWorking > 0 && completedWorking >= totalWorking
+ const collapsed = !!ex.collapsed
  return (
- <Card key={idx} style={{ marginBottom: t.space.md }}>
- {/* Sport-Refined exercise header */}
- <div style={{
- display:'flex', alignItems:'flex-start', justifyContent:'space-between',
- gap: 8, marginBottom: 14,
- paddingBottom: 12, borderBottom: `1px solid ${t.color.hairline}`,
+ <Card key={idx} style={{
+ marginBottom: t.space.md,
+ border: allDone ? `1px solid ${t.color.wineLight}55` : undefined,
  }}>
+ {/* Header — the whole row is a clickable collapse target */}
+ <button
+   type="button"
+   onClick={() => toggleCollapse(idx)}
+   style={{
+     display:'flex', alignItems:'flex-start', justifyContent:'space-between',
+     gap: 8, width:'100%', textAlign:'right',
+     background:'transparent', border:'none', cursor:'pointer',
+     padding: 0, marginBottom: collapsed ? 0 : 14,
+     paddingBottom: collapsed ? 0 : 12,
+     borderBottom: collapsed ? 'none' : `1px solid ${t.color.hairline}`,
+     fontFamily:'inherit', color: t.color.text,
+   }}
+   aria-expanded={!collapsed}
+ >
  <div style={{ flex: 1 }}>
- <div style={{ marginBottom: 6 }}>
+ <div style={{ marginBottom: 6, display:'flex', alignItems:'center', gap: 8 }}>
  <Kicker color="wine">תרגיל {idx + 1}</Kicker>
+ {allDone && (
+ <span style={{
+   fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: '0.24em',
+   color: '#4a9c6a', fontWeight: 700, textTransform: 'uppercase',
+ }}>· בוצע</span>
+ )}
  </div>
  <div style={{
  fontFamily: t.font.family.display,
@@ -181,17 +261,33 @@ export function RoutineRunner({ routine, open, onClose }) {
  </Label>
  </div>
  </div>
- <div style={{
- fontFamily: t.font.family.display,
- fontSize: 34, fontWeight: t.font.weight.med,
- color: t.color.silver3,
- letterSpacing:'-0.03em',
- fontVariantNumeric:'tabular-nums',
- lineHeight: 1,
- }}>{String(idx + 1).padStart(2,'0')}</div>
+ <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap: 6 }}>
+   <div style={{
+     fontFamily: t.font.family.display,
+     fontSize: 34, fontWeight: t.font.weight.med,
+     color: t.color.silver3,
+     letterSpacing:'-0.03em',
+     fontVariantNumeric:'tabular-nums',
+     lineHeight: 1,
+   }}>{String(idx + 1).padStart(2,'0')}</div>
+   <span style={{
+     fontFamily: t.font.family.mono, fontSize: 10, letterSpacing:'0.16em',
+     color: t.color.silver2, textTransform:'uppercase',
+   }}>
+     {collapsed ? '▾ הרחב' : '▴ סגור'}
+   </span>
  </div>
+ </button>
 
- {ex.notes && (
+ {!collapsed && (
+ <div onClick={e => e.stopPropagation()} style={{ marginBottom: 4 }}>
+   <div style={{ marginBottom: 10 }}>
+     <ExerciseGuideButton exerciseName={exercise.he} compact />
+   </div>
+ </div>
+ )}
+
+ {!collapsed && ex.notes && (
  <div style={{
  background: t.color.panel, padding: 10, borderRadius: t.radius.sm,
  fontSize: t.font.body, color: t.color.silver1, marginBottom: 10,
@@ -202,6 +298,7 @@ export function RoutineRunner({ routine, open, onClose }) {
  </div>
  )}
 
+ {!collapsed && (
  <div style={{
  display:'grid', gridTemplateColumns:'50px 1fr 1fr 40px 40px', gap: 6,
  fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: t.font.track.label,
@@ -214,7 +311,8 @@ export function RoutineRunner({ routine, open, onClose }) {
  <span>Plate</span>
  <span>·</span>
  </div>
- {ex.sets.map((s, si) => {
+ )}
+ {!collapsed && ex.sets.map((s, si) => {
  const setNumber = s.type === 'warmup'? 'W': ex.sets.slice(0, si + 1).filter(x => x.type !== 'warmup').length
  return (
  <div key={si} style={{
@@ -273,11 +371,25 @@ export function RoutineRunner({ routine, open, onClose }) {
  )
  })}
 
- {/* Finish button */}
- <div style={{ position:'sticky', bottom: -24, background: t.color.bgElevated, padding:'16px 0', borderTop: `1px solid ${t.color.border}` }}>
- <SButton variant="primary"size="lg"onClick={finish} full>
- סיים אימון
- </SButton>
+ {/* Sticky footer — reset + finish */}
+ <div style={{
+   position:'sticky', bottom: -24, background: t.color.bgElevated,
+   padding:'16px 0', borderTop: `1px solid ${t.color.border}`,
+   display:'flex', gap: 10,
+ }}>
+ <SButton variant="ghost" size="lg" onClick={resetProgress}>לאפס</SButton>
+ <div style={{ flex: 1 }}>
+   <SButton variant="primary" size="lg" onClick={finish} full>
+     סיים אימון
+   </SButton>
+ </div>
+ </div>
+ <div style={{
+   textAlign:'center', fontSize: 11, color: t.color.silver2,
+   fontFamily: t.font.family.mono, letterSpacing: '0.14em',
+   textTransform: 'uppercase', marginTop: 8,
+ }}>
+   הסימונים נשמרים בין ביקורים · "לאפס" מוחק הכל
  </div>
 
  {/* Plate calculator modal */}
