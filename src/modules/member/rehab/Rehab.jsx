@@ -6,6 +6,7 @@ import { Sparkline } from '../../../components/charts/Charts'
 import { bodyAreas, assessmentQuestions, redFlags, protocols } from '../../../data/rehab'
 import { rehabCuesFor } from '../../../data/rehabCues'
 import { useI18n } from '../../../i18n/i18n'
+import { DisclaimerNote } from '../../../components/legal/DisclaimerNote'
 
 export function Rehab() {
  const { state } = useApp()
@@ -13,6 +14,7 @@ export function Rehab() {
  const [tab, setTab] = useState(state.rehabPrograms.length ? 'active':'start')
  return (
  <>
+ <DisclaimerNote kind="rehab" />
  <Tabs tabs={[
  { key:'active', label:`${isRTL ? 'התכניות שלי' : 'My programs'}${state.rehabPrograms.length ? ' (' + state.rehabPrograms.length + ')':''}` },
  { key:'start', label: isRTL ? 'התחל שיקום חדש' : 'Start new rehab'},

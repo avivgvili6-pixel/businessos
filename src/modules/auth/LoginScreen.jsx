@@ -3,6 +3,7 @@ import { t } from '../../theme/tokens'
 import { useAuth, ADMIN_EMAILS } from '../../auth/AuthContext'
 import { storage } from '../../utils/storage'
 import { useI18n } from '../../i18n/i18n'
+import { LegalFooter } from '../../components/legal/LegalCenter'
 
 // Nike Training Club-inspired auth. Light theme (cream ground, black type,
 // wine primary action), sentence-case sport-refined typography, real form
@@ -712,6 +713,7 @@ export function LoginScreen() {
  }}>
  {supabaseEnabled ? tr('login.footer_supabase') : tr('login.footer_local')}
  </div>
+ <LegalFooter />
  </div>
  </div>
  )

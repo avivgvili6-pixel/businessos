@@ -5,6 +5,7 @@ import { Card, Button, Input, Badge, SectionHeader, Tabs, EmptyState } from '../
 import { Sparkline } from '../../../components/charts/Charts'
 import { MentalChat } from './MentalChat'
 import { useI18n } from '../../../i18n/i18n'
+import { DisclaimerNote } from '../../../components/legal/DisclaimerNote'
 
 const MOOD_EMOJI = ['','','','','','','']
 const CBT_PROMPTS_HE = [
@@ -27,6 +28,7 @@ export function Mind() {
  const [tab, setTab] = useState('chat')
  return (
  <>
+ <DisclaimerNote kind="mental" />
  <Tabs tabs={[
  { key:'chat', label: isRTL ? 'שיחה' : 'Chat'},
  { key:'checkin', label: isRTL ? 'Check-in יומי' : 'Daily check-in'},

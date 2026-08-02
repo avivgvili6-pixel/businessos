@@ -7,6 +7,7 @@ import { exercises, MUSCLE_GROUPS, EQUIPMENT, CATEGORIES, LEVELS, workoutSplits 
 import { programs, programCategories, KEY_LIFTS, computeWeight, formatPrescription } from '../../../data/programs'
 import { todayKey, DAYS_HE } from '../../../utils/date'
 import { PdfImporter } from './PdfImporter'
+import { DisclaimerNote } from '../../../components/legal/DisclaimerNote'
 import { ExerciseGuideButton } from './ExerciseGuide'
 import { workoutEvent, googleCalendarUrl, downloadICS } from '../../../utils/calendar'
 import { distributeWeek, weekDates, nextSundayOf } from '../../../utils/weekSchedule'
@@ -28,6 +29,7 @@ export function Train() {
  const { t: tr } = useI18n()
  return (
  <>
+ <DisclaimerNote kind="training" />
  <Tabs tabs={[
  { key:'plan', label: tr('train.tab.plan') },
  { key:'bb', label: tr('train.tab.bb','אימוני כוח') },

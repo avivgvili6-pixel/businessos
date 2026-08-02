@@ -11,6 +11,7 @@ import { todayKey } from '../../../utils/date'
 import { MealPlanner } from './MealPlanner'
 import { FoodPickerPro } from './FoodPickerPro'
 import { DishBuilder } from './DishBuilder'
+import { DisclaimerNote } from '../../../components/legal/DisclaimerNote'
 import { recipes } from '../../../data/recipes'
 import { useI18n } from '../../../i18n/i18n'
 
@@ -19,6 +20,7 @@ export function Nutrition() {
  const [tab, setTab] = useState('today')
  return (
  <>
+ <DisclaimerNote kind={tab === 'blood' ? 'medical' : 'nutrition'} />
  <Tabs tabs={[
  { key:'today', label: isRTL ? 'היום' : 'Today'},
  { key:'planner', label: isRTL ? 'תכנון שבועי' : 'Weekly plan'},

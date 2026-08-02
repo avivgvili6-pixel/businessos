@@ -6,6 +6,7 @@ import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/
 import { GoalBuilder } from '../goals/GoalBuilder'
 import { useAuth } from '../../../auth/AuthContext'
 import { uploadProgressPhoto } from '../../../services/supabaseSync'
+import { HealthAcknowledgment, readHealthAck } from '../../../components/legal/HealthAcknowledgment'
 
 const STEPS = ['ברוכים הבאים','פרטים אישיים','מטרה חכמה','תזונה','תמונת התחלה','סיום']
 
@@ -26,6 +27,7 @@ export function Onboarding() {
  })
  const [goalPhase, setGoalPhase] = useState('intro') // intro | wizard | done
  const [error, setError] = useState(null)
+ const [needHealthAck, setNeedHealthAck] = useState(false)
 
  const set = (patch) => { setData(d => ({ ...d, ...patch })); setError(null) }
  const next = () => {
@@ -37,7 +39,23 @@ export function Onboarding() {
  setStep(s => Math.min(STEPS.length - 1, s + 1))
  }
  const prev = () => { setError(null); setStep(s => Math.max(0, s - 1)) }
- const finish = () => completeOnboarding(data)
+ const finish = () => {
+ // Require health acknowledgment before entering the app
+ if (!readHealthAck()) { setNeedHealthAck(true); return }
+ completeOnboarding(data)
+ }
+ const afterHealthAck = () => { setNeedHealthAck(false); completeOnboarding(data) }
+
+ // Full-screen ack gate — intercepts finish
+ if (needHealthAck) {
+ return (
+ <div style={{ minHeight:'100vh', background: t.color.bg, padding: t.space.lg, direction:'rtl', color: t.color.text, display:'flex', alignItems:'center' }}>
+ <div style={{ maxWidth: 900, margin:'0 auto', width:'100%' }}>
+ <HealthAcknowledgment onConfirm={afterHealthAck} />
+ </div>
+ </div>
+ )
+ }
 
  // Goal step is FULLSCREEN, not inside the card
  if (step === 2 && goalPhase === 'wizard') {

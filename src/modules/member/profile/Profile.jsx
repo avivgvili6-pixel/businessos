@@ -6,6 +6,7 @@ import { activityFactors, goalAdjustments, dietTemplates } from '../../../utils/
 import { KEY_LIFTS } from '../../../data/programs'
 import { useI18n } from '../../../i18n/i18n'
 import { ProgressPhotosCard } from './ProgressPhotosCard'
+import { LegalCenter } from '../../../components/legal/LegalCenter'
 
 export function Profile({ go }) {
  const { state, updateProfile, setWearable, set1RM, reset } = useApp()
@@ -94,8 +95,11 @@ export function Profile({ go }) {
  </div>
  </Card>
  <Card>
+ <LegalCenter />
+ </Card>
+ <Card>
  <SectionHeader title={isRTL ? 'גרסה' : 'Version'} />
- <div style={{ color: t.color.textDim, fontSize: t.font.sm }}>Holistic Fitness OS · {isRTL ? 'שלד ראשוני' : 'initial skeleton'} · v0.1</div>
+ <div style={{ color: t.color.textDim, fontSize: t.font.sm }}>Selano · v0.1</div>
  </Card>
  </div>
  )}
