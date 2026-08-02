@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
-import { Card, Button, Badge } from '../../../components/ui/UI'
+import { Card, Button, Badge, Input } from '../../../components/ui/UI'
 import { templateToGoal } from '../../../data/goals'
+import { exercises, MUSCLE_GROUPS } from '../../../data/exercises'
 
 // Simple 2-tap goal builder in warm fitness language.
 // Pick a goal → set the amount (wheel/slider or discrete options) → done.
@@ -25,25 +26,19 @@ const QUICK_GOALS = [
  },
  {
  id:'get_stronger', icon:'', label:'להתחזק',
- subtitle:'שיאים חדשים בסקוואט/בנץ׳/דדליפט',
- input: {
- type:'chips',
- options: [
- { value:'squat_100', label:'סקוואט 100 ק״ג', hint:'אתגר קלאסי'},
- { value:'bench_bw', label:'לחיצה במשקל גופי', hint:'סימן דרך חשוב', recommended:true },
- { value:'deadlift_2x', label:'דדליפט פי 2', hint:'הישג מרשים'},
- { value:'first_pullup', label:'המתח הראשון', hint:'טוב במיוחד לנשים'},
- ],
- },
- template: (v) => {
- const map = {
- squat_100: { label:'להגיע לסקוואט 100 ק״ג', kind:'lift_pr', lift:'squat', target:100, unit:'ק״ג', weeks:24 },
- bench_bw: { label:'לחיצת חזה במשקל גוף', kind:'lift_pr', lift:'bench', target:null, unit:'משקל גוף', weeks:24 },
- deadlift_2x: { label:'דדליפט פי 2 ממשקל גוף', kind:'lift_pr', lift:'deadlift', target:null, unit:'2× משקל גוף', weeks:36 },
- first_pullup: { label:'המתח הראשון', kind:'lift_pr', lift:'pullup', target:1, unit:'חזרה', weeks:12 },
- }
- return { id: v, ...map[v] }
- },
+ subtitle:'בחר תרגיל מהמאגר וקבע יעד משקל',
+ input: { type:'exercise_picker' },
+ template: (v) => ({
+ id:`lift_${v.exerciseId}`,
+ label: v.target
+ ? `להגיע ל-${v.target} ק״ג ב${v.exerciseName}`
+ : `לבצע חזרה אחת של ${v.exerciseName}`,
+ kind:'lift_pr',
+ lift: v.exerciseId,
+ target: v.target,
+ unit: v.target ? 'ק״ג' : 'חזרה',
+ weeks: 16,
+ }),
  direction:'performance',
  },
  {
@@ -196,21 +191,24 @@ function PickCategory({ onPick, onAdvanced }) {
 }
 
 function PickAmount({ category, onDone, onBack }) {
- const isWheel = category.input.type === 'wheel'
+ const kind = category.input.type
+ const headline = kind === 'wheel'
+ ? 'קבע/י את הכמות המדויקת שלך'
+ : kind === 'exercise_picker'
+ ? 'בחר תרגיל וקבע יעד משקל'
+ : 'איזה יעד מתאים לך?'
 
  return (
  <>
  <div style={{ textAlign:'center', padding:'20px 0 10px'}}>
  <div style={{ fontSize: 40, marginBottom: 10 }}>{category.icon}</div>
  <h2 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 6 }}>{category.label}</h2>
- <div style={{ color: t.color.textDim, fontSize: t.font.md }}>
- {isWheel ? 'קבע/י את הכמות המדויקת שלך':'איזה יעד מתאים לך?'}
- </div>
+ <div style={{ color: t.color.textDim, fontSize: t.font.md }}>{headline}</div>
  </div>
 
- {isWheel
- ? <WheelPicker input={category.input} onDone={onDone} />
- : <ChipsPicker options={category.input.options} onDone={onDone} />}
+ {kind === 'wheel' && <WheelPicker input={category.input} onDone={onDone} />}
+ {kind === 'chips' && <ChipsPicker options={category.input.options} onDone={onDone} />}
+ {kind === 'exercise_picker' && <ExercisePicker onDone={onDone} />}
 
  <div style={{ textAlign:'center', marginTop: 8 }}>
  <button onClick={onBack} style={{
@@ -219,6 +217,174 @@ function PickAmount({ category, onDone, onBack }) {
  }}>→ חזור</button>
  </div>
  </>
+ )
+}
+
+// ─── Exercise picker ────────────────────────────────────────────
+// Search + filter (by muscle / alphabetical) over the whole exercise
+// database. Pick one, set the target weight (kg), save.
+function ExercisePicker({ onDone }) {
+ const [query, setQuery] = useState('')
+ const [mode, setMode] = useState('muscle') // 'muscle' | 'alpha'
+ const [activeMuscle, setActiveMuscle] = useState(null)
+ const [selected, setSelected] = useState(null)
+ const [target, setTarget] = useState('')
+
+ const availableMuscles = useMemo(() => {
+ const set = new Set(exercises.map(e => e.muscle))
+ return MUSCLE_GROUPS.filter(m => set.has(m))
+ }, [])
+
+ const list = useMemo(() => {
+ let out = exercises
+ if (query.trim()) {
+ const q = query.trim().toLowerCase()
+ out = out.filter(e => e.name.toLowerCase().includes(q))
+ }
+ if (mode === 'muscle' && activeMuscle) {
+ out = out.filter(e => e.muscle === activeMuscle || (e.secondary || []).includes(activeMuscle))
+ }
+ if (mode === 'alpha') {
+ out = [...out].sort((a, b) => a.name.localeCompare(b.name, 'he'))
+ } else {
+ out = [...out].sort((a, b) => a.muscle.localeCompare(b.muscle, 'he') || a.name.localeCompare(b.name, 'he'))
+ }
+ return out
+ }, [query, mode, activeMuscle])
+
+ const commit = () => {
+ if (!selected) return
+ const targetKg = target ? Math.max(0, +target) : null
+ onDone({
+ exerciseId: selected.id,
+ exerciseName: selected.name,
+ target: targetKg,
+ })
+ }
+
+ if (selected) {
+ return (
+ <Card style={{ padding: 24 }}>
+ <div style={{ textAlign:'center', paddingBottom: 18 }}>
+ <Badge color={t.color.wineLight}>{selected.muscle}</Badge>
+ <div style={{ fontWeight: 800, fontSize: t.font.xxl, marginTop: 10 }}>{selected.name}</div>
+ {selected.tips && (
+ <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginTop: 6 }}>{selected.tips}</div>
+ )}
+ </div>
+
+ <div style={{ marginBottom: 16 }}>
+ <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 8 }}>
+ יעד משקל (ק״ג) — השאר ריק ליעד "לבצע חזרה אחת"
+ </div>
+ <Input
+ type="number"
+ inputMode="numeric"
+ placeholder="לדוגמה: 100"
+ value={target}
+ onChange={e => setTarget(e.target.value)}
+ />
+ </div>
+
+ <div style={{ display:'flex', gap: 10, justifyContent:'center', flexWrap:'wrap'}}>
+ <Button variant="ghost" onClick={() => { setSelected(null); setTarget('') }}>← החלף תרגיל</Button>
+ <Button size="lg" onClick={commit}>
+ {target ? `יאללה — ${target} ק״ג ב${selected.name}` : `יאללה — חזרה ראשונה ב${selected.name}`}
+ </Button>
+ </div>
+ </Card>
+ )
+ }
+
+ return (
+ <Card style={{ padding: 18 }}>
+ <Input
+ placeholder=" חפש תרגיל (למשל: סקוואט)…"
+ value={query}
+ onChange={e => setQuery(e.target.value)}
+ />
+
+ <div style={{ display:'flex', gap: 6, background: t.color.bgSoft, padding: 4, borderRadius: t.radius.md, marginTop: 12 }}>
+ <ModeChip active={mode === 'muscle'} onClick={() => setMode('muscle')}>לפי שריר</ModeChip>
+ <ModeChip active={mode === 'alpha'} onClick={() => { setMode('alpha'); setActiveMuscle(null) }}>לפי א-ב</ModeChip>
+ </div>
+
+ {mode === 'muscle' && (
+ <div style={{ display:'flex', flexWrap:'wrap', gap: 6, marginTop: 12 }}>
+ <FilterChip active={!activeMuscle} onClick={() => setActiveMuscle(null)}>הכל</FilterChip>
+ {availableMuscles.map(m => (
+ <FilterChip key={m} active={activeMuscle === m} onClick={() => setActiveMuscle(m)}>{m}</FilterChip>
+ ))}
+ </div>
+ )}
+
+ <div style={{
+ marginTop: 14, display:'grid', gap: 6,
+ maxHeight: 380, overflowY:'auto',
+ padding: 4,
+ }}>
+ {list.length === 0 && (
+ <div style={{ padding: 20, textAlign:'center', color: t.color.textDim, fontSize: t.font.sm }}>
+ לא נמצא תרגיל. נסה חיפוש אחר או פילטר אחר.
+ </div>
+ )}
+ {list.map(ex => (
+ <button
+ key={ex.id}
+ onClick={() => setSelected(ex)}
+ style={{
+ padding:'12px 14px',
+ background: t.color.bgSoft,
+ border:`1px solid ${t.color.border}`,
+ borderRadius: t.radius.sm,
+ color: t.color.text, cursor:'pointer', fontFamily:'inherit',
+ textAlign:'right', width:'100%',
+ display:'flex', justifyContent:'space-between', alignItems:'center', gap: 12,
+ transition: t.transition,
+ }}
+ onMouseEnter={e => { e.currentTarget.style.borderColor = t.color.wineLight }}
+ onMouseLeave={e => { e.currentTarget.style.borderColor = t.color.border }}
+ >
+ <div style={{ flex: 1, minWidth: 0, textAlign:'right'}}>
+ <div style={{ fontWeight: 700, fontSize: t.font.md }}>{ex.name}</div>
+ <div style={{ color: t.color.textDim, fontSize: t.font.xs, marginTop: 2 }}>
+ {ex.muscle} · {ex.equipment} · {ex.level}
+ </div>
+ </div>
+ <div style={{ color: t.color.wineLight, fontSize: 18 }}>←</div>
+ </button>
+ ))}
+ </div>
+
+ <div style={{ marginTop: 10, fontSize: t.font.xs, color: t.color.textMuted, textAlign:'center'}}>
+ {list.length} תרגילים במאגר {activeMuscle ? `· מסונן ל${activeMuscle}` : ''}
+ </div>
+ </Card>
+ )
+}
+
+function ModeChip({ active, onClick, children }) {
+ return (
+ <button onClick={onClick} style={{
+ flex: 1, padding:'10px 14px', border:'none', fontFamily:'inherit', cursor:'pointer',
+ background: active ? t.color.bgCard :'transparent',
+ color: active ? t.color.wineLight : t.color.textDim,
+ fontWeight: 600, borderRadius: t.radius.sm, fontSize: t.font.sm,
+ }}>{children}</button>
+ )
+}
+
+function FilterChip({ active, onClick, children }) {
+ return (
+ <button onClick={onClick} style={{
+ padding:'6px 12px',
+ background: active ? t.color.wineLight :'transparent',
+ border:`1px solid ${active ? t.color.wineLight : t.color.border}`,
+ color: active ? t.color.white : t.color.silver1,
+ borderRadius: t.radius.pill, cursor:'pointer', fontFamily:'inherit',
+ fontSize: t.font.xs, fontWeight: 600,
+ transition: t.transition,
+ }}>{children}</button>
  )
 }
 
