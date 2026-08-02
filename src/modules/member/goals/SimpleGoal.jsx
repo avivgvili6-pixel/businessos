@@ -41,6 +41,13 @@ const QUICK_GOALS = [
  }),
  direction:'performance',
  },
+ {
+ id:'body_fat', icon:'', label:'להוריד % שומן',
+ subtitle:'לחטב את הגוף בלי לרדת מדי במשקל',
+ input: { type:'wheel', unit:'% שומן', min:1, max:15, step:0.5, default:5, format: v => `${v}% שומן פחות` },
+ template: (v) => ({ id:'cut_fat', label:`להוריד ${v}% שומן גוף`, kind:'body_fat', delta:-v, unit:'%', weeks: Math.max(8, Math.round(v * 4)) }),
+ direction:'aesthetics',
+ },
 ]
 
 export function SimpleGoal({ onDone, onGoAdvanced }) {
