@@ -94,8 +94,9 @@ export function RoutineRunner({ routine, open, onClose }) {
  if (newCompleted && exInRoutine.restSeconds > 0) {
  setRestEnd(Date.now() + exInRoutine.restSeconds * 1000)
  }
- // Update PR if this is a working set that was just completed
- if (newCompleted && s.type !== 'warmup'&& s.actualWeight > 0 && s.actualReps > 0) {
+ // Update PR only for cataloged exercises (free-text legend
+ // exercises have no id and can't be tracked in the PR system)
+ if (newCompleted && s.type !== 'warmup' && s.actualWeight > 0 && s.actualReps > 0 && exInRoutine.exerciseId) {
  bbUpdateExercisePR({
  exerciseId: exInRoutine.exerciseId,
  weight: s.actualWeight,
@@ -144,8 +145,8 @@ export function RoutineRunner({ routine, open, onClose }) {
  exercises: live.map(ex => {
  const exercise = EXERCISE_BY_ID[ex.exerciseId]
  return {
- id: ex.exerciseId,
- name: exercise?.he || ex.exerciseId,
+ id: ex.exerciseId || null,
+ name: exercise?.he || ex.exerciseName || ex.name || 'תרגיל',
  sets: (ex.sets || []).filter(s => s.completed).map(s => ({
  w: s.actualWeight, r: s.actualReps, type: s.type,
  })),
@@ -158,8 +159,9 @@ export function RoutineRunner({ routine, open, onClose }) {
  },
  })
 
- // Update session volume PRs
+ // Update session volume PRs — cataloged exercises only
  for (const ex of live) {
+ if (!ex.exerciseId) continue
  const exVolume = (ex.sets || []).filter(s => s.completed && s.type !== 'warmup').reduce((sum, s) => sum + (s.actualWeight * s.actualReps), 0)
  if (exVolume > 0) {
  bbUpdateExercisePR({
@@ -170,7 +172,7 @@ export function RoutineRunner({ routine, open, onClose }) {
  }
  }
 
- alert(` סיימת!\n⏱ ${durationMin} דקות\n ${totalVolume.toFixed(0)}kg נפח כולל`)
+ alert(`סיימת!\n${durationMin} דקות · ${totalVolume.toFixed(0)}kg נפח כולל`)
  onClose()
  }
 
@@ -212,8 +214,11 @@ export function RoutineRunner({ routine, open, onClose }) {
 
  {/* Exercises */}
  {live.map((ex, idx) => {
- const exercise = EXERCISE_BY_ID[ex.exerciseId]
- if (!exercise) return null
+ // Free-text exercises (from Legend routines etc.) don't have an id
+ // in the BB catalog — fall back to the stored exerciseName.
+ const cataloged = EXERCISE_BY_ID[ex.exerciseId]
+ const exercise = cataloged || { he: ex.exerciseName || ex.name || 'תרגיל', en: '' }
+ if (!ex.sets) return null
  const totalWorking = ex.sets.filter(s => s.type !== 'warmup').length
  const completedWorking = ex.sets.filter(s => s.type !== 'warmup'&& s.completed).length
  const allDone = totalWorking > 0 && completedWorking >= totalWorking

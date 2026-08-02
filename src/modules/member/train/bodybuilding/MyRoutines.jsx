@@ -121,12 +121,13 @@ function RoutineCard({ routine, isSystem, onRun, onEdit, onDelete }) {
  </div>
  <div style={{ display:'flex', gap: 4, flexWrap:'wrap'}}>
  {(routine.exercises || []).slice(0, 3).map((ex, i) => {
- const exercise = EXERCISE_BY_ID[ex.exerciseId]
- return exercise ? (
+ const cataloged = EXERCISE_BY_ID[ex.exerciseId]
+ const label = cataloged?.he || ex.exerciseName || ex.name
+ return label ? (
  <span key={i} style={{
  fontSize: t.font.xs, color: t.color.textDim,
  background: t.color.bgSoft, padding:'2px 8px', borderRadius: t.radius.pill,
- }}>{exercise.he}</span>
+ }}>{label}</span>
  ) : null
  })}
  {(routine.exercises || []).length > 3 && (

@@ -545,8 +545,8 @@ function ManualBuilder({ routine, seedExercises, open, onClose, onBack }) {
 }
 
 function ExerciseInRoutine({ exerciseInRoutine: ex, idx, onUpdate, onDelete, onToggleSupersetWithNext, isSupersetTopHalf, isSupersetBottomHalf }) {
-  const exercise = EXERCISE_BY_ID[ex.exerciseId]
-  if (!exercise) return null
+  const cataloged = EXERCISE_BY_ID[ex.exerciseId]
+  const exercise = cataloged || { he: ex.exerciseName || ex.name || 'תרגיל', en: '' }
 
   const addSet = (type = 'working') => {
     onUpdate({ sets: [...(ex.sets || []), { type, weight: 0, reps: 0 }] })
