@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { t } from '../../../../theme/tokens'
 import { Modal, Card, Button, Input, Badge } from '../../../../components/ui/UI'
 import { useApp } from '../../../../store/AppStore'
-import { EXERCISES, EXERCISE_BY_ID, EQUIPMENT, MUSCLE_GROUPS } from '../../../../data/bodybuilding/exercises'
+import { EXERCISES, EXERCISE_BY_ID, EQUIPMENT, MUSCLE_GROUPS } from '../../../../data/bodybuilding/exercisesUnified'
 
 // ─── Level & goal presets ─────────────────────────────────
 // 4 levels, each layers on intensifiers (supersets, dropsets)
@@ -706,6 +706,13 @@ function ExercisePicker({ open, onClose, onSelect }) {
               <div style={{ color: t.color.wineLight, fontWeight: 600 }}>{ex.he}</div>
               <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{ex.en}</div>
             </div>
+            {ex.source === 'general' && (
+              <span style={{
+                fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: t.color.silver2, padding: '2px 6px',
+                border: `1px solid ${t.color.border}`, borderRadius: 3,
+              }}>Lib</span>
+            )}
           </button>
         ))}
       </div>
