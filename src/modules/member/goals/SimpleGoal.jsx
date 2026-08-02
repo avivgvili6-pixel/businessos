@@ -242,7 +242,9 @@ function ExercisePicker({ onDone }) {
  out = out.filter(e => e.name.toLowerCase().includes(q))
  }
  if (mode === 'muscle' && activeMuscle) {
- out = out.filter(e => e.muscle === activeMuscle || (e.secondary || []).includes(activeMuscle))
+ // Match the primary muscle only — secondary matches added noise
+ // (bench press showing under Shoulders, running under Legs, etc).
+ out = out.filter(e => e.muscle === activeMuscle)
  }
  if (mode === 'alpha') {
  out = [...out].sort((a, b) => a.name.localeCompare(b.name, 'he'))
