@@ -7,13 +7,11 @@ import { useI18n } from '../../i18n/i18n'
 const MEMBER_NAV_KEYS = [
  { key:'home', i18n:'nav.home' },
  { key:'goals', i18n:'nav.goals' },
- { key:'insights', i18n:'nav.insights' },
  { key:'progress', i18n:'nav.progress' },
  { key:'train', i18n:'nav.train' },
  { key:'rehab', i18n:'nav.rehab' },
  { key:'nutrition', i18n:'nav.nutrition' },
  { key:'mind', i18n:'nav.mind' },
- { key:'habits', i18n:'nav.habits' },
  { key:'calendar', i18n:'nav.calendar' },
  { key:'reminders', i18n:'nav.reminders' },
  { key:'ondemand', i18n:'nav.ondemand' },
@@ -29,8 +27,6 @@ const ADMIN_NAV_KEYS = [
  { key:'requests', i18n:'nav.coach_requests' },
  { key:'members', i18n:'nav.members' },
  { key:'team', i18n:'nav.team' },
- { key:'schedule', i18n:'nav.schedule' },
- { key:'content', i18n:'nav.content' },
  { key:'billing', i18n:'nav.billing' },
  { key:'analytics', i18n:'nav.analytics' },
  { key:'alerts', i18n:'nav.alerts' },
@@ -375,7 +371,7 @@ function ResponsiveStyle() {
 function getPrimaryNav(nav, currentPage) {
  // For member app, prioritize daily-use pages
  const priorityMember = ['home','goals','train','nutrition']
- const priorityAdmin = ['overview','members','schedule','alerts']
+ const priorityAdmin = ['overview','members','requests','alerts']
  const isAdmin = nav[0]?.key === 'overview'
  const priority = isAdmin ? priorityAdmin : priorityMember
  const primary = nav.filter(n => priority.includes(n.key))

@@ -10,14 +10,12 @@ import { Onboarding } from './modules/member/onboarding/Onboarding'
 
 // member
 import { Home } from './modules/member/home/Home'
-import { Insights } from './modules/member/insights/Insights'
 import { Goals } from './modules/member/goals/Goals'
 import { Progress } from './modules/member/progress/Progress'
 import { Train } from './modules/member/train/Train'
 import { Rehab } from './modules/member/rehab/Rehab'
 import { Nutrition } from './modules/member/nutrition/Nutrition'
 import { Mind } from './modules/member/mind/Mind'
-import { Habits } from './modules/member/habits/Habits'
 import { Calendar } from './modules/member/calendar/Calendar'
 import { Store } from './modules/member/store/Store'
 import { Personal } from './modules/member/personal/Personal'
@@ -29,8 +27,6 @@ import { Reminders } from './modules/member/reminders/Reminders'
 import { Overview } from './modules/admin/overview/Overview'
 import { Members } from './modules/admin/members/Members'
 import { Team } from './modules/admin/team/Team'
-import { Schedule } from './modules/admin/schedule/Schedule'
-import { Content } from './modules/admin/content/Content'
 import { Billing } from './modules/admin/billing/Billing'
 import { Analytics } from './modules/admin/analytics/Analytics'
 import { Alerts } from './modules/admin/alerts/Alerts'
@@ -74,13 +70,11 @@ function AppRouter() {
  const memberPages = {
  home: <Home go={setPage} />,
  goals: <Goals go={setPage} />,
- insights: <Insights go={setPage} />,
  progress: <Progress />,
  train: <Train />,
  rehab: <Rehab />,
  nutrition: <Nutrition />,
  mind: <Mind />,
- habits: <Habits />,
  calendar: <Calendar />,
  store: <Store />,
  personal: <Personal />,
@@ -95,8 +89,6 @@ function AppRouter() {
  requests: <CoachRequests />,
  members: <Members />,
  team: <Team />,
- schedule: <Schedule />,
- content: <Content />,
  billing: <Billing />,
  analytics: <Analytics />,
  alerts: <Alerts />,

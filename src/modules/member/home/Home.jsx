@@ -2,21 +2,18 @@ import React from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Button, Ring, Stat, Badge, SectionHeader, ProgressBar } from '../../../components/ui/UI'
-import { Sparkline, BarChart } from '../../../components/charts/Charts'
+import { BarChart } from '../../../components/charts/Charts'
 import { greeting, DAYS_SHORT_HE, todayKey } from '../../../utils/date'
 import { bmr, tdee, macros, goalAdjustments, dietTemplates, waterLiters } from '../../../utils/calc'
-import { runEngine, severityColor } from '../../../engine/adaptationEngine'
 import { DailyBoost } from '../../../components/notifications/DailyBoost'
-import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/components/primitives'
+import { Kicker, SectionHead } from '../../../design/components/primitives'
 import { useI18n } from '../../../i18n/i18n'
 
 export function Home({ go }) {
  const { state } = useApp()
  const { isRTL } = useI18n()
- const { profile, habits, moodCheckins, mealLogs, workoutLogs } = state
+ const { profile, moodCheckins, mealLogs, workoutLogs } = state
  const first = profile.name?.split(' ')[0] || (isRTL ? 'אלוף' : 'Champion')
- const insights = React.useMemo(() => runEngine(state), [state])
- const topInsight = insights[0]
  const _bmr = bmr(profile)
  const _tdee = tdee(_bmr, profile.activity)
  const goalDelta = goalAdjustments[profile.goalKey]?.kcalDelta || 0
@@ -26,7 +23,6 @@ export function Home({ go }) {
 
  const todayMeals = mealLogs[todayKey()] || []
  const todayKcal = Math.round(todayMeals.reduce((s, m) => s + (m.kcal || 0), 0))
- const habitDone = habits.filter(h => h.doneToday).length
  const lastMood = moodCheckins[0]
 
  const readiness = calcReadiness({ mood: lastMood?.mood ?? 7, sleep: lastMood?.sleepHours ?? 7, stress: lastMood?.stress ?? 4 })
@@ -86,13 +82,6 @@ export function Home({ go }) {
  <Card style={{ padding: 16 }}>
  <Stat icon=" " label={isRTL ? 'אימונים השבוע' : 'Workouts this week'} value={weekWorkouts(workoutLogs)} delta={`${workoutLogs.length} ${isRTL ? 'סה״כ' : 'total'}`} deltaColor={t.color.textDim} />
  </Card>
- <Card style={{ padding: 16 }}>
- <Stat icon=" " label={isRTL ? 'הרגלים היום' : 'Habits today'} value={`${habitDone}/${habits.length}`} />
- <ProgressBar value={habitDone} max={habits.length} color={t.color.success} style={{ marginTop: 8 }} />
- </Card>
- <Card style={{ padding: 16 }}>
- <Stat icon=" " label={isRTL ? 'מצב רוח' : 'Mood'} value={lastMood ? `${lastMood.mood}/10` : '—'} delta={lastMood ? (isRTL ? `אנרגיה ${lastMood.energy}/10` : `Energy ${lastMood.energy}/10`) : (isRTL ? 'טרם נבדק' : 'Not checked in')} deltaColor={t.color.textDim} />
- </Card>
  </div>
 
  {/* Focus row */}
@@ -111,14 +100,11 @@ export function Home({ go }) {
  <div style={{ display:'grid', gap: 10 }}>
  <QuickAction icon=" " text={isRTL ? 'התחל אימון היום' : "Start today's workout"} onClick={() => go('train')} />
  <QuickAction icon=" " text={isRTL ? 'הוסף ארוחה' : 'Log a meal'} onClick={() => go('nutrition')} />
- <QuickAction icon=" " text={isRTL ? 'Check-in מנטלי' : 'Mental check-in'} onClick={() => go('mind')} />
- <QuickAction icon=" " text={isRTL ? 'סמן הרגל' : 'Mark a habit'} onClick={() => go('habits')} />
  </div>
  </Card>
  </div>
 
- {/* Macros ring + AI insight */}
- <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr', gap: 20 }} className="hfos-grid-2">
+ {/* Macros ring */}
  <Card>
  <SectionHeader title={isRTL ? 'יעדי מקרו יומיים' : 'Daily macro targets'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12, marginTop: 8 }}>
@@ -132,31 +118,6 @@ export function Home({ go }) {
    : `Water target: ${waterLiters(profile.weightKg, profile.activity)}L · Diet: ${diet.label}`}
  </div>
  </Card>
- <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgSoft} 100%)`, position:'relative', overflow:'hidden', cursor:'pointer'}} onClick={() => go('insights')}>
- <div style={{ position:'absolute', top: -20, left: -20, width: 120, height: 120, background: topInsight ? `${severityColor(topInsight.severity)}22` : t.color.goldGlow, borderRadius:'50%', filter:'blur(30px)'}} />
- <div style={{ display:'flex', gap: 8, alignItems:'center'}}>
- <Badge color={topInsight ? severityColor(topInsight.severity) : t.color.gold}>{topInsight?.icon || ' '} תובנת המנוע</Badge>
- {insights.length > 1 && <Badge color={t.color.textDim}>+{insights.length - 1} תובנות נוספות</Badge>}
- </div>
- {topInsight ? (
- <>
- <div style={{ marginTop: 12, fontSize: t.font.lg, fontWeight: 700, lineHeight: 1.4 }}>{topInsight.title}</div>
- <div style={{ marginTop: 6, fontSize: t.font.sm, color: t.color.textDim, lineHeight: 1.6 }}>{topInsight.body}</div>
- <div style={{ marginTop: 14, display:'flex', gap: 10, alignItems:'center'}}>
- <Button size="sm"onClick={(e) => { e.stopPropagation(); go(topInsight.action?.target || 'insights') }}>{topInsight.action?.label || 'פתח תובנות'} ←</Button>
- </div>
- </>
- ) : (
- <>
- <div style={{ marginTop: 12, fontSize: t.font.lg, fontWeight: 600, lineHeight: 1.5 }}>הכל מסונכרן. המשך במה שאתה עושה - נותן לך תובנות ברגע שמשהו יתפוס תשומת לב.</div>
- <div style={{ marginTop: 14, display:'flex', gap: 10, alignItems:'center'}}>
- <Sparkline data={[62, 64, 63, 66, 68, 71, 72]} height={30} />
- <Badge color={t.color.success}>מגמה חיובית</Badge>
- </div>
- </>
- )}
- </Card>
- </div>
  <style>{`
  @media (max-width: 900px) { .hfos-grid-2 { grid-template-columns: 1fr !important; } }
  @media (max-width: 500px) {
