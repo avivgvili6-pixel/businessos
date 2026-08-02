@@ -212,6 +212,29 @@ export function RoutineRunner({ routine, open, onClose }) {
  </div>
  )}
 
+ {/* Empty state — usually means a legacy routine adopted before the
+     name-fallback fix, or a corrupt entry. Give the user an actionable
+     out instead of an empty modal. */}
+ {live.length === 0 && (
+ <div style={{
+   padding: '32px 20px', textAlign: 'center',
+   background: t.color.bgSoft, borderRadius: t.radius.md,
+   border: `1px dashed ${t.color.border}`,
+ }}>
+   <div style={{
+     fontFamily: t.font.family.mono, fontSize: 10, letterSpacing: '0.22em',
+     textTransform: 'uppercase', color: t.color.wineLight, fontWeight: 700,
+     marginBottom: 10,
+   }}>אין תרגילים ברוטינה</div>
+   <div style={{ fontSize: 14, color: t.color.text, marginBottom: 6, fontWeight: 600 }}>
+     הרוטינה הזאת נשמרה בגרסה מוקדמת ואין בה תרגילים לרוץ.
+   </div>
+   <div style={{ fontSize: 12, color: t.color.silver1, marginBottom: 16, lineHeight: 1.5 }}>
+     לך ל־Legends, אמץ את התכנית מחדש — ותקבל רוטינה חדשה שעובדת.
+     <br/>מומלץ לפני זה למחוק את הרוטינה הזאת מ־Routines כדי לא להתבלבל.
+   </div>
+ </div>
+ )}
  {/* Exercises */}
  {live.map((ex, idx) => {
  // Free-text exercises (from Legend routines etc.) don't have an id
