@@ -1,20 +1,22 @@
 import React, { useState } from 'react'
 import { t } from '../../theme/tokens'
 import { Modal } from '../ui/UI'
-import { resolveGuide, youtubeSearchUrl, youtubeEmbedUrl } from '../../data/bodybuilding/exerciseGuides'
+import { resolveGuide, youtubeSearchUrl, youtubeEmbedUrl, youtubeThumbUrl } from '../../data/bodybuilding/exerciseGuides'
 import { useI18n } from '../../i18n/i18n'
+import { useApp } from '../../store/AppStore'
 
 // Compact "דגשים + סרטון" button that opens a modal with cues and
-// an embedded YouTube video (or a search link when no ID is known).
-//
-// Usage:
-//   <ExerciseGuideButton exercise={exObj} />
-//   <ExerciseGuideButton exerciseName="סקוואט חזיתי" />
-
+// an embedded YouTube video. Presenter matches user's gender when
+// a female-presenter alternate is available — a male user sees the
+// male trainer, a female user sees the female trainer.
 export function ExerciseGuideButton({ exercise, exerciseName, compact = false }) {
   const [open, setOpen] = useState(false)
   const { isRTL } = useI18n()
-  const guide = resolveGuide(exercise || exerciseName)
+  const { state } = useApp()
+  const sex = state?.profile?.sex === 'female' ? 'female' : 'male'
+  const [presenterOverride, setPresenterOverride] = useState(null)
+  const activeSex = presenterOverride || sex
+  const guide = resolveGuide(exercise || exerciseName, activeSex)
 
   return (
     <>
@@ -54,14 +56,18 @@ export function ExerciseGuideButton({ exercise, exerciseName, compact = false })
 
       {open && (
         <Modal open onClose={() => setOpen(false)} title={guide.name} width={640}>
-          <ExerciseGuideContent guide={guide} />
+          <ExerciseGuideContent
+            guide={guide}
+            activeSex={activeSex}
+            onPresenterChange={setPresenterOverride}
+          />
         </Modal>
       )}
     </>
   )
 }
 
-export function ExerciseGuideContent({ guide }) {
+export function ExerciseGuideContent({ guide, activeSex, onPresenterChange }) {
   const { isRTL } = useI18n()
   const hasVideo = !!guide.video.id
 
@@ -69,7 +75,34 @@ export function ExerciseGuideContent({ guide }) {
     <div style={{ display: 'grid', gap: 16 }}>
       {/* Video block */}
       <div>
-        <SectionLabel>{isRTL ? 'סרטון דוגמה' : 'Reference video'}</SectionLabel>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 6, flexWrap: 'wrap', gap: 8,
+        }}>
+          <SectionLabel>{isRTL ? 'סרטון דוגמה' : 'Reference video'}</SectionLabel>
+          {onPresenterChange && (
+            <div style={{
+              display: 'flex', gap: 2, background: t.color.bgSoft,
+              padding: 3, borderRadius: t.radius.pill,
+              fontFamily: t.font.family.mono, fontSize: 10,
+              letterSpacing: '0.14em', textTransform: 'uppercase',
+            }}>
+              {['male', 'female'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => onPresenterChange(s)}
+                  style={{
+                    padding: '4px 12px',
+                    background: activeSex === s ? t.color.wineLight : 'transparent',
+                    color: activeSex === s ? t.color.white : t.color.silver1,
+                    border: 'none', borderRadius: t.radius.pill, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 10, fontWeight: 700,
+                  }}
+                >{s === 'male' ? (isRTL ? 'גבר' : 'Male') : (isRTL ? 'אישה' : 'Female')}</button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {hasVideo ? (
           <>

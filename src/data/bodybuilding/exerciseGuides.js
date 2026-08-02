@@ -12,22 +12,24 @@
 
 // ─── Curated video IDs — top ~40 movements ─────────────────────
 // Every ID here is a well-known trainer/coach on YouTube.
-// Attribution shown to the user via `ytBy`.
+// Attribution shown to the user via `ytBy`. Optional `femaleId`
+// points to a female-presenter alternate so a female user watches
+// a demo by someone with the same physique.
 export const VIDEO_MAP = {
-  squat:            { id: 'ultWZbUMPL8', by: 'Jeff Nippard' },
+  squat:            { id: 'ultWZbUMPL8', by: 'Jeff Nippard', femaleId: 'ZOJVQFrEO0Y', femaleBy: 'Stefi Cohen' },
   front_squat:      { id: 'iZTd8UkO_MQ', by: 'Squat University' },
-  bulgarian_split:  { id: '2C-uNgKwPLE', by: 'Athlean-X' },
+  bulgarian_split:  { id: '2C-uNgKwPLE', by: 'Athlean-X', femaleId: 'PBBAsSFP49k', femaleBy: 'Sohee Fit' },
   hack_squat:       { id: 'EdtaJRBqwis', by: 'Renaissance Periodization' },
   leg_press:        { id: 'IZxyjW7MPJQ', by: 'Renaissance Periodization' },
   leg_extension:    { id: 'YyvSfVjQeL0', by: 'Athlean-X' },
   leg_curl:         { id: 'ELOCsoDSmrg', by: 'Renaissance Periodization' },
   romanian_dl:      { id: 'FQ6of-P90ao', by: 'Squat University' },
-  hip_thrust:       { id: 'xDmFkJxPzeM', by: 'Bret Contreras' },
+  hip_thrust:       { id: 'xDmFkJxPzeM', by: 'Bret Contreras', femaleId: 'LM8XHLYJoYs', femaleBy: 'Bret Contreras · demo' },
   calf_raise:       { id: 'YMmgqO8Jo-k', by: 'Athlean-X' },
 
-  deadlift:         { id: 'op9kVnSso6Q', by: 'Alan Thrall' },
+  deadlift:         { id: 'op9kVnSso6Q', by: 'Alan Thrall', femaleId: 'AweC3UaM14o', femaleBy: 'Stefi Cohen' },
   sumo_deadlift:    { id: 'wYREQkVtvEc', by: 'Alan Thrall' },
-  pullup:           { id: 'eGo4IYlbE5g', by: 'Athlean-X' },
+  pullup:           { id: 'eGo4IYlbE5g', by: 'Athlean-X', femaleId: 'HRV5YKKaeVw', femaleBy: 'Sohee Fit' },
   chinup:           { id: 'brhRXlOhkAM', by: 'Athlean-X' },
   lat_pulldown:     { id: 'CAwf7n6Luuc', by: 'Renaissance Periodization' },
   row_barbell:      { id: 'FWJR5Ve8bnQ', by: 'Squat University' },
@@ -37,7 +39,7 @@ export const VIDEO_MAP = {
   face_pull:        { id: 'V8dZ3pyiCBo', by: 'Athlean-X' },
   shrug:            { id: 'g6qbq4Lf1FI', by: 'Athlean-X' },
 
-  bench:            { id: 'vcBig73ojpE', by: 'Jeff Nippard' },
+  bench:            { id: 'vcBig73ojpE', by: 'Jeff Nippard', femaleId: 'IODxDxX7oi4', femaleBy: 'Meg Squats' },
   bench_incline:    { id: 'jPLdzuHckI8', by: 'Renaissance Periodization' },
   bench_decline:    { id: 'LfyQBUKR8SE', by: 'Renaissance Periodization' },
   db_bench:         { id: 'VmB1G1K7v94', by: 'Athlean-X' },
@@ -48,7 +50,7 @@ export const VIDEO_MAP = {
   dip:              { id: 'wjUmnZH528Y', by: 'Athlean-X' },
   pushup:           { id: 'IODxDxX7oi4', by: 'Athlean-X' },
 
-  ohp:              { id: '2yjwXTZQDDI', by: 'Alan Thrall' },
+  ohp:              { id: '2yjwXTZQDDI', by: 'Alan Thrall', femaleId: '5yWaNOvgFCM', femaleBy: 'Sohee Fit' },
   db_ohp:           { id: 'B-aVuyhvLHU', by: 'Athlean-X' },
   arnold_press:     { id: '6Z15_WdXmVw', by: 'Renaissance Periodization' },
   lateral_raise:    { id: '3VcKaXpzqRo', by: 'Jeff Nippard' },
@@ -289,19 +291,19 @@ const CUES_BY_KEY = {
 }
 
 // ─── Resolvers ─────────────────────────────────────────────────
-export function resolveGuide(exerciseOrName) {
-  // Accept either an exercise object or a plain-text name
+// Accept a preferred presenter gender ('male' | 'female'). When
+// 'female' is asked and the entry has a femaleId alternate, we serve
+// that instead. Falls back to the default male presenter otherwise.
+export function resolveGuide(exerciseOrName, preferredSex = null) {
   const name = typeof exerciseOrName === 'string'
     ? exerciseOrName
     : (exerciseOrName?.he || exerciseOrName?.name || exerciseOrName?.exerciseName || '')
   const obj = typeof exerciseOrName === 'object' ? exerciseOrName : null
 
-  // 1. Explicit on the object
   const objCues = obj?.cues || obj?.formCues
   const objVideoId = obj?.ytId || obj?.yt
   const objVideoBy = obj?.ytBy
 
-  // 2. Pattern match
   let patternHit = null
   for (const p of PATTERNS) {
     if (p.rx.test(name)) { patternHit = p; break }
@@ -311,13 +313,26 @@ export function resolveGuide(exerciseOrName) {
     ? objCues
     : (patternHit ? CUES_BY_KEY[patternHit.key] : CUES_BY_KEY.generic)
 
-  const video = objVideoId
-    ? { id: objVideoId, by: objVideoBy || null, source: 'catalog' }
-    : (patternHit && VIDEO_MAP[patternHit.video]
-        ? { ...VIDEO_MAP[patternHit.video], source: 'match' }
-        : { id: null, by: null, source: 'search', searchQuery: name })
+  let video
+  if (objVideoId) {
+    video = { id: objVideoId, by: objVideoBy || null, source: 'catalog' }
+  } else if (patternHit && VIDEO_MAP[patternHit.video]) {
+    const entry = VIDEO_MAP[patternHit.video]
+    if (preferredSex === 'female' && entry.femaleId) {
+      video = { id: entry.femaleId, by: entry.femaleBy || entry.by, source: 'match', presenter: 'female' }
+    } else {
+      video = { id: entry.id, by: entry.by, source: 'match', presenter: entry.femaleId ? 'male' : 'neutral' }
+    }
+  } else {
+    video = { id: null, by: null, source: 'search', searchQuery: name }
+  }
 
   return { cues, video, name }
+}
+
+// YouTube thumbnail URL — public, free, no key
+export function youtubeThumbUrl(id) {
+  return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null
 }
 
 export function youtubeSearchUrl(query) {

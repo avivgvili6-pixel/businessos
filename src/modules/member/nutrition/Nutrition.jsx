@@ -12,6 +12,8 @@ import { MealPlanner } from './MealPlanner'
 import { FoodPickerPro } from './FoodPickerPro'
 import { DishBuilder } from './DishBuilder'
 import { DisclaimerNote } from '../../../components/legal/DisclaimerNote'
+import { WaterTracker } from '../../../components/nutrition/WaterTracker'
+import { RecipeThumb } from '../../../components/nutrition/RecipeThumb'
 import { recipes } from '../../../data/recipes'
 import { useI18n } from '../../../i18n/i18n'
 
@@ -99,6 +101,8 @@ function Today() {
  </div>
  </Card>
  </div>
+
+ <WaterTracker />
 
  {recentMeals.length > 0 && (
  <Card style={{ background: `linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, border: `1px solid ${t.color.gold}` }}>
@@ -427,7 +431,9 @@ function Recipes() {
 
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
  {filtered.map(r => (
- <Card key={r.id} hover style={{ padding: 18, cursor:'pointer'}} onClick={() => setSelected(r)}>
+ <Card key={r.id} hover style={{ padding: 0, cursor:'pointer', overflow:'hidden'}} onClick={() => setSelected(r)}>
+ <RecipeThumb recipe={r} aspectRatio="16 / 9" style={{ borderRadius: 0 }} />
+ <div style={{ padding: 16 }}>
  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10 }}>
  <div style={{ fontWeight: 700, fontSize: t.font.lg, lineHeight: 1.3, flex: 1 }}>{r.name}</div>
  <Badge color={t.color.gold}>⏱ {r.timeMin}{isRTL ? '׳' : ' min'}</Badge>
@@ -453,6 +459,7 @@ function Recipes() {
  <div style={{ fontSize: 9, color: t.color.textMuted }}>{isRTL ? 'שומן' : 'Fat'}</div>
  </div>
  </div>
+ </div>
  </Card>
  ))}
  </div>
@@ -468,6 +475,7 @@ function RecipeContent({ recipe }) {
  const { isRTL } = useI18n()
  return (
  <>
+ <RecipeThumb recipe={recipe} aspectRatio="16 / 9" style={{ marginBottom: 14 }} />
  <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 14 }}>
  {recipe.tags.map(x => <Badge key={x} color={t.color.textDim}>{x}</Badge>)}
  <Badge color={t.color.gold}>⏱ {recipe.timeMin} {isRTL ? 'דק׳' : 'min'}</Badge>

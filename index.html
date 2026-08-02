@@ -61,10 +61,57 @@
       input::-webkit-inner-spin-button { display: none !important; opacity: 0; }
       input::-webkit-contacts-auto-fill-button,
       input::-webkit-credentials-auto-fill-button { visibility: hidden !important; display: none !important; pointer-events: none !important; position: absolute !important; right: 0; }
+
+      /* Boot loader — a big S that cycles through Selano's palette
+         (wine → silver → charcoal) while the JS bundle downloads
+         and React mounts. The loader lives outside #root so it can
+         paint before the framework boots; #root replaces it as soon
+         as the app renders anything. */
+      .hfos-boot {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        background: #0f0d0b;
+        pointer-events: none;
+      }
+      .hfos-boot-s {
+        font-family: 'Barlow', 'Barlow Condensed', 'Oswald', sans-serif;
+        font-weight: 800; font-size: clamp(140px, 32vw, 260px);
+        line-height: 1; letter-spacing: -0.05em;
+        animation: hfos-boot-cycle 1.6s ease-in-out infinite;
+        text-shadow: 0 0 40px currentColor;
+      }
+      @keyframes hfos-boot-cycle {
+        0%   { color: #c74050; transform: scale(1); }
+        33%  { color: #c9c1b1; transform: scale(1.04); }
+        66%  { color: #14120f; transform: scale(1); text-shadow: 0 0 40px #a52a3a; }
+        100% { color: #c74050; transform: scale(1); }
+      }
     </style>
   </head>
   <body>
+    <div class="hfos-boot" id="hfos-boot"><div class="hfos-boot-s">S</div></div>
     <div id="root"></div>
+    <script>
+      // Remove the boot loader as soon as React puts anything in #root.
+      // Fallback timeout of 8s in case something breaks — we don't want
+      // to trap the user under the loader.
+      (function () {
+        var boot = document.getElementById('hfos-boot');
+        if (!boot) return;
+        var kill = function () {
+          boot.style.transition = 'opacity 300ms ease';
+          boot.style.opacity = '0';
+          setTimeout(function () { boot.remove(); }, 320);
+        };
+        var mo = new MutationObserver(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount > 0) { kill(); mo.disconnect(); }
+        });
+        var root = document.getElementById('root');
+        if (root) mo.observe(root, { childList: true });
+        setTimeout(function () { kill(); mo.disconnect(); }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -24,6 +24,7 @@ const initialState = {
   plansArchive: [],         // [{id, name, programId, startedAt, archivedAt, weeksCompleted, totalWeeks, completionPct, snapshot}]
   workoutLogs: [],          // {date, sessionName, exercises:[{id,name,sets:[{w,r,rpe}]}] }
   workoutLogsTrash: [],     // soft-deleted workouts — restorable from History → recycle bin
+  waterLog: {},             // { 'YYYY-MM-DD': cupsCount } — 250ml per cup
   mealLogs: {},             // { [dateKey]: [{foodId, grams}] }
   moodCheckins: [],         // {date, mood, energy, stress, sleepHours, note}
   habits: [
@@ -207,6 +208,16 @@ function reducer(state, action) {
     case 'PURGE_TRASH': {
       return { ...state, workoutLogsTrash: [] }
     }
+    case 'WATER_ADD': {
+      const day = action.day
+      const cur = (state.waterLog || {})[day] || 0
+      return { ...state, waterLog: { ...(state.waterLog || {}), [day]: Math.max(0, Math.min(30, cur + action.delta)) } }
+    }
+    case 'WATER_RESET_DAY': {
+      const next = { ...(state.waterLog || {}) }
+      delete next[action.day]
+      return { ...state, waterLog: next }
+    }
     case 'SET_WEEK_DIFFICULTY': {
       if (!state.plan) return state
       return { ...state, plan: { ...state.plan, difficultyByWeek: { ...(state.plan.difficultyByWeek || {}), [action.week]: action.difficulty } } }
@@ -373,6 +384,8 @@ export function AppProvider({ children }) {
     clearAllWorkoutLogs: () => dispatch({ type:'CLEAR_ALL_WORKOUT_LOGS' }),
     restoreWorkoutLog: (key) => dispatch({ type:'RESTORE_WORKOUT_LOG', key }),
     purgeWorkoutTrash: () => dispatch({ type:'PURGE_TRASH' }),
+    addWaterCup: (day, delta = 1) => dispatch({ type:'WATER_ADD', day, delta }),
+    resetWaterDay: (day) => dispatch({ type:'WATER_RESET_DAY', day }),
     logMeal: (item, date) => dispatch({ type:'LOG_MEAL', item, date }),
     removeMeal: (index, date) => dispatch({ type:'REMOVE_MEAL', index, date }),
     addCheckin: (checkin) => dispatch({ type:'ADD_CHECKIN', checkin }),
