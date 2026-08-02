@@ -119,32 +119,30 @@ export function Shell({ page, setPage, children }) {
  const active = page === item.key
  return (
  <button key={item.key} onClick={() => setPage(item.key)} style={{
- flex:1, padding:'12px 2px 10px', border:'none', background:'transparent',
- color: active ? t.color.wineLight : t.color.silver2, cursor:'pointer',
+ flex:1, padding:'14px 2px 12px', border:'none', background:'transparent',
+ color: active ? t.color.wineLight : t.color.bone, cursor:'pointer',
  display:'flex', flexDirection:'column', alignItems:'center', gap: 4,
  fontFamily:'inherit', position:'relative',
  }}>
  <span style={{
- fontFamily: t.font.family.mono, fontSize: 10,
- letterSpacing:'0.16em', textTransform:'uppercase',
- fontWeight: active ? 700 : 400,
+ fontSize: 13, fontWeight: active ? 700 : 500,
+ letterSpacing:'-0.005em',
  }}>{item.label}</span>
  {active && <span style={{
- position:'absolute', bottom: 3, width: 22, height: 2,
+ position:'absolute', bottom: 4, width: 22, height: 2,
  background: t.color.wineLight, borderRadius: 1,
  }} />}
  </button>
  )
  })}
  <button onClick={() => setMobileOpen(true)} style={{
- flex:1, padding:'12px 2px 10px', border:'none', background:'transparent',
- color: t.color.silver2, cursor:'pointer',
+ flex:1, padding:'14px 2px 12px', border:'none', background:'transparent',
+ color: t.color.bone, cursor:'pointer',
  display:'flex', flexDirection:'column', alignItems:'center', gap: 4,
  fontFamily:'inherit',
  }}>
  <span style={{
- fontFamily: t.font.family.mono, fontSize: 10,
- letterSpacing:'0.16em', textTransform:'uppercase',
+ fontSize: 13, fontWeight: 500, letterSpacing:'-0.005em',
  }}>{tr('nav.more', isRTL ? 'עוד':'More')}</span>
  </button>
  </nav>
