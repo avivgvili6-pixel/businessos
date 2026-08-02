@@ -1156,30 +1156,167 @@ function topWeight(ex) {
 }
 
 function History() {
- const { state } = useApp()
- const { workoutLogs } = state
- if (!workoutLogs.length) return <EmptyState icon=" "title="עדיין אין היסטוריה"subtitle="אימונים שתסיים ירשמו כאן אוטומטית"/>
- const weekVolume = [4, 6, 5, 8, 7, 9, 8, 10]
+ const { state, deleteWorkoutLog, deleteWorkoutLogsByPlan, clearAllWorkoutLogs, restoreWorkoutLog, purgeWorkoutTrash } = useApp()
+ const { workoutLogs, workoutLogsTrash } = state
+ const trash = workoutLogsTrash || []
+ const [showTrash, setShowTrash] = useState(false)
+
+ // Group logs by planId so user can wipe a whole plan's history in one shot
+ const byPlan = useMemo(() => {
+   const groups = {}
+   for (const log of workoutLogs) {
+     const key = log.planId || '__no_plan__'
+     if (!groups[key]) groups[key] = { planId: log.planId || null, name: null, logs: [] }
+     groups[key].logs.push(log)
+   }
+   // Best-effort plan name — from state.plan or the first log's sessionName
+   const activePlanId = state.plan?.id || state.plan?.programId
+   for (const g of Object.values(groups)) {
+     if (g.planId === activePlanId && state.plan) g.name = state.plan.name
+     else if (g.planId) g.name = g.logs[0]?.sessionName?.split(' — ')[0] || `תכנית ${g.planId}`
+     else g.name = 'ללא שיוך לתכנית'
+   }
+   return Object.values(groups).sort((a, b) => b.logs.length - a.logs.length)
+ }, [workoutLogs, state.plan])
+
+ if (!workoutLogs.length && !trash.length) {
+   return <EmptyState title="עדיין אין היסטוריה" subtitle="אימונים שתסיים ירשמו כאן אוטומטית"/>
+ }
+
+ const removeOne = (log) => {
+   const label = log.sessionName || 'אימון זה'
+   if (confirm(`למחוק את ${label} מ־${new Date(log.date).toLocaleDateString('he-IL')}? נשמר בסל המיחזור לשחזור.`)) {
+     deleteWorkoutLog(log.id || log.date)
+   }
+ }
+ const removePlan = (group) => {
+   if (confirm(`למחוק את כל ${group.logs.length} האימונים של "${group.name}"? נשמרים בסל המיחזור לשחזור.`)) {
+     deleteWorkoutLogsByPlan(group.planId)
+   }
+ }
+ const clearAll = () => {
+   if (confirm(`למחוק את כל ההיסטוריה (${workoutLogs.length} אימונים)? נשמרת בסל המיחזור.`)) {
+     clearAllWorkoutLogs()
+   }
+ }
+ const purge = () => {
+   if (confirm(`למחוק לצמיתות את סל המיחזור? ${trash.length} אימונים יימחקו ללא אפשרות שחזור.`)) {
+     purgeWorkoutTrash()
+   }
+ }
+
  return (
  <div style={{ display:'grid', gap: 16 }}>
- <Card>
- <SectionHeader title="נפח שבועי (סטים)"/>
- <Sparkline data={weekVolume} height={80} />
- </Card>
- <Card>
- <SectionHeader title="אימונים אחרונים"/>
- <div style={{ display:'grid', gap: 8 }}>
- {workoutLogs.slice(0, 10).map((log, i) => (
- <div key={i} style={{ display:'flex', justifyContent:'space-between', padding: 12, background: t.color.bgSoft, borderRadius: t.radius.sm }}>
- <div>
- <div style={{ fontWeight: 600 }}>{log.sessionName}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{new Date(log.date).toLocaleDateString('he-IL')}</div>
- </div>
- <Badge>{log.exercises.length} תרגילים</Badge>
- </div>
- ))}
- </div>
- </Card>
+   {workoutLogs.length > 0 && (
+     <>
+       {/* Actions bar */}
+       <div style={{
+         display:'flex', gap: 8, flexWrap:'wrap', alignItems:'center',
+         padding:'12px 14px', background: t.color.bgSoft,
+         border:`1px solid ${t.color.border}`, borderRadius: t.radius.md,
+       }}>
+         <div style={{ flex: 1, minWidth: 140 }}>
+           <div style={{ fontWeight: 700, fontSize: t.font.md }}>
+             {workoutLogs.length} אימונים בהיסטוריה
+           </div>
+           <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+             {byPlan.length} {byPlan.length === 1 ? 'תכנית' : 'תכניות'}
+             {trash.length > 0 && <> · {trash.length} בסל המיחזור</>}
+           </div>
+         </div>
+         {trash.length > 0 && (
+           <Button variant="ghost" size="sm" onClick={() => setShowTrash(v => !v)}>
+             {showTrash ? 'סגור סל' : `סל מיחזור (${trash.length})`}
+           </Button>
+         )}
+         <Button variant="danger" size="sm" onClick={clearAll}>
+           מחק את כל ההיסטוריה
+         </Button>
+       </div>
+
+       {/* Grouped by plan */}
+       {byPlan.map(group => (
+         <Card key={group.planId || 'nogroup'}>
+           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12 }}>
+             <div>
+               <div style={{ fontWeight: 700, fontSize: t.font.md, color: t.color.wineLight }}>
+                 {group.name}
+               </div>
+               <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 2 }}>
+                 {group.logs.length} {group.logs.length === 1 ? 'אימון' : 'אימונים'}
+               </div>
+             </div>
+             {group.planId && (
+               <Button variant="ghost" size="sm" onClick={() => removePlan(group)}>
+                 מחק את התכנית
+               </Button>
+             )}
+           </div>
+           <div style={{ display:'grid', gap: 6 }}>
+             {group.logs.map(log => (
+               <div key={log.id || log.date} style={{
+                 display:'flex', justifyContent:'space-between', alignItems:'center',
+                 gap: 10, padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm,
+               }}>
+                 <div style={{ flex: 1, minWidth: 0 }}>
+                   <div style={{ fontWeight: 600, fontSize: t.font.sm }}>{log.sessionName}</div>
+                   <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+                     {new Date(log.date).toLocaleDateString('he-IL')} · {log.exercises?.length || 0} תרגילים
+                     {log.bbMeta?.durationMin ? ` · ${log.bbMeta.durationMin} דק׳` : ''}
+                   </div>
+                 </div>
+                 <button
+                   onClick={() => removeOne(log)}
+                   title="מחק אימון בודד"
+                   aria-label="מחק אימון בודד"
+                   style={{
+                     background:'transparent', border:`1px solid ${t.color.border}`,
+                     color: t.color.silver1, cursor:'pointer',
+                     padding:'6px 10px', borderRadius: t.radius.sm,
+                     fontFamily:'inherit', fontSize: 16, lineHeight: 1, flexShrink: 0,
+                   }}
+                   onMouseEnter={e => { e.currentTarget.style.borderColor = t.color.danger; e.currentTarget.style.color = t.color.danger }}
+                   onMouseLeave={e => { e.currentTarget.style.borderColor = t.color.border; e.currentTarget.style.color = t.color.silver1 }}
+                 >×</button>
+               </div>
+             ))}
+           </div>
+         </Card>
+       ))}
+     </>
+   )}
+
+   {/* Trash / restore */}
+   {(showTrash || (!workoutLogs.length && trash.length > 0)) && trash.length > 0 && (
+     <Card style={{ borderColor: t.color.wineLight, background:`${t.color.wineLight}0d` }}>
+       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12 }}>
+         <div>
+           <div style={{ fontWeight: 700, fontSize: t.font.md }}>סל מיחזור</div>
+           <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+             {trash.length} אימונים · לחיצה על "שחזר" מחזירה להיסטוריה
+           </div>
+         </div>
+         <Button variant="danger" size="sm" onClick={purge}>רוקן סל</Button>
+       </div>
+       <div style={{ display:'grid', gap: 6 }}>
+         {trash.map(log => (
+           <div key={log.id || log.date} style={{
+             display:'flex', justifyContent:'space-between', alignItems:'center',
+             gap: 10, padding: 10, background: t.color.bgSoft, borderRadius: t.radius.sm,
+             opacity: 0.85,
+           }}>
+             <div style={{ flex: 1, minWidth: 0 }}>
+               <div style={{ fontWeight: 600, fontSize: t.font.sm }}>{log.sessionName}</div>
+               <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
+                 בוצע ב־{new Date(log.date).toLocaleDateString('he-IL')} · נמחק ב־{new Date(log.deletedAt).toLocaleDateString('he-IL')}
+               </div>
+             </div>
+             <Button size="sm" variant="ghost" onClick={() => restoreWorkoutLog(log.id || log.date)}>שחזר</Button>
+           </div>
+         ))}
+       </div>
+     </Card>
+   )}
  </div>
  )
 }

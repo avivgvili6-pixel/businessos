@@ -23,6 +23,7 @@ const initialState = {
   plan: null,               // active workout plan
   plansArchive: [],         // [{id, name, programId, startedAt, archivedAt, weeksCompleted, totalWeeks, completionPct, snapshot}]
   workoutLogs: [],          // {date, sessionName, exercises:[{id,name,sets:[{w,r,rpe}]}] }
+  workoutLogsTrash: [],     // soft-deleted workouts — restorable from History → recycle bin
   mealLogs: {},             // { [dateKey]: [{foodId, grams}] }
   moodCheckins: [],         // {date, mood, energy, stress, sleepHours, note}
   habits: [
@@ -167,7 +168,44 @@ function reducer(state, action) {
         const planWeek = Math.max(1, Math.min(state.plan.weeks || 12, Math.floor(daysSince / 7) + 1))
         log = { ...log, planId: state.plan.id || state.plan.programId, planWeek }
       }
+      // Stamp with an id so delete/restore can target it uniquely
+      if (!log.id) log = { ...log, id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` }
       return { ...state, workoutLogs: [log, ...state.workoutLogs] }
+    }
+    case 'DELETE_WORKOUT_LOG': {
+      const idx = (state.workoutLogs || []).findIndex(l => (l.id || l.date) === action.key)
+      if (idx < 0) return state
+      const log = state.workoutLogs[idx]
+      const nextLogs = state.workoutLogs.filter((_, i) => i !== idx)
+      // Soft-delete → keep in trash for restore
+      const nextTrash = [{ ...log, deletedAt: new Date().toISOString() }, ...(state.workoutLogsTrash || [])].slice(0, 100)
+      return { ...state, workoutLogs: nextLogs, workoutLogsTrash: nextTrash }
+    }
+    case 'DELETE_WORKOUT_LOGS_BY_PLAN': {
+      const isMatch = (l) => (l.planId || null) === (action.planId || null)
+      const toTrash = (state.workoutLogs || []).filter(isMatch).map(l => ({ ...l, deletedAt: new Date().toISOString() }))
+      const nextLogs = (state.workoutLogs || []).filter(l => !isMatch(l))
+      const nextTrash = [...toTrash, ...(state.workoutLogsTrash || [])].slice(0, 200)
+      return { ...state, workoutLogs: nextLogs, workoutLogsTrash: nextTrash }
+    }
+    case 'CLEAR_ALL_WORKOUT_LOGS': {
+      const toTrash = (state.workoutLogs || []).map(l => ({ ...l, deletedAt: new Date().toISOString() }))
+      const nextTrash = [...toTrash, ...(state.workoutLogsTrash || [])].slice(0, 500)
+      return { ...state, workoutLogs: [], workoutLogsTrash: nextTrash }
+    }
+    case 'RESTORE_WORKOUT_LOG': {
+      const idx = (state.workoutLogsTrash || []).findIndex(l => (l.id || l.date) === action.key)
+      if (idx < 0) return state
+      const log = state.workoutLogsTrash[idx]
+      const { deletedAt, ...restored } = log
+      return {
+        ...state,
+        workoutLogsTrash: state.workoutLogsTrash.filter((_, i) => i !== idx),
+        workoutLogs: [restored, ...(state.workoutLogs || [])],
+      }
+    }
+    case 'PURGE_TRASH': {
+      return { ...state, workoutLogsTrash: [] }
     }
     case 'SET_WEEK_DIFFICULTY': {
       if (!state.plan) return state
@@ -330,6 +368,11 @@ export function AppProvider({ children }) {
     setWeekDifficulty: (week, difficulty) => dispatch({ type:'SET_WEEK_DIFFICULTY', week, difficulty }),
     startNewCycle: () => dispatch({ type:'START_NEW_CYCLE' }),
     logWorkout: (log) => dispatch({ type:'LOG_WORKOUT', log }),
+    deleteWorkoutLog: (key) => dispatch({ type:'DELETE_WORKOUT_LOG', key }),
+    deleteWorkoutLogsByPlan: (planId) => dispatch({ type:'DELETE_WORKOUT_LOGS_BY_PLAN', planId }),
+    clearAllWorkoutLogs: () => dispatch({ type:'CLEAR_ALL_WORKOUT_LOGS' }),
+    restoreWorkoutLog: (key) => dispatch({ type:'RESTORE_WORKOUT_LOG', key }),
+    purgeWorkoutTrash: () => dispatch({ type:'PURGE_TRASH' }),
     logMeal: (item, date) => dispatch({ type:'LOG_MEAL', item, date }),
     removeMeal: (index, date) => dispatch({ type:'REMOVE_MEAL', index, date }),
     addCheckin: (checkin) => dispatch({ type:'ADD_CHECKIN', checkin }),

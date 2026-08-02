@@ -94,19 +94,28 @@ function WeekView() {
  return (
  <div style={{ display:'grid', gap: 16 }}>
  <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 24 }}>
- <Badge> {isRTL ? 'סנכרון יומן' : 'Calendar sync'}</Badge>
+ <Badge>{isRTL ? 'הלוז השבועי' : 'Weekly schedule'}</Badge>
  <h2 style={{ marginTop: 10, fontSize: t.font.xxl, fontWeight: 800 }}>{isRTL ? 'הלו״ז השבועי שלך' : 'Your weekly schedule'}</h2>
  <div style={{ color: t.color.textDim, marginTop: 6 }}>
- {events.length} {isRTL ? 'אירועים לשבוע' : 'events this week'} · {Object.keys(eventsByDay).length} {isRTL ? 'ימים' : 'days'} · {isRTL ? 'הורד כ-ICS או הוסף כל אירוע ל-Google Calendar בקליק' : 'Download as ICS or add each event to Google Calendar in one click'}
+ {events.length} {isRTL ? 'אירועים לשבוע' : 'events this week'} · {Object.keys(eventsByDay).length} {isRTL ? 'ימים' : 'days'}
  </div>
  <div style={{ marginTop: 16, display:'flex', gap: 10, flexWrap:'wrap'}}>
- <Button icon="" onClick={downloadWeek} disabled={!events.length}>{isRTL ? 'הורד קובץ ICS לשבוע' : 'Download weekly ICS'}</Button>
- {!mealPlan && <Button variant="outline"onClick={generateMeals} disabled={genMeals}>{genMeals ? (isRTL ? 'בונה...' : 'Building...') : (isRTL ? ' הוסף גם ארוחות' : ' Add meals too')}</Button>}
+ <Button onClick={downloadWeek} disabled={!events.length}>
+ {isRTL ? '↓ הוסף הכל ליומן שלי' : '↓ Add everything to my calendar'}
+ </Button>
+ {!mealPlan && <Button variant="outline"onClick={generateMeals} disabled={genMeals}>{genMeals ? (isRTL ? 'בונה...' : 'Building...') : (isRTL ? '+ הוסף גם ארוחות' : '+ Add meals too')}</Button>}
  {!state.plan && (
  <div style={{ padding:'8px 12px', background:`${t.color.warning}15`, borderRadius: t.radius.sm, fontSize: t.font.xs, color: t.color.warning }}>
- {isRTL ? 'אין תכנית אימון פעילה - עבור ל"אימונים"כדי לאמץ אחת' : 'No active training plan — go to "Workouts" to pick one'}
+ {isRTL ? 'אין תכנית אימון פעילה - עבור ל"אימונים" כדי לאמץ אחת' : 'No active training plan — go to "Workouts" to pick one'}
  </div>
  )}
+ </div>
+ <div style={{
+   marginTop: 12, fontSize: t.font.xs, color: t.color.textMuted, lineHeight: 1.5,
+ }}>
+   {isRTL
+     ? 'לחיצה מורידה קובץ אחד — פתח אותו ב-Google Calendar / Apple Calendar / Outlook והוא ייבא את השבוע כולו עם תזכורות.'
+     : 'One click downloads a file — open it in Google Calendar / Apple Calendar / Outlook and it imports the whole week with reminders.'}
  </div>
  </Card>
 
@@ -174,13 +183,6 @@ function EventCard({ event }) {
  </div>
  {event.description && <div style={{ fontSize: t.font.xs, color: t.color.textDim, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{event.description.split('\n')[0]}</div>}
  </div>
- {!logged && (
- <a href={googleCalendarUrl(event)} target="_blank"rel="noopener noreferrer"style={{
- padding:'6px 12px', background: t.color.bgCard, border:`1px solid ${t.color.border}`,
- borderRadius: t.radius.pill, color: t.color.gold, textDecoration:'none',
- fontSize: t.font.xs, fontWeight: 600, whiteSpace:'nowrap',
- }}>+ Google Calendar</a>
- )}
  </div>
  )
 }
