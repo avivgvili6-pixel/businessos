@@ -36,7 +36,6 @@ export function Train() {
  { key:'crossfit', label: tr('train.tab.crossfit') },
  { key:'programs', label: tr('train.tab.programs') },
  { key:'import', label: tr('train.tab.import') },
- { key:'library', label: tr('train.tab.library') },
  { key:'history', label: tr('train.tab.history') },
  ]} active={tab} onChange={setTab} />
  {tab === 'plan'&& <MyPlan />}
@@ -44,7 +43,6 @@ export function Train() {
  {tab === 'crossfit'&& <CrossFitWod />}
  {tab === 'programs'&& <ProgramsLibrary />}
  {tab === 'import'&& <PdfImporter />}
- {tab === 'library'&& <Library />}
  {tab === 'history'&& <History />}
  </>
  )
