@@ -1,90 +1,69 @@
 import React from 'react'
 import { t } from '../../../theme/tokens'
-import { Card, Badge, SectionHeader, Button, ProgressBar } from '../../../components/ui/UI'
-import { BarChart } from '../../../components/charts/Charts'
-import { mockMembers } from '../../../data/mockUsers'
+import { Card, Button } from '../../../components/ui/UI'
+import { useI18n } from '../../../i18n/i18n'
+
+// Billing is not shipped as a native module — connects to Stripe/Grow
+// when the operator is ready. Until then, show honest "coming soon"
+// state with clear action, not fake revenue numbers.
 
 export function Billing() {
- const mrr = 84200
- const arpu = Math.round(mrr / mockMembers.filter(m => m.status === 'active').length)
- const overdue = mockMembers.filter(m => m.id === 'm4'|| m.id === 'm8')
+  const { isRTL } = useI18n()
 
- return (
- <div style={{ display:'grid', gap: 16 }}>
- <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
- <StatCard label="MRR"value={`₪${mrr.toLocaleString()}`} delta="+8.2%"color={t.color.gold} />
- <StatCard label="ARR"value={`₪${(mrr*12).toLocaleString()}`} delta="+8.2%"color={t.color.success} />
- <StatCard label="ARPU"value={`₪${arpu}`} delta="+₪12"color={t.color.info} />
- <StatCard label="Churn חודשי"value="2.4%"delta="-0.3%"color={t.color.success} />
- <StatCard label="פיגורים"value={overdue.length} delta="דורש טיפול"color={t.color.warning} />
- </div>
+  return (
+    <Card style={{
+      padding: '48px 32px',
+      background: `linear-gradient(160deg, rgba(165,42,58,0.05) 0%, ${t.color.bgElevated} 60%)`,
+      border: `1px dashed ${t.color.border}`,
+      textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: t.font.family.mono, fontSize: 10, letterSpacing: '0.28em',
+        textTransform: 'uppercase', color: t.color.wineLight, fontWeight: 700,
+        marginBottom: 14,
+      }}>
+        {isRTL ? 'חיוב · Coming soon' : 'Billing · coming soon'}
+      </div>
 
- <Card>
- <SectionHeader title="הכנסות חודשיות (₪)"subtitle="12 חודשים אחרונים"/>
- <BarChart
- labels={['ינ׳','פב׳','מר׳','אפ׳','מא׳','יו׳','יו׳','אג׳','ספ׳','אק׳','נו׳','דצ׳']}
- data={[52,58,61,65,68,71,72,74,78,80,82,84]}
- formatValue={v => `${v}K`}
- color={t.color.gold}
- />
- </Card>
+      <h2 style={{
+        fontFamily: t.font.family.display,
+        fontSize: 30, fontWeight: 800, letterSpacing: '-0.015em',
+        lineHeight: 1.15, marginBottom: 14,
+      }}>
+        {isRTL ? 'מנויים, הכנסות וחיוב' : 'Subscriptions, revenue & billing'}
+      </h2>
 
- <Card>
- <SectionHeader title="פיגורי תשלום"action={<Button>שלח תזכורת לכולם</Button>} />
- {overdue.length === 0 ? (
- <div style={{ padding: 40, textAlign:'center', color: t.color.textDim }}>אין פיגורים פעילים</div>
- ) : (
- <div style={{ display:'grid', gap: 10 }}>
- {overdue.map(m => (
- <div key={m.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md, borderRight:`3px solid ${t.color.warning}` }}>
- <div>
- <div style={{ fontWeight: 600 }}>{m.name}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>מנוי {m.plan} · פיגור של 12 ימים</div>
- </div>
- <div style={{ display:'flex', gap: 8, alignItems:'center'}}>
- <Badge color={t.color.warning}>₪280</Badge>
- <Button size="sm"variant="outline">גבייה</Button>
- </div>
- </div>
- ))}
- </div>
- )}
- </Card>
+      <p style={{
+        maxWidth: 520, margin: '0 auto 24px',
+        color: t.color.silver1, fontSize: 14, lineHeight: 1.6,
+      }}>
+        {isRTL
+          ? 'התשלומים ינוהלו ישירות בסליקה שלך (Stripe / Grow). כשתחבר אותה, הדשבורד הזה יראה MRR, סטטוסי מנויים והכנסות בזמן אמת. עד אז — עדיף לנהל את זה בכלי הסליקה עצמו.'
+          : 'Payments will run through your own processor (Stripe / Grow). Once connected, this dashboard will show live MRR, subscription status, and revenue. Until then, run it in the processor itself.'}
+      </p>
 
- <Card>
- <SectionHeader title="חבילות מנוי"action={<Button icon="+">חבילה חדשה</Button>} />
- <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
- {[
- { name:'בייסיק', price:180, features:['גישה לחדר כושר','שיעורים קבוצתיים'], color: t.color.textDim, members: 1 },
- { name:'סטנדרט', price:320, features:['הכל בבייסיק','תכנית אימון אישית','ליווי מאמן'], color: t.color.info, members: 4 },
- { name:'פרימיום', price:580, features:['הכל בסטנדרט','תזונאי אישי','מאמן מנטלי','בדיקות דם'], color: t.color.gold, members: 5, popular: true },
- ].map(pkg => (
- <Card key={pkg.name} style={{ padding: 20, border:`1px solid ${pkg.popular ? t.color.gold : t.color.border}` }}>
- <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10 }}>
- <div style={{ fontWeight: 700, fontSize: t.font.lg }}>{pkg.name}</div>
- {pkg.popular && <Badge>הכי פופולרי</Badge>}
- </div>
- <div style={{ fontSize: t.font.xxxl, fontWeight: 800, color: pkg.color, marginBottom: 10 }}>
- ₪{pkg.price}<span style={{ fontSize: t.font.sm, color: t.color.textDim }}>/חודש</span>
- </div>
- <div style={{ display:'grid', gap: 6, marginBottom: 14 }}>
- {pkg.features.map((f, i) => <div key={i} style={{ fontSize: t.font.sm, color: t.color.textDim }}> {f}</div>)}
- </div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>{pkg.members} מנויים פעילים</div>
- </Card>
- ))}
- </div>
- </Card>
- </div>
- )
-}
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Button
+          onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
+          variant="ghost"
+        >
+          Stripe Dashboard →
+        </Button>
+        <Button
+          onClick={() => window.open('https://grow.link', '_blank')}
+          variant="ghost"
+        >
+          Grow (IL) →
+        </Button>
+      </div>
 
-function StatCard({ label, value, delta, color }) {
- return (
- <Card style={{ padding: 20 }}>
- <div style={{ fontSize: t.font.sm, color: t.color.textDim, marginBottom: 6 }}>{label}</div>
- <div style={{ fontSize: t.font.xxl, fontWeight: 800, color }}>{value}</div>
- <div style={{ fontSize: t.font.xs, color: t.color.textDim, marginTop: 4 }}>{delta}</div>
- </Card>
- )
+      <div style={{
+        marginTop: 24, fontSize: 11, color: t.color.silver2,
+        fontFamily: t.font.family.mono, letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+      }}>
+        {isRTL ? 'תכנון: אינטגרציה כשמתחילים לגבות' : 'Roadmap: integration when billing starts'}
+      </div>
+    </Card>
+  )
 }
