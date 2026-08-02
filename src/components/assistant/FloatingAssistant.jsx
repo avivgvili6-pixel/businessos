@@ -51,6 +51,56 @@ function matchFallback(text) {
  return { key:'default', text: FALLBACK_ANSWERS.default }
 }
 
+// ─── Draggable position ─────────────────────────────────────
+// Persisted per user. Position is stored as the button's top-left
+// corner relative to the viewport, clamped on load so a smaller
+// window on this device doesn't leave the button off-screen.
+const POS_KEY = 'hfos:assistant_pos'
+const BUTTON_SIZE = 58
+const PANEL_W = 360
+const PANEL_H = 520
+const DRAG_THRESHOLD = 5 // px — below this a pointerup counts as a click
+
+const loadPos = () => {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(POS_KEY)
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    return clampPos(p, BUTTON_SIZE)
+  } catch { return null }
+}
+const savePos = (p) => {
+  try { localStorage.setItem(POS_KEY, JSON.stringify(p)) } catch {}
+}
+const clampPos = (p, size) => {
+  if (typeof window === 'undefined') return p
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  return {
+    x: Math.max(8, Math.min(p.x, vw - size - 8)),
+    y: Math.max(8, Math.min(p.y, vh - size - 8)),
+  }
+}
+
+// Panel position derived from the button — if it fits below/right,
+// grow that way; otherwise, mirror to the other side.
+const panelPosFor = (buttonPos) => {
+  if (typeof window === 'undefined') return { x: buttonPos.x, y: buttonPos.y }
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const gap = 12
+  let x = buttonPos.x
+  let y = buttonPos.y + BUTTON_SIZE + gap
+  const panelW = Math.min(PANEL_W, vw - 24)
+  const panelH = Math.min(PANEL_H, vh - 100)
+  // If overflows right → align to right edge
+  if (x + panelW > vw - 8) x = vw - panelW - 8
+  // If overflows bottom → open above the button
+  if (y + panelH > vh - 8) y = Math.max(8, buttonPos.y - panelH - gap)
+  return { x, y }
+}
+
 export function FloatingAssistant({ onOpenMentalCoach }) {
  const { state } = useApp()
  const [open, setOpen] = useState(false)
@@ -58,6 +108,57 @@ export function FloatingAssistant({ onOpenMentalCoach }) {
  const [input, setInput] = useState('')
  const [thinking, setThinking] = useState(false)
  const scrollRef = useRef(null)
+
+ // Draggable position — default: bottom-left corner (matches old design)
+ const [pos, setPos] = useState(() => {
+   const saved = loadPos()
+   if (saved) return saved
+   if (typeof window === 'undefined') return { x: 20, y: 400 }
+   return { x: 20, y: window.innerHeight - 90 - BUTTON_SIZE }
+ })
+ const dragState = useRef({ dragging: false, startX: 0, startY: 0, originX: 0, originY: 0, moved: false })
+
+ // Re-clamp on window resize so a rotated / resized viewport
+ // doesn't strand the button off-screen.
+ useEffect(() => {
+   if (typeof window === 'undefined') return
+   const onResize = () => setPos(p => clampPos(p, BUTTON_SIZE))
+   window.addEventListener('resize', onResize)
+   return () => window.removeEventListener('resize', onResize)
+ }, [])
+
+ const onPointerDown = (e) => {
+   const clientX = e.clientX
+   const clientY = e.clientY
+   dragState.current = {
+     dragging: true, moved: false,
+     startX: clientX, startY: clientY,
+     originX: pos.x, originY: pos.y,
+   }
+   e.currentTarget.setPointerCapture?.(e.pointerId)
+ }
+ const onPointerMove = (e) => {
+   const d = dragState.current
+   if (!d.dragging) return
+   const dx = e.clientX - d.startX
+   const dy = e.clientY - d.startY
+   if (!d.moved && Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return
+   d.moved = true
+   const next = clampPos({ x: d.originX + dx, y: d.originY + dy }, BUTTON_SIZE)
+   setPos(next)
+ }
+ const onPointerUp = (e) => {
+   const d = dragState.current
+   const didDrag = d.moved
+   dragState.current = { ...d, dragging: false }
+   e.currentTarget.releasePointerCapture?.(e.pointerId)
+   if (didDrag) {
+     savePos(pos)
+   } else {
+     // Treat as click — open the panel
+     setOpen(true)
+   }
+ }
 
  const userContext = {
  name: state.profile?.name,
@@ -125,31 +226,42 @@ export function FloatingAssistant({ onOpenMentalCoach }) {
 
  const goToMental = () => { setOpen(false); onOpenMentalCoach?.() }
 
+ const panelPos = panelPosFor(pos)
+
  return (
  <>
  {!open && (
  <button
- onClick={() => setOpen(true)}
- aria-label="פתח את המדריך"
+ onPointerDown={onPointerDown}
+ onPointerMove={onPointerMove}
+ onPointerUp={onPointerUp}
+ aria-label="פתח את המדריך — לחץ ארוך לגרירה"
+ title="גרור להזזה · לחיצה לפתיחה"
  style={{
- position:'fixed', bottom: 90, left: 20, zIndex: 900,
- width: 58, height: 58, borderRadius:'50%',
+ position:'fixed',
+ left: pos.x, top: pos.y, zIndex: 900,
+ width: BUTTON_SIZE, height: BUTTON_SIZE, borderRadius:'50%',
  background: t.color.gold, color:'#0d0d14',
- border:'none', cursor:'pointer',
+ border:'none',
+ cursor: dragState.current.moved ? 'grabbing' : 'grab',
  display:'flex', alignItems:'center', justifyContent:'center',
  fontSize: 26, boxShadow: `0 8px 32px rgba(0,0,0,.5), 0 0 24px ${t.color.gold}44`,
- transition:'transform .2s ease',
+ touchAction:'none',
+ userSelect:'none',
+ fontFamily:'inherit', fontWeight: 900,
+ transition: dragState.current.dragging ? 'none' : 'transform .2s ease',
  }}
- onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
- onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
- > </button>
+ onMouseEnter={e => { if (!dragState.current.dragging) e.currentTarget.style.transform = 'scale(1.08)' }}
+ onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+ > AI</button>
  )}
 
  {open && (
  <div style={{
- position:'fixed', bottom: 90, left: 20, zIndex: 900,
- width: 360, maxWidth:'calc(100vw - 40px)',
- height: 520, maxHeight:'calc(100vh - 140px)',
+ position:'fixed',
+ left: panelPos.x, top: panelPos.y, zIndex: 900,
+ width: Math.min(PANEL_W, typeof window !== 'undefined' ? window.innerWidth - 24 : PANEL_W),
+ height: Math.min(PANEL_H, typeof window !== 'undefined' ? window.innerHeight - 100 : PANEL_H),
  background: t.color.bgElevated,
  border: `1px solid ${t.color.gold}`, borderRadius: t.radius.lg,
  boxShadow:'0 20px 60px rgba(0,0,0,.6)',
