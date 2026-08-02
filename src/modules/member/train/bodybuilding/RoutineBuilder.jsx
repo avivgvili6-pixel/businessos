@@ -4,6 +4,7 @@ import { Modal, Card, Button, Input, Badge } from '../../../../components/ui/UI'
 import { useApp } from '../../../../store/AppStore'
 import { EXERCISES, EXERCISE_BY_ID, EQUIPMENT, MUSCLE_GROUPS } from '../../../../data/bodybuilding/exercisesUnified'
 import { ExerciseGuideButton } from '../../../../components/train/ExerciseGuidePopover'
+import { modeFromState, activeGoal, TRAINING_MODES } from '../../../../data/trainingMode'
 
 // ─── Level & goal presets ─────────────────────────────────
 // 4 levels, each layers on intensifiers (supersets, dropsets)
@@ -14,11 +15,13 @@ const LEVELS = {
   expert:      { he: 'אקספרט',  en: 'Expert',      workingSets: 4, intensifiers: 'superset_and_dropset' },
 }
 
-const GOALS = {
-  hypertrophy: { he: 'היפרטרופיה', en: 'Hypertrophy',  reps: [8, 12],  rest: 75 },
-  endurance:   { he: 'סיבולת',    en: 'Endurance',    reps: [15, 20], rest: 40 },
-  strength:    { he: 'כוח מירבי', en: 'Max strength', reps: [3, 5],   rest: 210 },
-}
+// Local GOALS view — sourced from the shared taxonomy so wording
+// stays consistent with onboarding + TrainerGenerator.
+const GOALS = Object.fromEntries(
+  Object.entries(TRAINING_MODES).map(([key, m]) => [
+    key, { he: m.he, en: m.en, reps: m.repRange, rest: m.restSeconds },
+  ])
+)
 
 // Flat list of muscle-key → he/en label, drawn from MUSCLE_GROUPS
 const ALL_MUSCLES = (() => {
@@ -153,9 +156,15 @@ function ChoiceCard({ title, subtitle, bullets, cta, primary, onClick }) {
 
 // ─── Auto builder ─────────────────────────────────────────
 function AutoBuilder({ onGenerated, onCancel }) {
+  const { state } = useApp()
+  const goal = activeGoal(state)
+  const inheritedMode = modeFromState(state)
   const [muscles, setMuscles] = useState([])
-  const [goalKey, setGoalKey] = useState('hypertrophy')
+  // Default goal comes from the user's onboarding goal — one-tap
+  // override still works if this specific routine needs a different mode.
+  const [goalKey, setGoalKey] = useState(inheritedMode)
   const [levelKey, setLevelKey] = useState('intermediate')
+  const [overridden, setOverridden] = useState(false)
 
   const toggleMuscle = (key) => {
     setMuscles(prev => prev.includes(key) ? prev.filter(m => m !== key) : [...prev, key])
@@ -202,16 +211,58 @@ function AutoBuilder({ onGenerated, onCancel }) {
         )}
       </div>
 
-      {/* Step 2 — goal */}
+      {/* Step 2 — goal (with inherited-from banner) */}
       <div>
         <StepLabel n="2" title="מטרה" hint="קובעת חזרות ומנוחות" />
+        {goal && !overridden && (
+          <div style={{
+            marginTop: 8, padding: '8px 12px',
+            background: 'rgba(74,156,106,0.08)',
+            border: '1px solid rgba(74,156,106,0.3)',
+            borderRadius: t.radius.sm,
+            fontSize: 12, color: t.color.bone,
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          }}>
+            <span style={{
+              fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: '0.24em',
+              color: '#4a9c6a', fontWeight: 700, textTransform: 'uppercase',
+            }}>מטרה שלך:</span>
+            <span style={{ fontWeight: 600 }}>{TRAINING_MODES[inheritedMode].he}</span>
+            {goal.title && (
+              <span style={{ color: t.color.silver2, fontSize: 11 }}>· {goal.title}</span>
+            )}
+          </div>
+        )}
+        {overridden && (
+          <div style={{
+            marginTop: 8, padding: '6px 12px',
+            fontSize: 11, color: t.color.silver2,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span>שונה מהמטרה שלך —</span>
+            <button
+              onClick={() => { setGoalKey(inheritedMode); setOverridden(false) }}
+              style={{
+                background: 'transparent', border: 'none', color: t.color.wineLight,
+                fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                textDecoration: 'underline', padding: 0,
+              }}
+            >
+              חזור למטרה המקורית
+            </button>
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
           {Object.entries(GOALS).map(([key, g]) => {
             const on = goalKey === key
             return (
               <button
                 key={key}
-                onClick={() => setGoalKey(key)}
+                onClick={() => {
+                  setGoalKey(key)
+                  if (key !== inheritedMode) setOverridden(true)
+                  else setOverridden(false)
+                }}
                 style={{
                   padding: 14, textAlign: 'center',
                   background: on ? `${t.color.wineLight}22` : t.color.bgSoft,

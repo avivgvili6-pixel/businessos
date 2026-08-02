@@ -6,22 +6,38 @@ import { WIZARD_STEPS, generatePersonalisedProgram } from '../../../../data/body
 import { LEVELS, GOALS, EQUIPMENT_TYPES } from '../../../../data/bodybuilding/programs'
 import { ROUTINE_BY_ID } from '../../../../data/bodybuilding/routines'
 import { ProgramDetail } from './ProgramDetail'
+import { activeGoal, modeFromState, TRAINING_MODES } from '../../../../data/trainingMode'
 
-// 4-question wizard that generates a personalised program.
+// Wizard that generates a personalised program. If the user already
+// has an active goal from onboarding we skip the goal question and
+// inherit the mode — no more asking "what's your goal?" 3 times.
 export function TrainerGenerator() {
  const { state, bbSetActiveProgram } = useApp()
- const [answers, setAnswers] = useState({})
+ const goal = activeGoal(state)
+ const inheritedMode = modeFromState(state)
+ const bbGoalKey = TRAINING_MODES[inheritedMode].bbGoalKey
+
+ // If we can infer the goal, drop it from the wizard flow. Answers
+ // seeds with the inferred goal so downstream code stays unchanged.
+ const steps = goal
+   ? WIZARD_STEPS.filter(s => s.key !== 'goal')
+   : WIZARD_STEPS
+ const initialAnswers = goal ? { goal: bbGoalKey } : {}
+
+ const [answers, setAnswers] = useState(initialAnswers)
  const [step, setStep] = useState(0)
  const [result, setResult] = useState(null)
  const [detailOpen, setDetailOpen] = useState(false)
+ const [overrideGoal, setOverrideGoal] = useState(false)
 
- const current = WIZARD_STEPS[step]
- const isLast = step === WIZARD_STEPS.length - 1
+ const current = (overrideGoal ? WIZARD_STEPS : steps)[step]
+ const activeSteps = overrideGoal ? WIZARD_STEPS : steps
+ const isLast = step === activeSteps.length - 1
 
  const pick = (value) => {
  const newAnswers = { ...answers, [current.key]: value }
  setAnswers(newAnswers)
- if (step < WIZARD_STEPS.length - 1) {
+ if (step < activeSteps.length - 1) {
  setTimeout(() => setStep(step + 1), 200)
  } else {
  // Generate immediately when last step is answered
@@ -30,7 +46,7 @@ export function TrainerGenerator() {
  }
  }
 
- const restart = () => { setAnswers({}); setStep(0); setResult(null) }
+ const restart = () => { setAnswers(initialAnswers); setStep(0); setResult(null); setOverrideGoal(false) }
 
  const activate = () => {
  if (!result?.program) return
@@ -92,7 +108,7 @@ export function TrainerGenerator() {
  <div>
  {/* Progress indicator */}
  <div style={{ display:'flex', gap: 4, marginBottom: t.space.lg }}>
- {WIZARD_STEPS.map((_, i) => (
+ {activeSteps.map((_, i) => (
  <div key={i} style={{
  flex: 1, height: 4, borderRadius: 2,
  background: i <= step ? t.color.gold : t.color.bgSoft,
@@ -100,19 +116,48 @@ export function TrainerGenerator() {
  ))}
  </div>
 
- {/* Intro */}
- {step === 0 && !answers.goal && (
+ {/* Intro + inherited-mode banner (only shown before first answer) */}
+ {step === 0 && Object.keys(answers).length <= 1 && (
+ <>
  <Card style={{ marginBottom: t.space.md, background: `${t.color.gold}11`, borderColor: t.color.gold }}>
  <div style={{ display:'flex', gap: 12, alignItems:'center'}}>
- <div style={{ fontSize: 40 }}> </div>
+ <div style={{ fontSize: 40 }}>⚡</div>
  <div>
  <div style={{ fontWeight: 700, color: t.color.text, marginBottom: 4 }}>מחולל תוכנית אישית</div>
  <div style={{ fontSize: t.font.sm, color: t.color.textDim }}>
- 4 שאלות → תוכנית מותאמת אישית מוכנה לפעולה
+ {activeSteps.length} שאלות → תוכנית מותאמת אישית מוכנה לפעולה
  </div>
  </div>
  </div>
  </Card>
+ {goal && !overrideGoal && (
+ <div style={{
+ marginBottom: t.space.md, padding: '10px 14px',
+ background: 'rgba(74,156,106,0.08)',
+ border: '1px solid rgba(74,156,106,0.3)',
+ borderRadius: t.radius.sm,
+ fontSize: 12, color: t.color.text,
+ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+ }}>
+ <span style={{
+ fontFamily: 'Space Mono, monospace', fontSize: 9, letterSpacing: '0.24em',
+ color: '#4a9c6a', fontWeight: 700, textTransform: 'uppercase',
+ }}>מטרה שלך:</span>
+ <span style={{ fontWeight: 600 }}>{TRAINING_MODES[inheritedMode].he}</span>
+ {goal.title && <span style={{ color: t.color.textDim, fontSize: 11 }}>· {goal.title}</span>}
+ <button
+ onClick={() => { setOverrideGoal(true); setAnswers({}); setStep(0) }}
+ style={{
+ marginInlineStart: 'auto',
+ background: 'transparent', border: 'none',
+ color: t.color.gold, fontFamily: 'inherit',
+ fontSize: 11, fontWeight: 600, cursor: 'pointer',
+ textDecoration: 'underline', padding: 0,
+ }}
+ >שנה מטרה לתכנית הזאת</button>
+ </div>
+ )}
+ </>
  )}
 
  {/* Question */}

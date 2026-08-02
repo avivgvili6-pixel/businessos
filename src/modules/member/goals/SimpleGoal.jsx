@@ -14,14 +14,14 @@ const QUICK_GOALS = [
  id:'lose_weight', icon:'', label:'לרדת במשקל', tag:'הכי פופולרי',
  subtitle:'לרדת קילוגרמים ולהרגיש קליל יותר',
  input: { type:'wheel', unit:'ק״ג', min:1, max:40, step:1, default:5, format: v => `${v} ק״ג` },
- template: (v) => ({ id:'lose_kg', label:`לרדת ${v} ק״ג`, kind:'weight_change', delta:-v, unit:'ק״ג', weeks: Math.max(8, v * 3) }),
+ template: (v) => ({ id:'lose_kg', label:`לרדת ${v} ק״ג`, kind:'weight_change', delta:-v, unit:'ק״ג', weeks: Math.max(8, v * 3), trainingMode:'endurance' }),
  direction:'aesthetics',
  },
  {
  id:'build_muscle', icon:'', label:'לבנות שריר',
  subtitle:'מסת שריר, מראה חטוב, כוח',
  input: { type:'wheel', unit:'ק״ג שריר', min:1, max:15, step:0.5, default:4, format: v => `${v} ק״ג שריר` },
- template: (v) => ({ id:'gain_muscle', label:`לעלות ${v} ק״ג במסת שריר`, kind:'weight_change', delta:+v, unit:'ק״ג', weeks: Math.max(8, Math.round(v * 6)) }),
+ template: (v) => ({ id:'gain_muscle', label:`לעלות ${v} ק״ג במסת שריר`, kind:'weight_change', delta:+v, unit:'ק״ג', weeks: Math.max(8, Math.round(v * 6)), trainingMode:'hypertrophy' }),
  direction:'aesthetics',
  },
  {
@@ -38,6 +38,7 @@ const QUICK_GOALS = [
  target: v.target,
  unit: v.target ? 'ק״ג' : 'חזרה',
  weeks: 16,
+ trainingMode:'strength',
  }),
  direction:'performance',
  },
@@ -45,7 +46,7 @@ const QUICK_GOALS = [
  id:'body_fat', icon:'', label:'להוריד % שומן',
  subtitle:'לחטב את הגוף בלי לרדת מדי במשקל',
  input: { type:'wheel', unit:'% שומן', min:1, max:15, step:0.5, default:5, format: v => `${v}% שומן פחות` },
- template: (v) => ({ id:'cut_fat', label:`להוריד ${v}% שומן גוף`, kind:'body_fat', delta:-v, unit:'%', weeks: Math.max(8, Math.round(v * 4)) }),
+ template: (v) => ({ id:'cut_fat', label:`להוריד ${v}% שומן גוף`, kind:'body_fat', delta:-v, unit:'%', weeks: Math.max(8, Math.round(v * 4)), trainingMode:'endurance' }),
  direction:'aesthetics',
  },
 ]
