@@ -27,8 +27,9 @@ export function AdminPilot() {
   useEffect(() => { load() }, [])
 
   const handleRelease = async (row) => {
-    if (stats.active_count >= stats.active_cap) {
-      if (!confirm(`אתה כבר במלוא הקפ (${stats.active_cap}). לשחרר בכל זאת?`)) return
+    if (!stats || stats.active_count >= stats.active_cap) {
+      alert(`אין מקום פנוי (${stats?.active_count}/${stats?.active_cap}). הגדל את הקפ לפני שחרור.`)
+      return
     }
     if (!confirm(`לשחרר את ${row.name || row.email} לתוך המערכת?`)) return
     setBusy(row.id)
@@ -159,6 +160,21 @@ export function AdminPilot() {
         </div>
       </Card>
 
+      {/* When full + waitlist non-empty, prompt to raise cap */}
+      {isFull && waitlist.length > 0 && (
+        <Card style={{
+          padding: 14,
+          background: `${t.color.wineLight}18`,
+          border: `1px solid ${t.color.wineLight}`,
+        }}>
+          <div style={{ fontSize: 13, color: t.color.text, lineHeight: 1.6 }}>
+            <b style={{ color: t.color.wineLight }}>הקפ מלא ויש {waitlist.length} ממתינים.</b>
+            {' '}כדי לשחרר — הגדל את הקפ למעלה, ואז לחץ "שחרר" על מי שאתה רוצה להכניס.
+            הגדלה בלבד לא מכניסה אנשים אוטומטית — השחרור נשאר בשליטתך.
+          </div>
+        </Card>
+      )}
+
       {/* Waitlist */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{
@@ -227,12 +243,16 @@ export function AdminPilot() {
               <Button
                 size="sm"
                 onClick={() => handleRelease(row)}
-                disabled={busy === row.id}
+                disabled={busy === row.id || isFull}
+                title={isFull ? 'הקפ מלא — הגדל את הקפ קודם' : 'שחרר משתמש זה'}
                 style={{
-                  background: t.color.wineLight, color: t.color.white,
-                  border: `1px solid ${t.color.wineLight}`,
+                  background: isFull ? t.color.bgSoft : t.color.wineLight,
+                  color: isFull ? t.color.silver3 : t.color.white,
+                  border: `1px solid ${isFull ? t.color.border : t.color.wineLight}`,
+                  cursor: isFull ? 'not-allowed' : 'pointer',
+                  opacity: isFull ? 0.6 : 1,
                 }}
-              >{busy === row.id ? 'משחרר...' : 'שחרר ←'}</Button>
+              >{busy === row.id ? 'משחרר...' : isFull ? 'הקפ מלא' : 'שחרר ←'}</Button>
             </div>
           </div>
         ))}
@@ -242,7 +262,7 @@ export function AdminPilot() {
         padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md,
         fontSize: 12, color: t.color.silver2, lineHeight: 1.6,
       }}>
-        <b style={{ color: t.color.silver1 }}>איך זה עובד:</b> כשמשתמש חדש נרשם והקפ מלא — הוא נכנס אוטומטית לרשימת המתנה. לחיצה על "שחרר" מעדכנת את הסטטוס לפעיל בלבד (ללא שליחת מייל). המשתמש יראה את האפליקציה בפעם הבאה שיתחבר. אם רוצים לעדכן אותו בנפרד — יש כפתור "מייל" לצד השורה שפותח טיוטת אימייל.
+        <b style={{ color: t.color.silver1 }}>איך זה עובד:</b> משתמש חדש שנרשם כשהקפ מלא — נכנס אוטומטית להמתנה. שחרור אפשרי <b>רק כשיש מקום פנוי</b>. כדי לפתוח מקום — הגדל את הקפ (כפתור "שנה קפ" למעלה). הגדלת הקפ לא מכניסה אף אחד אוטומטית; אתה בוחר מי משוחרר. כפתור "מייל" ליד השורה פותח טיוטה — אופציונלי.
       </div>
     </div>
   )
