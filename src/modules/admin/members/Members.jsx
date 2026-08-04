@@ -74,6 +74,18 @@ export function Members() {
     admins: normalized.filter(m => m.role === 'admin').length,
   }), [normalized])
 
+  // Top referrers — who brought the most people
+  const topReferrers = useMemo(() => {
+    const counts = new Map()
+    normalized.forEach(m => {
+      if (!m.referredBy) return
+      const cur = counts.get(m.referredBy) || { id: m.referredBy, name: m.referrerName || '—', count: 0 }
+      cur.count += 1
+      counts.set(m.referredBy, cur)
+    })
+    return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 5)
+  }, [normalized])
+
   // Copy the trainee signup link — the admin can share it with new members
   const inviteLink = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
   const [copied, setCopied] = useState(false)
@@ -214,6 +226,41 @@ export function Members() {
         </div>
       )}
 
+      {/* Top referrers */}
+      {!loading && topReferrers.length > 0 && (
+        <div style={{
+          background: `linear-gradient(160deg, rgba(199,64,80,0.08), ${t.color.panel} 70%)`,
+          border: `1px solid rgba(199,64,80,0.35)`,
+          borderRadius: t.radius.lg, padding: 16,
+        }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom: 12 }}>
+            <Kicker color="wine">מובילי הזמנות</Kicker>
+            <Label color={t.color.silver3}>מי הביא הכי הרבה חברים</Label>
+          </div>
+          <div style={{ display:'flex', gap: 10, flexWrap:'wrap' }}>
+            {topReferrers.map((r, i) => (
+              <div key={r.id} style={{
+                display:'flex', alignItems:'center', gap: 8,
+                padding:'8px 14px',
+                background: t.color.bgSoft,
+                border: `1px solid ${i === 0 ? t.color.wineLight : t.color.border}`,
+                borderRadius: t.radius.pill,
+              }}>
+                <span style={{
+                  fontFamily: t.font.family.mono, fontSize: 10,
+                  color: i === 0 ? t.color.wineLight : t.color.silver3, fontWeight: 700,
+                }}>#{i + 1}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: t.color.white }}>{r.name}</span>
+                <span style={{
+                  padding:'2px 8px', background: t.color.wineLight, color: t.color.white,
+                  borderRadius: 999, fontFamily: t.font.family.mono, fontSize: 11, fontWeight: 700,
+                }}>{r.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Members table */}
       {!loading && filtered.length > 0 && (
         <div style={{
@@ -295,6 +342,8 @@ function normalizeMember(row, engagement) {
     lastActivityDays: daysSinceActive,
     photosCount: photos,
     createdAt: row.created_at,
+    referredBy: row.referred_by || null,
+    referrerName: row.referrer?.name || null,
   }
 }
 
@@ -383,6 +432,13 @@ function MemberRow({ member, onOpen }) {
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 direction: 'ltr', textAlign: 'left',
               }}>{member.email}</div>
+            )}
+            {member.referrerName && (
+              <div style={{
+                fontSize: 10, color: t.color.wineLight,
+                marginTop: 2, letterSpacing: '0.02em',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>← הוזמן ע"י {member.referrerName}</div>
             )}
           </div>
         </div>

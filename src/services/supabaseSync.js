@@ -1,4 +1,5 @@
 import { supabase, supabaseEnabled } from '../lib/supabase'
+import { getStoredRef, clearStoredRef } from '../utils/referral'
 
 // Focused Supabase sync helpers.
 // Progressive enhancement: if backend not configured, all methods are no-ops
@@ -25,6 +26,7 @@ export async function upsertProfile(userId, profilePatch) {
     constraints: profilePatch.constraints,
     one_rms: profilePatch.oneRMs || {},
     onboarded: profilePatch.onboarded ?? undefined,
+    referred_by: profilePatch.referredBy ?? undefined,
     updated_at: new Date().toISOString(),
   }
   // Only send non-undefined fields to preserve existing values
@@ -42,8 +44,20 @@ export async function fetchProfile(userId) {
 }
 
 // Marks user as onboarded and stores profile fields set during onboarding.
+// Also attaches referred_by (only on first-time onboarding — never overwrites).
 export async function markOnboarded(userId, profile) {
-  return upsertProfile(userId, { ...profile, onboarded: true })
+  const patch = { ...profile, onboarded: true }
+  const current = await fetchProfile(userId)
+  if (!current?.referred_by) {
+    const ref = getStoredRef()
+    if (ref && ref !== userId) {
+      patch.referredBy = ref
+    }
+  }
+  const result = await upsertProfile(userId, patch)
+  // Clear the stored ref once it's been attached — one-shot
+  if (patch.referredBy) clearStoredRef()
+  return result
 }
 
 // ─── PERSONAL TRAINING REQUESTS ─────────────────────────────────────
@@ -206,12 +220,15 @@ export async function listAllMembers() {
   const attemptSelect = async (cols) => {
     return supabase.from('profiles').select(cols).order('created_at', { ascending: false })
   }
-  let { data, error } = await attemptSelect('id, email, name, phone, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at')
-  if (error && /column.*does not exist/i.test(error.message || '')) {
-    // Retry without phone (older schema)
-    ;({ data, error } = await attemptSelect('id, email, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+  let { data, error } = await attemptSelect('id, email, name, phone, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at, referred_by, referrer:referred_by(id, name)')
+  if (error && /column.*does not exist|relationship/i.test(error.message || '')) {
+    // Retry without referral fields (schema not migrated yet)
+    ;({ data, error } = await attemptSelect('id, email, name, phone, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
     if (error && /column.*does not exist/i.test(error.message || '')) {
-      ;({ data, error } = await attemptSelect('id, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+      ;({ data, error } = await attemptSelect('id, email, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+      if (error && /column.*does not exist/i.test(error.message || '')) {
+        ;({ data, error } = await attemptSelect('id, name, role, onboarded, age, sex, weight_kg, goal_key, created_at, updated_at'))
+      }
     }
   }
   if (error) { console.warn('[supabaseSync] list members failed:', error.message); return [] }

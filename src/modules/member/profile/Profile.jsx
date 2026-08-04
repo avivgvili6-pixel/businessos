@@ -7,6 +7,7 @@ import { KEY_LIFTS } from '../../../data/programs'
 import { useI18n } from '../../../i18n/i18n'
 import { ProgressPhotosCard } from './ProgressPhotosCard'
 import { LegalCenter } from '../../../components/legal/LegalCenter'
+import { useAuth as useAuthLite } from '../../../auth/AuthContext'
 
 export function Profile({ go }) {
  const { state, updateProfile, setWearable, set1RM, reset } = useApp()
@@ -199,9 +200,14 @@ function InviteFriendsCard() {
   const { state } = useApp()
   const [copied, setCopied] = useState(false)
 
-  const shareUrl = typeof window !== 'undefined'
+  // We need the current user's id to attach ?ref=... to the invite link.
+  // useAuth is imported at the bottom of the file to avoid circular imports.
+  const { user: authUser } = useAuthLite()
+
+  const baseUrl = typeof window !== 'undefined'
     ? window.location.origin + window.location.pathname
     : 'https://avivgvili6-pixel.github.io/businessos/'
+  const shareUrl = authUser?.id ? `${baseUrl}?ref=${authUser.id}` : baseUrl
 
   const senderName = state.profile?.name || ''
   const shareText = isRTL
