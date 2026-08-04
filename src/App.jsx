@@ -24,6 +24,9 @@ import { Profile } from './modules/member/profile/Profile'
 import { Reminders } from './modules/member/reminders/Reminders'
 import { Talk } from './modules/member/talk/Talk'
 import { SLoader } from './components/ui/SLoader'
+import { HealthAcknowledgment, readHealthAck } from './components/legal/HealthAcknowledgment'
+import { fetchHealthAck } from './services/supabaseSync'
+import { t as tokens } from './theme/tokens'
 
 // admin
 import { Overview } from './modules/admin/overview/Overview'
@@ -103,7 +106,7 @@ function AppRouter() {
  const defaultPage = isAdminView ? 'overview':'home'
  const validPage = pages[page] ? page : defaultPage
 
- return (
+ const shellUI = (
  <>
  <Shell page={validPage} setPage={setPage}>
  {pages[validPage]}
@@ -114,6 +117,63 @@ function AppRouter() {
  )}
  </>
  )
+
+ // Hard legal gate — members MUST have a signed health/terms/privacy
+ // ack on file before they can use the app. Prevents bypass on a fresh
+ // device by verifying against Supabase, not just localStorage.
+ // Admin view bypasses (admin has their own consent flow).
+ if (user.role === 'member' && !isAdminView) {
+   return <HealthAckGate user={user}>{shellUI}</HealthAckGate>
+ }
+
+ return shellUI
+}
+
+// Verifies the member has signed the health/terms/privacy bundle.
+// Checks localStorage first (fast path). If missing, checks Supabase.
+// If both empty → renders <HealthAcknowledgment /> as a full-screen block.
+function HealthAckGate({ user, children }) {
+ const [state, setStateVal] = useState(() => readHealthAck() ? 'ok' : 'checking')
+
+ useEffect(() => {
+ if (state !== 'checking') return
+ let alive = true
+ ;(async () => {
+ try {
+ const remote = await fetchHealthAck(user.id)
+ if (!alive) return
+ if (remote) {
+ // Mirror to local so future checks are instant
+ try { localStorage.setItem('hfos:health_ack', JSON.stringify(remote)) } catch {}
+ setStateVal('ok')
+ } else {
+ setStateVal('missing')
+ }
+ } catch {
+ if (alive) setStateVal('missing')
+ }
+ })()
+ return () => { alive = false }
+ }, [state, user?.id])
+
+ if (state === 'checking') return (
+ <div style={{ minHeight:'100vh', display:'grid', placeItems:'center', background:'#0f0d0b' }}>
+ <SLoader size={200} />
+ </div>
+ )
+
+ if (state === 'missing') return (
+ <div style={{ minHeight:'100vh', background: tokens.color.bg, padding: tokens.space.lg, direction:'rtl', color: tokens.color.text, display:'flex', alignItems:'center' }}>
+ <div style={{ maxWidth: 900, margin:'0 auto', width:'100%' }}>
+ <HealthAcknowledgment
+ initialName={user?.name || ''}
+ onConfirm={() => setStateVal('ok')}
+ />
+ </div>
+ </div>
+ )
+
+ return children
 }
 
 export default function App() {

@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { t } from '../../theme/tokens'
 import { Card, Button, Input } from '../ui/UI'
-import { FULL_HEALTH_DISCLAIMER_HE, FULL_HEALTH_DISCLAIMER_EN } from '../../legal/disclaimers'
+import {
+  FULL_HEALTH_DISCLAIMER_HE, FULL_HEALTH_DISCLAIMER_EN,
+  TERMS_HE, TERMS_EN, PRIVACY_HE, PRIVACY_EN,
+} from '../../legal/disclaimers'
 import { useI18n } from '../../i18n/i18n'
 import { SignaturePad } from './SignaturePad'
 
@@ -12,7 +15,7 @@ import { SignaturePad } from './SignaturePad'
 // proof of consent, and can be synced to Supabase for admin retrieval.
 
 const STORAGE_KEY = 'hfos:health_ack'
-const DOC_VERSION = 'v1.2026-08'
+const DOC_VERSION = 'v2.2026-08' // v2 bundles health + terms + privacy
 
 export function readHealthAck() {
   try {
@@ -27,8 +30,24 @@ export function HealthAcknowledgment({ onConfirm, initialName = '' }) {
   const [name, setName] = useState(initialName)
   const [signatureDataUrl, setSignatureDataUrl] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [activeDoc, setActiveDoc] = useState('health')
 
-  const fullText = isRTL ? FULL_HEALTH_DISCLAIMER_HE : FULL_HEALTH_DISCLAIMER_EN
+  // The signed document bundles all three legal texts so the single
+  // signature covers health disclaimer + liability terms + privacy.
+  const docs = isRTL
+    ? { health: FULL_HEALTH_DISCLAIMER_HE, terms: TERMS_HE, privacy: PRIVACY_HE }
+    : { health: FULL_HEALTH_DISCLAIMER_EN, terms: TERMS_EN, privacy: PRIVACY_EN }
+  const docLabels = isRTL
+    ? { health: 'הצהרת בריאות', terms: 'תנאי שימוש · הגבלת אחריות', privacy: 'פרטיות' }
+    : { health: 'Health declaration', terms: 'Terms of use · liability', privacy: 'Privacy' }
+  const fullText = [
+    `═══ ${docLabels.health} ═══\n${docs.health}`,
+    `\n\n═══ ${docLabels.terms} ═══\n${docs.terms}`,
+    `\n\n═══ ${docLabels.privacy} ═══\n${docs.privacy}`,
+  ].join('')
+  const signedDateLabel = new Date().toLocaleDateString(isRTL ? 'he-IL' : 'en-US', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  })
   const canSubmit = checked && name.trim().length >= 2 && !!signatureDataUrl
 
   const confirm = async () => {
@@ -77,22 +96,45 @@ export function HealthAcknowledgment({ onConfirm, initialName = '' }) {
         </h2>
         <div style={{ color: t.color.silver1, fontSize: 14, lineHeight: 1.55 }}>
           {isRTL
-            ? 'המסמך הזה מגן עלינו ועליך משפטית. חובה לקרוא, להזין שם ולחתום כדי להיכנס למערכת.'
-            : 'This document protects both of us legally. Read it, type your name, sign, and continue.'}
+            ? 'חתימה אחת מכסה שלושה מסמכים: הצהרת בריאות, תנאי שימוש והגבלת אחריות, ומדיניות פרטיות. חובה לקרוא ולחתום כדי להיכנס למערכת.'
+            : 'One signature covers three documents: health declaration, terms & liability, and privacy. Reading and signing is mandatory to enter the app.'}
         </div>
       </div>
 
-      {/* Document */}
+      {/* Document with tabs */}
       <Card style={{ padding: 20 }}>
         <div style={{
           fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: '0.22em',
           textTransform: 'uppercase', color: t.color.silver2, fontWeight: 600,
           marginBottom: 12,
-          display: 'flex', justifyContent: 'space-between',
+          display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6,
         }}>
-          <span>{isRTL ? 'מסמך' : 'Document'}: Selano Health Statement</span>
-          <span>{DOC_VERSION}</span>
+          <span>{isRTL ? 'מסמך משפטי חתום' : 'Signed legal bundle'}</span>
+          <span>{DOC_VERSION} · {signedDateLabel}</span>
         </div>
+
+        {/* Doc tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+          {['health', 'terms', 'privacy'].map(key => {
+            const active = activeDoc === key
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveDoc(key)}
+                type="button"
+                style={{
+                  padding: '7px 14px', borderRadius: 999,
+                  background: active ? t.color.wineLight : t.color.bgSoft,
+                  color: active ? t.color.white : t.color.silver1,
+                  border: `1px solid ${active ? t.color.wineLight : t.color.border}`,
+                  fontFamily: 'inherit', cursor: 'pointer', fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                }}
+              >{docLabels[key]}</button>
+            )
+          })}
+        </div>
+
         <div style={{
           maxHeight: 260, overflowY: 'auto',
           padding: '4px 4px 4px 12px',
@@ -101,7 +143,17 @@ export function HealthAcknowledgment({ onConfirm, initialName = '' }) {
           whiteSpace: 'pre-line',
           direction: isRTL ? 'rtl' : 'ltr',
         }}>
-          {fullText}
+          {docs[activeDoc]}
+        </div>
+
+        <div style={{
+          marginTop: 10, fontSize: 11, color: t.color.silver2,
+          padding: '8px 10px', background: t.color.bgSoft,
+          borderRadius: t.radius.sm, lineHeight: 1.5,
+        }}>
+          {isRTL
+            ? 'שלושת המסמכים נחתמים יחד. בגלילה למטה תראה את שלושתם — עבור בין הלשוניות ותקרא כל אחד.'
+            : 'All three documents are signed together. Use the tabs above to review each one.'}
         </div>
       </Card>
 
@@ -153,10 +205,18 @@ export function HealthAcknowledgment({ onConfirm, initialName = '' }) {
           textTransform: 'uppercase', color: t.color.silver1, fontWeight: 600,
           marginBottom: 6, display: 'flex', justifyContent: 'space-between',
         }}>
-          <span>{isRTL ? 'חתימה דיגיטלית' : 'Digital signature'}</span>
-          <span>{new Date().toLocaleDateString(isRTL ? 'he-IL' : 'en-US')}</span>
+          <span>{isRTL ? 'חתימה דיגיטלית · חובה' : 'Digital signature · required'}</span>
+          <span style={{ color: t.color.wineLight, fontWeight: 700 }}>{signedDateLabel}</span>
         </div>
         <SignaturePad onChange={setSignatureDataUrl} height={180} />
+        <div style={{
+          marginTop: 8, fontSize: 11, color: t.color.silver2,
+          textAlign: isRTL ? 'right' : 'left',
+        }}>
+          {isRTL
+            ? `חתימתך תישמר עם התאריך ${signedDateLabel}, שם המשתמש, וטקסט המסמך המלא כפי שאישרת.`
+            : `Your signature will be stored with the date ${signedDateLabel}, the signer name, and the full document text you approved.`}
+        </div>
       </div>
 
       {/* Submit */}

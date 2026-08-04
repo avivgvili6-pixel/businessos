@@ -19,7 +19,7 @@ import {
  detectStyle, currentWeekOf, weekCompletion, isPlanCycleComplete,
  applyDifficultyToSession, difficultyProfile,
 } from '../../../utils/weekProgression'
-import { CrossFitWod } from './crossfit/WodGenerator'
+import { WodHub } from './disciplines/WodHub'
 import { BodybuildingHub } from './bodybuilding/BodybuildingHub'
 import { useI18n } from '../../../i18n/i18n'
 import { Kicker, SectionHead, Label, StatRow, Button as SButton, WeightDisplay } from '../../../design/components/primitives'
@@ -40,7 +40,7 @@ export function Train() {
  ]} active={tab} onChange={setTab} />
  {tab === 'plan'&& <MyPlan />}
  {tab === 'bb'&& <BodybuildingHub />}
- {tab === 'crossfit'&& <CrossFitWod />}
+ {tab === 'crossfit'&& <WodHub />}
  {tab === 'programs'&& <ProgramsLibrary />}
  {tab === 'import'&& <PdfImporter />}
  {tab === 'history'&& <History />}
