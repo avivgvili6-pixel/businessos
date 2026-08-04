@@ -14,10 +14,10 @@ const MEMBER_NAV_KEYS = [
  { key:'mind', i18n:'nav.mind' },
  { key:'calendar', i18n:'nav.calendar' },
  { key:'reminders', i18n:'nav.reminders' },
+ { key:'talk', i18n:'nav.talk' },
  { key:'ondemand', i18n:'nav.ondemand' },
  { key:'store', i18n:'nav.store' },
  { key:'personal', i18n:'nav.personal' },
- { key:'talk', i18n:'nav.talk' },
  { key:'profile', i18n:'nav.profile' },
 ]
 
@@ -77,7 +77,7 @@ export function Shell({ page, setPage, children }) {
  fontFamily: t.font.family.mono, fontSize: 9,
  letterSpacing:'0.24em', color: t.color.silver3,
  textTransform:'uppercase', textAlign:'center',
- }}>Selano · v0.1</div>
+ }}>Selano · v0.2 · WOD Hub</div>
  </aside>
 
  {/* Mobile sidebar drawer */}
@@ -285,14 +285,16 @@ function UserBlock({ user, onLogout }) {
 }
 
 function NavItem({ item, active, onClick }) {
+ const isTalk = item.key === 'talk'
  return (
  <button onClick={onClick} style={{
  display:'flex', alignItems:'center', gap: 12, padding:'11px 14px', width:'100%', textAlign:'right',
- background:'transparent', border:'none',
+ background: isTalk && !active ? 'rgba(199,64,80,0.06)' : 'transparent',
+ border: isTalk && !active ? '1px solid rgba(199,64,80,0.25)' : 'none',
  color: active ? t.color.white : t.color.silver1,
  cursor:'pointer', borderRadius: t.radius.md, fontFamily:'inherit',
  fontSize: 14, letterSpacing:'-0.005em',
- transition: t.transition, fontWeight: active ? 600 : 400,
+ transition: t.transition, fontWeight: active ? 600 : (isTalk ? 600 : 400),
  position:'relative',
  }}>
  <span style={{
@@ -300,7 +302,15 @@ function NavItem({ item, active, onClick }) {
  background: active ? t.color.wineLight :'transparent',
  flexShrink: 0,
  }} />
- <span>{item.label}</span>
+ <span style={{ flex: 1 }}>{item.label}</span>
+ {isTalk && (
+ <span style={{
+ width: 6, height: 6, borderRadius: '50%',
+ background: t.color.wineLight,
+ boxShadow: '0 0 8px rgba(199,64,80,0.6)',
+ flexShrink: 0,
+ }} />
+ )}
  </button>
  )
 }
