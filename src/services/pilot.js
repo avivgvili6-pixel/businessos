@@ -50,9 +50,10 @@ export async function listWaitlist() {
   return data || []
 }
 
-// Flip a waitlisted user to active. Returns { ok, error }.
-// .select() after update verifies rows were actually changed —
-// otherwise RLS blocking looks like silent success from the client.
+// Flip a waitlisted user to active AND send them a Magic Link email
+// via Supabase Auth (Resend SMTP is already configured for the project).
+// The link auto-logs them in to the app — no password needed.
+// Returns { ok, error, emailSent }.
 export async function releaseWaitlistedUser(userId) {
   if (!supabaseEnabled) return { ok: false, error: 'Supabase לא מחובר' }
   const { data: user } = await supabase
@@ -71,13 +72,41 @@ export async function releaseWaitlistedUser(userId) {
     return { ok: false, error: error.message }
   }
   if (!data || data.length === 0) {
-    console.error('[pilot] release: 0 rows updated — likely RLS blocking. Run the admin update policy SQL.')
+    console.error('[pilot] release: 0 rows updated — likely RLS blocking.')
     return {
       ok: false,
-      error: 'לא עודכן אף שורה (RLS חוסם עדכון פרופילים ע"י אדמין). הרץ בסופאבייס:\n\ncreate policy "admins update all profiles" on profiles for update using (exists (select 1 from profiles p where p.id = auth.uid() and p.role = \'admin\')) with check (true);',
+      error: 'לא עודכן אף שורה (RLS חוסם עדכון פרופילים ע"י אדמין). ודא שהרצת את פקודת ה-policy בסופאבייס.',
     }
   }
-  return { ok: true, email: user?.email, name: user?.name }
+
+  // Send Magic Link email (best-effort — release succeeds either way)
+  let emailSent = false
+  let emailError = null
+  if (user?.email) {
+    const redirectTo = typeof window !== 'undefined'
+      ? window.location.origin + window.location.pathname
+      : undefined
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: user.email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: redirectTo,
+        },
+      })
+      if (!otpError) {
+        emailSent = true
+      } else {
+        emailError = otpError.message
+        console.warn('[pilot] magic link send failed:', otpError.message)
+      }
+    } catch (e) {
+      emailError = e?.message || String(e)
+      console.warn('[pilot] magic link threw:', e)
+    }
+  }
+
+  return { ok: true, email: user?.email, name: user?.name, emailSent, emailError }
 }
 
 // Update the pilot cap (admin only — enforced by RLS)

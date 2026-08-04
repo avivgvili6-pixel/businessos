@@ -31,11 +31,16 @@ export function AdminPilot() {
       alert(`אין מקום פנוי (${stats?.active_count}/${stats?.active_cap}). הגדל את הקפ לפני שחרור.`)
       return
     }
-    if (!confirm(`לשחרר את ${row.name || row.email} לתוך המערכת?`)) return
+    if (!confirm(`לשחרר את ${row.name || row.email} לתוך המערכת ולשלוח לו מייל עם קישור כניסה?`)) return
     setBusy(row.id)
     const res = await releaseWaitlistedUser(row.id)
     setBusy(null)
     if (res.ok) {
+      if (res.emailSent) {
+        alert(`✔ ${res.name || 'המשתמש'} שוחרר.\nמייל עם קישור כניסה נשלח ל־${res.email}.`)
+      } else {
+        alert(`✔ ${res.name || 'המשתמש'} שוחרר.\n\nהערה: שליחת המייל האוטומטי נכשלה${res.emailError ? ` (${res.emailError})` : ''}.\nניתן לשלוח מייל ידני דרך כפתור "מייל" ברשימת המתאמנים.`)
+      }
       await load()
     } else {
       alert('שגיאה בשחרור: ' + (res.error || 'לא ידוע'))
@@ -262,7 +267,7 @@ export function AdminPilot() {
         padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md,
         fontSize: 12, color: t.color.silver2, lineHeight: 1.6,
       }}>
-        <b style={{ color: t.color.silver1 }}>איך זה עובד:</b> משתמש חדש שנרשם כשהקפ מלא — נכנס אוטומטית להמתנה. שחרור אפשרי <b>רק כשיש מקום פנוי</b>. כדי לפתוח מקום — הגדל את הקפ (כפתור "שנה קפ" למעלה). הגדלת הקפ לא מכניסה אף אחד אוטומטית; אתה בוחר מי משוחרר. כפתור "מייל" ליד השורה פותח טיוטה — אופציונלי.
+        <b style={{ color: t.color.silver1 }}>איך זה עובד:</b> משתמש חדש שנרשם כשהקפ מלא — נכנס אוטומטית להמתנה. שחרור אפשרי <b>רק כשיש מקום פנוי</b>. כדי לפתוח מקום — הגדל את הקפ (כפתור "שנה קפ" למעלה), אז השחרור נפתח. לחיצה על "שחרר" מעדכנת את הסטטוס <b>ושולחת אוטומטית מייל עם Magic Link</b> — קישור שמכניס אותו ישר לאפליקציה בלי צורך בסיסמה. אם רוצים לשלוח טיוטה ידנית בנוסף — יש כפתור "מייל" ליד השורה.
       </div>
     </div>
   )
