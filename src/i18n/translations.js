@@ -23,6 +23,7 @@ export const TRANSLATIONS = {
 
     // Navigation — admin
     'nav.overview':          'סקירה',
+    'nav.pilot':             'פיילוט + המתנה',
     'nav.personal_requests': 'בקשות אימון אישי',
     'nav.member_photos':     'תמונות מתאמנים',
     'nav.coach_requests':    'בקשות מאמנים',
@@ -189,6 +190,7 @@ export const TRANSLATIONS = {
 
     // Navigation — admin
     'nav.overview':          'Overview',
+    'nav.pilot':             'Pilot + Waitlist',
     'nav.personal_requests': 'PT Requests',
     'nav.member_photos':     'Member Photos',
     'nav.coach_requests':    'Coach Requests',

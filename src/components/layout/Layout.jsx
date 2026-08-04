@@ -23,6 +23,7 @@ const MEMBER_NAV_KEYS = [
 
 const ADMIN_NAV_KEYS = [
  { key:'overview', i18n:'nav.overview' },
+ { key:'pilot', i18n:'nav.pilot' },
  { key:'personal', i18n:'nav.personal_requests' },
  { key:'photos', i18n:'nav.member_photos' },
  { key:'requests', i18n:'nav.coach_requests' },

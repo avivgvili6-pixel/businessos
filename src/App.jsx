@@ -26,6 +26,9 @@ import { Talk } from './modules/member/talk/Talk'
 import { SLoader } from './components/ui/SLoader'
 import { HealthAcknowledgment, readHealthAck } from './components/legal/HealthAcknowledgment'
 import { fetchHealthAck } from './services/supabaseSync'
+import { fetchMyPilotStatus } from './services/pilot'
+import { WaitlistScreen } from './modules/member/waitlist/WaitlistScreen'
+import { AdminPilot } from './modules/admin/pilot/AdminPilot'
 import { t as tokens } from './theme/tokens'
 
 // admin
@@ -66,9 +69,22 @@ function AppRouter() {
  // Not logged in → login screen
  if (!user) return <LoginScreen />
 
- // Member (not admin) that hasn't finished onboarding → run onboarding.
- // Admin using view-as skips onboarding gate.
- if (!state.onboarded && user.role === 'member') return <Onboarding />
+ // Wrap the whole member flow in PilotGate — if status='waitlisted',
+ // the entire app (including onboarding) is replaced by WaitlistScreen.
+ // Admins always bypass the cap.
+ const isMemberView = user.role === 'member' && effectiveRole !== 'admin'
+ if (isMemberView) {
+   return <PilotGate user={user}><MemberFlow /></PilotGate>
+ }
+ return <MemberFlow />
+
+ function MemberFlow() {
+   // Onboarding gate for members only
+   if (!state.onboarded && user.role === 'member') return <Onboarding />
+   return <AppShellRouter />
+ }
+
+ function AppShellRouter() {
 
  const memberPages = {
  home: <Home go={setPage} />,
@@ -88,6 +104,7 @@ function AppRouter() {
  }
  const adminPages = {
  overview: <Overview />,
+ pilot: <AdminPilot />,
  personal: <PersonalRequests />,
  photos: <MemberPhotos />,
  requests: <CoachRequests />,
@@ -127,6 +144,29 @@ function AppRouter() {
  }
 
  return shellUI
+ } // end AppShellRouter
+} // end AppRouter
+
+// Pilot cap gate — resolves the user's pilot status, then either shows
+// the waitlist blocker or renders children (rest of the app).
+function PilotGate({ user, children }) {
+ const [pilot, setPilot] = useState(null)
+ useEffect(() => {
+   let alive = true
+   fetchMyPilotStatus(user.id).then(res => {
+     if (alive) setPilot(res)
+   })
+   return () => { alive = false }
+ }, [user?.id])
+ if (!pilot) return (
+   <div style={{ minHeight:'100vh', display:'grid', placeItems:'center', background:'#0f0d0b' }}>
+     <SLoader size={200} />
+   </div>
+ )
+ if (pilot.status === 'waitlisted') {
+   return <WaitlistScreen position={pilot.waitlist_position} />
+ }
+ return children
 }
 
 // Verifies the member has signed the health/terms/privacy bundle.
