@@ -33,15 +33,17 @@ export function AdminPilot() {
     if (!confirm(`לשחרר את ${row.name || row.email} לתוך המערכת?`)) return
     setBusy(row.id)
     const res = await releaseWaitlistedUser(row.id)
+    setBusy(null)
     if (res.ok) {
-      // Open mailto so the admin sends the notification
-      const mailto = buildReleaseEmail(res.email, res.name)
-      if (mailto) window.open(mailto, '_blank')
       await load()
     } else {
       alert('שגיאה בשחרור: ' + (res.error || 'לא ידוע'))
     }
-    setBusy(null)
+  }
+
+  const handleMail = (row) => {
+    const url = buildReleaseEmail(row.email, row.name)
+    if (url) window.open(url, '_blank')
   }
 
   const handleSaveCap = async () => {
@@ -207,15 +209,31 @@ export function AdminPilot() {
               </div>
             </div>
 
-            <Button
-              size="sm"
-              onClick={() => handleRelease(row)}
-              disabled={busy === row.id}
-              style={{
-                background: t.color.wineLight, color: t.color.white,
-                border: `1px solid ${t.color.wineLight}`,
-              }}
-            >{busy === row.id ? 'משחרר...' : 'שחרר ←'}</Button>
+            <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
+              {row.email && (
+                <button
+                  onClick={() => handleMail(row)}
+                  title="שלח לו מייל (לא חובה)"
+                  style={{
+                    padding:'6px 10px',
+                    background:'transparent',
+                    border:`1px solid ${t.color.border}`,
+                    borderRadius: t.radius.sm,
+                    color: t.color.silver1, cursor:'pointer',
+                    fontFamily:'inherit', fontSize: 11, fontWeight: 600,
+                  }}
+                >מייל</button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => handleRelease(row)}
+                disabled={busy === row.id}
+                style={{
+                  background: t.color.wineLight, color: t.color.white,
+                  border: `1px solid ${t.color.wineLight}`,
+                }}
+              >{busy === row.id ? 'משחרר...' : 'שחרר ←'}</Button>
+            </div>
           </div>
         ))}
       </Card>
@@ -224,7 +242,7 @@ export function AdminPilot() {
         padding: 14, background: t.color.bgSoft, borderRadius: t.radius.md,
         fontSize: 12, color: t.color.silver2, lineHeight: 1.6,
       }}>
-        <b style={{ color: t.color.silver1 }}>איך זה עובד:</b> כשמשתמש חדש נרשם והקפ מלא — הוא נכנס אוטומטית לרשימת המתנה. לחיצה על "שחרר" מעדכנת את הסטטוס לפעיל ופותחת עבורך אימייל מוכן להעתקה ושליחה. המשתמש יראה את האפליקציה בפעם הבאה שיתחבר.
+        <b style={{ color: t.color.silver1 }}>איך זה עובד:</b> כשמשתמש חדש נרשם והקפ מלא — הוא נכנס אוטומטית לרשימת המתנה. לחיצה על "שחרר" מעדכנת את הסטטוס לפעיל בלבד (ללא שליחת מייל). המשתמש יראה את האפליקציה בפעם הבאה שיתחבר. אם רוצים לעדכן אותו בנפרד — יש כפתור "מייל" לצד השורה שפותח טיוטת אימייל.
       </div>
     </div>
   )
