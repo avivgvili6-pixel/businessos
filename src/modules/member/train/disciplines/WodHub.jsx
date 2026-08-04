@@ -13,6 +13,9 @@ import {
 import {
   RUN_FOCUSES, RUN_PROGRAMS, generateRunningWod, runningProgramToPlan,
 } from '../../../../data/disciplines/running'
+import {
+  HYROX_FOCUSES, HYROX_PROGRAMS, generateHyroxWod, hyroxProgramToPlan,
+} from '../../../../data/disciplines/hyrox'
 
 // The WOD tab shell: 4 discipline chips at top, each routes to its own
 // generator UI. CrossFit keeps the existing full-featured generator
@@ -20,10 +23,11 @@ import {
 // use a lighter shell — Single/Program toggle + focus picker + Generate.
 
 const DISCIPLINES = [
-  { key:'crossfit',      he:'CrossFit',      icon:'🏋️' },
-  { key:'gymnastics',    he:'ג׳ימנסטיקס',   icon:'🤸' },
-  { key:'weightlifting', he:'הנפות',         icon:'🏋🏻‍♂️' },
-  { key:'running',       he:'ריצה',           icon:'🏃' },
+  { key:'crossfit',      he:'METCONS'     },
+  { key:'gymnastics',    he:'ג׳ימנסטיקס' },
+  { key:'weightlifting', he:'הנפות'       },
+  { key:'hyrox',         he:'HYROX'       },
+  { key:'running',       he:'ריצה'         },
 ]
 
 export function WodHub() {
@@ -59,6 +63,15 @@ export function WodHub() {
           programToPlan={(id, ctx) => runningProgramToPlan(id, ctx.fiveKSec)}
         />
       )}
+      {discipline === 'hyrox' && (
+        <SimpleDiscipline
+          disciplineKey="hyrox"
+          focuses={HYROX_FOCUSES}
+          programs={HYROX_PROGRAMS}
+          generate={(focus) => generateHyroxWod({ focus })}
+          programToPlan={hyroxProgramToPlan}
+        />
+      )}
     </div>
   )
 }
@@ -66,14 +79,14 @@ export function WodHub() {
 function DisciplineStrip({ active, onChange }) {
   return (
     <div style={{
-      display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6,
+      display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 6,
       marginBottom: 16,
     }}>
       {DISCIPLINES.map(d => {
         const isActive = active === d.key
         return (
           <button key={d.key} onClick={() => onChange(d.key)} style={{
-            padding:'12px 8px',
+            padding:'16px 8px',
             background: isActive
               ? `linear-gradient(160deg, rgba(199,64,80,0.14), ${t.color.bgElevated} 70%)`
               : t.color.bgSoft,
@@ -83,10 +96,9 @@ function DisciplineStrip({ active, onChange }) {
             fontFamily:'inherit', color: t.color.text,
             transition: t.transition,
           }}>
-            <span style={{ fontSize: 22 }}>{d.icon}</span>
             <span style={{
               fontFamily: t.font.family.display, fontWeight: 700,
-              fontSize: 13, letterSpacing:'-0.01em',
+              fontSize: 14, letterSpacing:'-0.01em',
               color: isActive ? t.color.white : t.color.text,
             }}>{d.he}</span>
           </button>
@@ -147,14 +159,13 @@ function SimpleDiscipline({ disciplineKey, focuses, programs, generate, programT
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))', gap: 6 }}>
               {focuses.map(f => (
                 <button key={f.key} onClick={() => setFocus(f.key)} style={{
-                  padding:'10px 6px',
+                  padding:'12px 6px',
                   background: focus === f.key ? `${t.color.wineLight}22` : t.color.bgSoft,
                   border:`1px solid ${focus === f.key ? t.color.wineLight : t.color.border}`,
                   borderRadius: t.radius.sm, cursor:'pointer', fontFamily:'inherit',
                   color: t.color.text, textAlign:'center',
                 }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{f.icon}</div>
-                  <div style={{ fontSize: 12, fontWeight: focus === f.key ? 700 : 500 }}>{f.he}</div>
+                  <div style={{ fontSize: 13, fontWeight: focus === f.key ? 700 : 500 }}>{f.he}</div>
                 </button>
               ))}
             </div>
@@ -257,5 +268,6 @@ function labelFor(discipline) {
     gymnastics: 'Gymnastics',
     weightlifting: 'Weightlifting',
     running: 'Running',
+    hyrox: 'HYROX',
   }[discipline] || 'WOD'
 }

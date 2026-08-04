@@ -17,7 +17,7 @@ export const STYLES = {
     intensity: 'very-high', category: 'strength',
   },
   crossfit: {
-    id: 'crossfit', icon: '', label: 'CrossFit',
+    id: 'crossfit', icon: '', label: 'METCONS',
     programId: 'crossfit_wods', color: '#e0a05a',
     intensity: 'very-high', category: 'metcon',
   },

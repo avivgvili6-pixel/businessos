@@ -138,12 +138,12 @@ export function generateGymnasticsWod({ focus = 'random' } = {}) {
 }
 
 export const GYMN_FOCUSES = [
-  { key:'random',     he:'הפתעה',    icon:'🎲' },
-  { key:'muscle_up',  he:'Muscle-Up', icon:'💪' },
-  { key:'handstand',  he:'Handstand', icon:'🤸' },
-  { key:'pulling',    he:'משיכה',     icon:'⬆️' },
-  { key:'pistol',     he:'Pistol',    icon:'🦵' },
-  { key:'ring_work',  he:'Rings',     icon:'⭕' },
+  { key:'random',     he:'הפתעה'    },
+  { key:'muscle_up',  he:'Muscle-Up' },
+  { key:'handstand',  he:'Handstand' },
+  { key:'pulling',    he:'משיכה'     },
+  { key:'pistol',     he:'Pistol'    },
+  { key:'ring_work',  he:'Rings'     },
 ]
 
 // ─── Programs (adopt into state.plan) ─────────────────────────

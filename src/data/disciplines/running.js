@@ -99,13 +99,13 @@ const SESSIONS = {
 }
 
 export const RUN_FOCUSES = [
-  { key:'random',     he:'הפתעה',    icon:'🎲' },
-  { key:'intervals',  he:'אינטרוול',  icon:'⚡' },
-  { key:'tempo',      he:'טמפו',      icon:'🎯' },
-  { key:'lsd',        he:'LSD',       icon:'🌅' },
-  { key:'hills',      he:'עליות',     icon:'⛰️' },
-  { key:'sprints',    he:'ספרינטים', icon:'💨' },
-  { key:'fartlek',    he:'Fartlek',   icon:'🎲' },
+  { key:'random',     he:'הפתעה'   },
+  { key:'intervals',  he:'אינטרוול' },
+  { key:'tempo',      he:'טמפו'     },
+  { key:'lsd',        he:'LSD'      },
+  { key:'hills',      he:'עליות'    },
+  { key:'sprints',    he:'ספרינטים' },
+  { key:'fartlek',    he:'Fartlek'  },
 ]
 
 export function generateRunningWod({ focus = 'random', fiveKSec = null } = {}) {
@@ -173,7 +173,7 @@ export const RUN_PROGRAMS = [
   },
   {
     id: 'run_cf_endurance',
-    label: 'CrossFit Endurance · 6 שבועות',
+    label: 'Metcon Endurance · 6 שבועות',
     weeks: 6,
     daysPerWeek: 3,
     goal: 'לשפר סיבולת ל־Metcons ארוכים',

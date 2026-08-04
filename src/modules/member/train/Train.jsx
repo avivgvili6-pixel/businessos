@@ -1040,7 +1040,7 @@ function ProgramsLibrary() {
  <Badge> מאגר תכניות מהעולם</Badge>
  <h2 style={{ marginTop: 10, fontSize: t.font.xxl, fontWeight: 800 }}>תכניות אמיתיות שעובדות</h2>
  <div style={{ color: t.color.textDim, marginTop: 6 }}>
- מ-Starting Strength ל-Wendler 5/3/1 ועד CrossFit ו-GVT - כל תכנית בנויה על אחוזים מ-1RM שלך.
+ מ-Starting Strength ל-Wendler 5/3/1 ועד METCONS ו-GVT - כל תכנית בנויה על אחוזים מ-1RM שלך.
  </div>
  {!hasOneRMs && (
  <div style={{ marginTop: 14, padding: 12, background:`${t.color.warning}15`, borderRadius: t.radius.sm, border:`1px solid ${t.color.warning}` }}>
@@ -1643,7 +1643,7 @@ function PreviewRow({ label, value }) {
 
 // ─── Week banner - shown at top of MyPlan tab ────────────────
 function WeekBanner({ plan, currentWeek, completion, difficulty, style, profile, onSetDifficulty }) {
- const styleLabel = ({ bodybuilding:'בודיבילדינג', powerlifting:'כוח מירבי', crossfit:'CrossFit', bodyweight:'משקל גוף'})[style] || style
+ const styleLabel = ({ bodybuilding:'בודיבילדינג', powerlifting:'כוח מירבי', crossfit:'METCONS', bodyweight:'משקל גוף'})[style] || style
  const needMore = Math.max(0, Math.ceil(0.75 * (plan.days || 3)) - completion.done)
 
  return (
@@ -1709,7 +1709,7 @@ function UpcomingWeeks({ plan, currentWeek, style, difficultyByWeek, onSetDiffic
  for (let w = currentWeek; w <= Math.min(currentWeek + 3, totalWeeks); w++) upcoming.push(w)
  if (upcoming.length < 2) return null
 
- const styleLabel = ({ bodybuilding:'בודיבילדינג', powerlifting:'כוח מירבי', crossfit:'CrossFit', bodyweight:'משקל גוף'})[style] || style
+ const styleLabel = ({ bodybuilding:'בודיבילדינג', powerlifting:'כוח מירבי', crossfit:'METCONS', bodyweight:'משקל גוף'})[style] || style
  const suggestedDiff = (w) => {
  if (w === totalWeeks) return 'easy'
  if (w % 4 === 0) return 'easy'

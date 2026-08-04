@@ -13,7 +13,7 @@ import { buildHybridPlan, STYLES } from '../../../utils/hybridPlan'
 const WORKOUT_STYLES = [
  { id:'bodybuilding', icon:'', label:'בודיבילדינג', subtitle:'מסת שריר, מראה חטוב, נפח גבוה', color:'#c8a84b'},
  { id:'powerlifting', icon:'', label:'כוח מירבי', subtitle:'סקוואט, בנץ׳, דדליפט - שיאים', color:'#e05a5a'},
- { id:'crossfit', icon:'', label:'CrossFit', subtitle:'MetCon, אינטנסיבי, מגוון', color:'#e0a05a'},
+ { id:'crossfit', icon:'', label:'METCONS', subtitle:'MetCon, אינטנסיבי, מגוון', color:'#e0a05a'},
  { id:'bodyweight', icon:'', label:'משקל גוף', subtitle:'בבית, ללא ציוד', color:'#5ac889'},
  { id:'yoga', icon:'', label:'יוגה', subtitle:'גמישות, איזון, שקט מנטלי', color:'#a05ae0'},
  { id:'endurance', icon:'', label:'סבולת', subtitle:'ריצה, אירובי, בריאות לב', color:'#5aa0ff'},

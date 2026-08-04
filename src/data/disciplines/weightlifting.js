@@ -80,12 +80,12 @@ const SESSIONS = {
 }
 
 export const OLY_FOCUSES = [
-  { key:'random',      he:'הפתעה',       icon:'🎲' },
-  { key:'snatch',      he:'Snatch',      icon:'🥋' },
-  { key:'clean_jerk',  he:'C&J',         icon:'🏋🏻‍♂️' },
-  { key:'squat',       he:'Squat',       icon:'🦵' },
-  { key:'jerk',        he:'Jerk',        icon:'⬆️' },
-  { key:'power',       he:'Power',       icon:'💥' },
+  { key:'random',      he:'הפתעה'  },
+  { key:'snatch',      he:'Snatch' },
+  { key:'clean_jerk',  he:'C&J'    },
+  { key:'squat',       he:'Squat'  },
+  { key:'jerk',        he:'Jerk'   },
+  { key:'power',       he:'Power'  },
 ]
 
 export function generateWeightliftingWod({ focus = 'random', oneRMs = {} } = {}) {
