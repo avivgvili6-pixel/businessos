@@ -55,14 +55,28 @@ export function SimpleGoal({ onDone, onGoAdvanced }) {
  const { setGoal } = useApp()
  const [step, setStep] = useState('pick')
  const [category, setCategory] = useState(null)
+ const [saving, setSaving] = useState(false)
 
  const pickCategory = (cat) => { setCategory(cat); setStep('amount') }
 
  const finish = (value) => {
- const template = category.template(value)
- const goal = templateToGoal(template, { direction: category.direction, why:''})
- setGoal(goal)
- onDone?.(goal)
+ if (saving) return
+ setSaving(true)
+ try {
+   const template = category.template(value)
+   const goal = templateToGoal(template, { direction: category.direction, why: '' })
+   if (!goal || !goal.id) throw new Error('goal not built')
+   setGoal(goal)
+   // Small delay so React flushes the SET_GOAL update before parent unmounts us
+   setTimeout(() => {
+     setSaving(false)
+     onDone?.(goal)
+   }, 60)
+ } catch (err) {
+   console.error('[SimpleGoal] finish failed:', err)
+   alert('משהו השתבש בשמירת המטרה. נסה שוב או בחר אפשרות אחרת.')
+   setSaving(false)
+ }
  }
 
  return (

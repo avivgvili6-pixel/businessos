@@ -16,11 +16,24 @@ export function Goals({ go }) {
  const [checkinFor, setCheckinFor] = useState(null)
  const [checkinValue, setCheckinValue] = useState('')
  const [checkinNote, setCheckinNote] = useState('')
+ const [savedFlash, setSavedFlash] = useState(false)
 
  const active = (state.goals || []).find(g => g.status === 'active')
 
  if (building) {
- return <GoalBuilder onDone={() => setBuilding(false)} />
+ return <GoalBuilder onDone={(savedGoal) => {
+   // Defensive: only close the builder if a goal was actually saved.
+   // Prevents the "kicked back to home" bug where the wizard closed
+   // without a goal on record, dropping user into the empty state.
+   if (savedGoal && savedGoal.id) {
+     setBuilding(false)
+     setSavedFlash(true)
+     setTimeout(() => setSavedFlash(false), 3500)
+   } else {
+     console.warn('[Goals] onDone fired with no saved goal — keeping builder open')
+     alert('לא הצלחנו לשמור את המטרה. נסה שוב.')
+   }
+ }} />
  }
  if (buildingPlan) {
  return <PlanBuilder onDone={() => { setBuildingPlan(false); alert(isRTL ? 'התכנית ההוליסטית שלך נשמרה! עבור ל"אימונים"לראות את התכנית' : 'Your holistic plan is saved! Go to "Workouts" to see it') }} onCancel={() => setBuildingPlan(false)} />
@@ -53,6 +66,20 @@ export function Goals({ go }) {
 
  return (
  <div style={{ display:'grid', gap: 20 }}>
+ {savedFlash && (
+ <div style={{
+ padding: '14px 18px',
+ background: 'rgba(74,156,106,0.14)',
+ border: '1px solid rgba(74,156,106,0.5)',
+ borderRadius: t.radius.md,
+ color: '#7fce9a',
+ fontWeight: 700,
+ textAlign: 'center',
+ fontSize: 14,
+ }}>
+ ✔ המטרה נשמרה: {active.title}
+ </div>
+ )}
  {/* Hero card */}
  <Card style={{ background:`linear-gradient(135deg, ${t.color.bgCard} 0%, ${t.color.bgElevated} 100%)`, padding: 28, position:'relative', overflow:'hidden'}}>
  <div style={{ position:'absolute', top:-30, left:-30, width:180, height:180, background:t.color.goldGlow, borderRadius:'50%', filter:'blur(40px)'}} />
