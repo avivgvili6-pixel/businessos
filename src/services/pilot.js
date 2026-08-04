@@ -26,14 +26,27 @@ export async function fetchPilotStats() {
 }
 
 // The list of waitlisted members, ordered by their position.
+// Tries wide columns first, falls back for older schemas that don't
+// have email/phone (mirrors the pattern in listAllMembers).
 export async function listWaitlist() {
   if (!supabaseEnabled) return []
-  const { data, error } = await supabase
+  const attempt = async (cols) => supabase
     .from('profiles')
-    .select('id, name, email, phone, waitlist_position, waitlisted_at, created_at')
+    .select(cols)
     .eq('status', 'waitlisted')
     .order('waitlist_position', { ascending: true })
-  if (error) { console.warn('[pilot] listWaitlist:', error.message); return [] }
+
+  let { data, error } = await attempt('id, name, email, phone, waitlist_position, waitlisted_at, created_at')
+  if (error && /column.*does not exist/i.test(error.message || '')) {
+    ;({ data, error } = await attempt('id, name, email, waitlist_position, waitlisted_at, created_at'))
+    if (error && /column.*does not exist/i.test(error.message || '')) {
+      ;({ data, error } = await attempt('id, name, waitlist_position, waitlisted_at, created_at'))
+    }
+  }
+  if (error) {
+    console.error('[pilot] listWaitlist failed:', error)
+    return []
+  }
   return data || []
 }
 
