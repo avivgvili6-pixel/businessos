@@ -9,7 +9,7 @@ import { DIRECTIONS } from '../../../data/goals'
 import { useI18n } from '../../../i18n/i18n'
 
 export function Goals({ go }) {
- const { state, removeGoal, checkinGoal } = useApp()
+ const { state, removeGoal, checkinGoal, updateProfile, addMeasurement } = useApp()
  const { isRTL } = useI18n()
  const [building, setBuilding] = useState(false)
  const [buildingPlan, setBuildingPlan] = useState(false)
@@ -17,6 +17,7 @@ export function Goals({ go }) {
  const [checkinValue, setCheckinValue] = useState('')
  const [checkinNote, setCheckinNote] = useState('')
  const [savedFlash, setSavedFlash] = useState(false)
+ const [bootstrapWeight, setBootstrapWeight] = useState('')
 
  const active = (state.goals || []).find(g => g.status === 'active')
 
@@ -60,7 +61,16 @@ export function Goals({ go }) {
 
  const submitCheckin = () => {
  if (checkinValue === ''|| isNaN(+checkinValue)) return
- checkinGoal(checkinFor.id, +checkinValue, checkinNote)
+ const v = +checkinValue
+ checkinGoal(checkinFor.id, v, checkinNote)
+ // Also log to the appropriate measurement source so Progress module
+ // and the sparkline stay in sync with what the user just entered.
+ if (checkinFor.kind === 'weight_change') {
+   addMeasurement({ date: new Date().toISOString(), weight: v, note: checkinNote || undefined })
+   updateProfile({ weightKg: v })
+ } else if (checkinFor.kind === 'body_fat') {
+   addMeasurement({ date: new Date().toISOString(), bodyFat: v, note: checkinNote || undefined })
+ }
  setCheckinFor(null); setCheckinValue(''); setCheckinNote('')
  }
 
@@ -120,6 +130,46 @@ export function Goals({ go }) {
  </div>
  </div>
  </Card>
+
+ {/* Bootstrap: weight-loss/body-fat goal without any starting value.
+     Happens when profile.weightKg is empty AND no measurements/checkins yet.
+     Without this card, Ariel would be stuck at 0% forever with no way to enter data. */}
+ {(active.kind === 'weight_change' || active.kind === 'body_fat') && progress.startValue == null && (
+ <Card style={{ padding: 20, background: `${t.color.gold}15`, border: `1px solid ${t.color.gold}` }}>
+   <div style={{ fontWeight: 800, fontSize: t.font.lg, marginBottom: 6, color: t.color.gold }}>
+     {isRTL ? ' חסר לנו נקודת התחלה' : ' We need your starting point'}
+   </div>
+   <div style={{ color: t.color.textDim, fontSize: t.font.sm, marginBottom: 14, lineHeight: 1.5 }}>
+     {active.kind === 'weight_change'
+       ? (isRTL ? 'הזן את המשקל הנוכחי שלך כדי שנוכל להראות התקדמות ולחשב את היעד.' : 'Enter your current weight so we can show progress and compute the target.')
+       : (isRTL ? 'הזן את אחוז השומן הנוכחי שלך כדי לחשב את היעד.' : 'Enter your current body-fat % to compute the target.')
+     }
+   </div>
+   <div style={{ display:'flex', gap: 10, alignItems:'flex-end', flexWrap:'wrap' }}>
+     <div style={{ flex:'1 1 200px' }}>
+       <Input
+         type="number"
+         inputMode="decimal"
+         label={active.kind === 'weight_change' ? (isRTL ? 'משקל נוכחי (ק״ג)' : 'Current weight (kg)') : (isRTL ? 'אחוז שומן (%)' : 'Body fat (%)')}
+         placeholder={active.kind === 'weight_change' ? '75' : '20'}
+         value={bootstrapWeight}
+         onChange={e => setBootstrapWeight(e.target.value)}
+       />
+     </div>
+     <Button size="lg" onClick={() => {
+       const v = +bootstrapWeight
+       if (!v || isNaN(v)) { alert(isRTL ? 'הזן ערך מספרי' : 'Enter a numeric value'); return }
+       if (active.kind === 'weight_change') {
+         updateProfile({ weightKg: v })
+         addMeasurement({ date: new Date().toISOString(), weight: v })
+       } else {
+         addMeasurement({ date: new Date().toISOString(), bodyFat: v })
+       }
+       setBootstrapWeight('')
+     }}>{isRTL ? 'שמור והתחל' : 'Save & start'}</Button>
+   </div>
+ </Card>
+ )}
 
  {/* Metric card - shows current vs target */}
  {progress.currentValue != null && progress.targetValue != null && (
@@ -268,79 +318,109 @@ export function Goals({ go }) {
 function computeProgress(goal, state, isRTL = true) {
  let currentValue = null, targetValue = null, startValue = null, metricLabel = '', trend = []
 
+ // Null-safe accessors — a legacy localStorage snapshot from before we added
+ // measurements/personalRecords/bloodTests would otherwise crash .filter()
+ const measurements = state.measurements || []
+ const personalRecords = state.personalRecords || []
+ const moodCheckins = state.moodCheckins || []
+ const bloodTests = state.bloodTests || []
+ const profile = state.profile || {}
+ const checkinsAsc = [...(goal.checkins || [])].reverse() // stored newest-first, want asc for trend
+
  switch (goal.kind) {
  case 'weight_change': {
- const meas = state.measurements.filter(m => m.weight != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ const meas = measurements.filter(m => m.weight != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ metricLabel = isRTL ? 'משקל גוף (ק״ג)' : 'Body weight (kg)'
+ // Precedence: measurements > check-ins > profile.weightKg.
+ // Since submitCheckin now writes BOTH a measurement and a check-in,
+ // measurements alone are authoritative — don't double-append check-ins.
  if (meas.length) {
  startValue = meas[0].weight
  currentValue = meas[meas.length - 1].weight
- targetValue = +(startValue + goal.metric.delta).toFixed(1)
  trend = meas.map(m => m.weight)
- metricLabel = isRTL ? 'משקל גוף (ק״ג)' : 'Body weight (kg)'
+ } else if (checkinsAsc.length) {
+ startValue = +checkinsAsc[0].value
+ currentValue = +checkinsAsc[checkinsAsc.length - 1].value
+ trend = checkinsAsc.map(c => +c.value)
+ } else if (profile.weightKg) {
+ startValue = +profile.weightKg
+ currentValue = +profile.weightKg
+ trend = [+profile.weightKg]
+ }
+ if (startValue != null && goal.metric?.delta != null) {
+ targetValue = +(startValue + goal.metric.delta).toFixed(1)
  }
  break
  }
  case 'body_fat': {
- const meas = state.measurements.filter(m => m.bodyFat != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ const meas = measurements.filter(m => m.bodyFat != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ metricLabel = isRTL ? 'אחוז שומן (%)' : 'Body fat (%)'
  if (meas.length) {
  startValue = meas[0].bodyFat
  currentValue = meas[meas.length - 1].bodyFat
- targetValue = +(startValue + goal.metric.delta).toFixed(1)
  trend = meas.map(m => m.bodyFat)
- metricLabel = isRTL ? 'אחוז שומן (%)' : 'Body fat (%)'
+ } else if (checkinsAsc.length) {
+ startValue = +checkinsAsc[0].value
+ currentValue = +checkinsAsc[checkinsAsc.length - 1].value
+ trend = checkinsAsc.map(c => +c.value)
+ }
+ if (startValue != null && goal.metric?.delta != null) {
+ targetValue = +(startValue + goal.metric.delta).toFixed(1)
  }
  break
  }
  case 'lift_pr': {
- const prs = state.personalRecords.filter(p => p.exercise?.includes(hebrewLift(goal.metric.lift))).sort((a,b) => new Date(a.date) - new Date(b.date))
+ const prs = personalRecords.filter(p => p.exercise?.includes(hebrewLift(goal.metric.lift))).sort((a,b) => new Date(a.date) - new Date(b.date))
+ metricLabel = `${hebrewLift(goal.metric.lift)} - e1RM (${isRTL ? 'ק״ג' : 'kg'})`
  if (prs.length) {
  startValue = Math.round(prs[0].weight * (1 + prs[0].reps/30))
  currentValue = Math.round(prs[prs.length - 1].weight * (1 + prs[prs.length - 1].reps/30))
- targetValue = goal.metric.target
  trend = prs.map(p => Math.round(p.weight * (1 + p.reps/30)))
- metricLabel = `${hebrewLift(goal.metric.lift)} - e1RM (${isRTL ? 'ק״ג' : 'kg'})`
+ } else if (profile.oneRMs?.[goal.metric.lift]) {
+ startValue = +profile.oneRMs[goal.metric.lift]
+ currentValue = startValue
+ trend = [startValue]
  }
+ if (checkinsAsc.length) {
+ trend = trend.length ? [...trend, ...checkinsAsc.map(c => +c.value)] : checkinsAsc.map(c => +c.value)
+ currentValue = +checkinsAsc[checkinsAsc.length - 1].value
+ }
+ targetValue = goal.metric?.target ?? null
  break
  }
  case 'sleep': {
- const cs = state.moodCheckins.filter(c => c.sleepHours != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ const cs = moodCheckins.filter(c => c.sleepHours != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ metricLabel = isRTL ? 'שעות שינה (ממוצע 7 ימים)' : 'Sleep hours (7-day avg)'
  if (cs.length) {
  startValue = cs[0].sleepHours
  currentValue = +(cs.slice(-7).reduce((s,c) => s + c.sleepHours, 0) / Math.min(7, cs.length)).toFixed(1)
- targetValue = goal.metric.target
  trend = cs.map(c => c.sleepHours)
- metricLabel = isRTL ? 'שעות שינה (ממוצע 7 ימים)' : 'Sleep hours (7-day avg)'
  }
+ targetValue = goal.metric?.target ?? null
  break
  }
  case 'mood': {
- const cs = state.moodCheckins.filter(c => c.mood != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ const cs = moodCheckins.filter(c => c.mood != null).sort((a,b) => new Date(a.date) - new Date(b.date))
+ metricLabel = isRTL ? 'מצב-רוח (ממוצע 7 ימים)' : 'Mood (7-day avg)'
  if (cs.length) {
  startValue = cs[0].mood
  currentValue = +(cs.slice(-7).reduce((s,c) => s + c.mood, 0) / Math.min(7, cs.length)).toFixed(1)
- targetValue = goal.metric.target
  trend = cs.map(c => c.mood)
- metricLabel = isRTL ? 'מצב-רוח (ממוצע 7 ימים)' : 'Mood (7-day avg)'
  }
+ targetValue = goal.metric?.target ?? null
  break
  }
  case 'blood_marker': {
- const latest = state.bloodTests[0]
- if (latest && latest.values[goal.metric.marker]) {
- currentValue = +latest.values[goal.metric.marker]
- targetValue = goal.metric.target
+ const latest = bloodTests[0]
  metricLabel = `${isRTL ? 'סמן דם' : 'Blood marker'}: ${goal.metric.marker}`
+ if (latest && latest.values?.[goal.metric.marker]) {
+ currentValue = +latest.values[goal.metric.marker]
  }
+ targetValue = goal.metric?.target ?? null
  break
  }
  default:
  break
- }
-
- // Include user check-ins for override
- if (goal.checkins?.length) {
- const latestCheckin = goal.checkins[0].value
- if (latestCheckin != null && currentValue == null) currentValue = latestCheckin
  }
 
  // Overall % - based purely on metric progress, no time pressure
