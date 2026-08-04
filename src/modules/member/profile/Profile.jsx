@@ -31,6 +31,7 @@ export function Profile({ go }) {
 
  {tab === 'info'&& (
  <div style={{ display:'grid', gap: 16 }}>
+ <InviteFriendsCard />
  <Card>
  <SectionHeader title={isRTL ? 'פרטים אישיים' : 'Personal details'} />
  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
@@ -188,4 +189,148 @@ function StrengthTab({ oneRMs, set1RM, personalRecords }) {
  )}
  </div>
  )
+}
+
+// ─── Invite Friends card ───────────────────────────────────
+// Prominent share block: copy link + WhatsApp share + native share.
+// Link is the app root — anyone who opens it lands on signup.
+function InviteFriendsCard() {
+  const { isRTL } = useI18n()
+  const { state } = useApp()
+  const [copied, setCopied] = useState(false)
+
+  const shareUrl = typeof window !== 'undefined'
+    ? window.location.origin + window.location.pathname
+    : 'https://avivgvili6-pixel.github.io/businessos/'
+
+  const senderName = state.profile?.name || ''
+  const shareText = isRTL
+    ? `${senderName ? senderName + ' ' : ''}הזמין/ה אותך ל־Selano — מערכת אימונים ותזונה מותאמת אישית. הצטרפ/י כאן: ${shareUrl}`
+    : `You've been invited to Selano — a personal training + nutrition platform. Join: ${shareUrl}`
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2400)
+    } catch {
+      // Fallback: create a temp input
+      const el = document.createElement('input')
+      el.value = shareUrl
+      document.body.appendChild(el)
+      el.select()
+      try { document.execCommand('copy') } catch {}
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2400)
+    }
+  }
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+
+  const nativeShare = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Selano',
+          text: shareText,
+          url: shareUrl,
+        })
+      } catch { /* user cancelled */ }
+    } else {
+      copyLink()
+    }
+  }
+
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share
+
+  return (
+    <Card style={{
+      padding: 20,
+      background: `linear-gradient(160deg, rgba(199,64,80,0.10), ${t.color.bgElevated} 60%)`,
+      border: `1px solid rgba(199,64,80,0.4)`,
+    }}>
+      <div style={{
+        fontFamily: t.font.family.mono, fontSize: 10, letterSpacing: '0.28em',
+        textTransform: 'uppercase', color: t.color.wineLight, fontWeight: 700,
+        marginBottom: 8,
+      }}>{isRTL ? 'הזמנה' : 'Invite'}</div>
+
+      <div style={{
+        fontFamily: t.font.family.display, fontSize: 22, fontWeight: 700,
+        color: t.color.white, letterSpacing: '-0.02em', marginBottom: 6,
+      }}>{isRTL ? 'הזמן חברים ל־Selano' : 'Invite friends to Selano'}</div>
+
+      <div style={{ fontSize: 13, color: t.color.silver1, lineHeight: 1.6, marginBottom: 16 }}>
+        {isRTL
+          ? 'שתפו את הקישור עם חברים שיצטרפו למערכת. כשיהיה מקום פנוי בפיילוט — הם ייכנסו.'
+          : 'Share the link with friends. When a pilot slot opens up — they get in.'}
+      </div>
+
+      {/* URL preview */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '10px 14px', background: t.color.bgSoft,
+        border: `1px solid ${t.color.border}`, borderRadius: t.radius.md,
+        marginBottom: 12, direction: 'ltr',
+      }}>
+        <div style={{
+          flex: 1, minWidth: 0,
+          fontFamily: t.font.family.mono, fontSize: 11,
+          color: t.color.silver1, overflow: 'hidden',
+          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{shareUrl}</div>
+        <button
+          onClick={copyLink}
+          style={{
+            padding: '6px 12px',
+            background: copied ? 'rgba(74,156,106,0.15)' : t.color.wineLight,
+            color: copied ? '#7fce9a' : t.color.white,
+            border: `1px solid ${copied ? '#4a9c6a' : t.color.wineLight}`,
+            borderRadius: t.radius.sm, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+            flexShrink: 0, whiteSpace: 'nowrap',
+          }}
+        >{copied ? (isRTL ? '✔ הועתק' : '✔ Copied') : (isRTL ? 'העתק' : 'Copy')}</button>
+      </div>
+
+      {/* Share buttons */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            flex: 1, minWidth: 140,
+            padding: '12px 16px', textDecoration: 'none',
+            background: '#25D366', color: '#0d1a12',
+            borderRadius: t.radius.md,
+            fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
+            textAlign: 'center', display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 16px rgba(37, 211, 102, 0.18)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M20.5 3.4A11.9 11.9 0 0 0 12 0C5.4 0 0 5.4 0 12c0 2.1.6 4.2 1.6 6L0 24l6.2-1.6a12 12 0 0 0 5.8 1.5c6.6 0 12-5.4 12-12 0-3.2-1.2-6.2-3.5-8.5z"/>
+          </svg>
+          {isRTL ? 'שתף בוואטסאפ' : 'Share on WhatsApp'}
+        </a>
+
+        {canNativeShare && (
+          <button
+            onClick={nativeShare}
+            style={{
+              flex: 1, minWidth: 140,
+              padding: '12px 16px',
+              background: 'transparent', color: t.color.wineLight,
+              border: `1px solid ${t.color.wineLight}`,
+              borderRadius: t.radius.md, cursor: 'pointer',
+              fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
+            }}
+          >{isRTL ? 'שתף...' : 'Share...'}</button>
+        )}
+      </div>
+    </Card>
+  )
 }
