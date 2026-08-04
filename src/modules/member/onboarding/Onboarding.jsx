@@ -82,10 +82,10 @@ export function Onboarding() {
  }}>
  <Card style={{ maxWidth: 620, width:'100%', padding: 40 }} glow>
  <div style={{ display:'flex', alignItems:'center', gap: 12, marginBottom: 24 }}>
- <div style={{ width:44, height:44, borderRadius:12, background:t.color.gold, color:'#0d0d14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:22 }}>H</div>
+ <div style={{ width:44, height:44, borderRadius:12, background:t.color.wineLight, color:'#ffffff', display:'flex', alignItems:'center', justifyContent:'center', fontFamily: t.font.family.display, fontWeight:800, fontSize:24, letterSpacing:'-0.03em' }}>S</div>
  <div>
- <div style={{ fontWeight:800, fontSize: t.font.lg }}>Holistic Fitness OS</div>
- <div style={{ fontSize:t.font.xs, color:t.color.textDim, letterSpacing:1 }}>ONBOARDING</div>
+ <div style={{ fontFamily: t.font.family.display, fontWeight:700, fontSize: 22, letterSpacing:'-0.02em' }}>Selano</div>
+ <div style={{ fontFamily: t.font.family.mono, fontSize:10, color:t.color.silver2, letterSpacing:'0.28em', textTransform:'uppercase' }}>Onboarding</div>
  </div>
  </div>
 
@@ -158,9 +158,9 @@ function StepWelcome() {
  return (
  <div style={{ textAlign:'center', padding:'20px 0'}}>
  <div style={{ fontSize: 64, marginBottom: 20 }}> </div>
- <h1 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 12 }}>ברוכים הבאים למתחם ההוליסטי שלך</h1>
+ <h1 style={{ fontSize: t.font.xxl, fontWeight: 800, marginBottom: 12 }}>ברוכים הבאים ל־Selano</h1>
  <p style={{ color: t.color.textDim, fontSize: t.font.md, lineHeight: 1.7, maxWidth: 460, margin:'0 auto'}}>
- כאן תבנה תכניות אימון חכמות, תעקוב אחרי תזונה, תקבל ליווי מנטלי, ותראה איך כל החלקים מתחברים לתמונה אחת של קידמה.
+ מערכת לניהול הביצועים שלך — אימונים, תזונה, מנטלי, הכל במקום אחד ומחובר.
  </p>
  </div>
  )

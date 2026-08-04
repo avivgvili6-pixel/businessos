@@ -47,13 +47,22 @@ import { AdminFeedback } from './modules/admin/feedback/AdminFeedback'
 
 function AppRouter() {
  const { user, effectiveRole, loading, passwordRecovery } = useAuth()
- const { state, setRole } = useApp()
+ const { state, setRole, completeOnboarding } = useApp()
  const [page, setPage] = useState('home')
 
  // Sync auth's effective role → app role (must run every render regardless of user)
  useEffect(() => {
  if (effectiveRole && state.role !== effectiveRole) setRole(effectiveRole)
  }, [effectiveRole, state.role])
+
+ // Sync Supabase profile.onboarded → local state. Fixes the bug where a
+ // user who completed onboarding on device A gets bounced back to
+ // onboarding when they open the app on device B (or after cache clear).
+ useEffect(() => {
+ if (user?.onboarded && !state.onboarded) {
+ completeOnboarding(state.profile || {})
+ }
+ }, [user?.onboarded, state.onboarded])
 
  // Wait for Supabase session hydration before deciding login/app view
  if (loading) return (
