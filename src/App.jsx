@@ -79,22 +79,14 @@ function AppRouter() {
  // Not logged in → login screen
  if (!user) return <LoginScreen />
 
- // Wrap the whole member flow in PilotGate — if status='waitlisted',
- // the entire app (including onboarding) is replaced by WaitlistScreen.
- // Admins always bypass the cap.
- const isMemberView = user.role === 'member' && effectiveRole !== 'admin'
- if (isMemberView) {
-   return <PilotGate user={user}><MemberFlow /></PilotGate>
- }
- return <MemberFlow />
+ const isAdminView = effectiveRole === 'admin'
+ const isMemberView = user.role === 'member' && !isAdminView
 
- function MemberFlow() {
-   // Onboarding gate for members only
-   if (!state.onboarded && user.role === 'member') return <Onboarding />
-   return <AppShellRouter />
+ // Onboarding gate for members only — wrap in PilotGate so waitlisted
+ // users see WaitlistScreen instead of onboarding
+ if (isMemberView && !state.onboarded) {
+   return <PilotGate user={user}><Onboarding /></PilotGate>
  }
-
- function AppShellRouter() {
 
  const memberPages = {
  home: <Home go={setPage} />,
@@ -128,10 +120,8 @@ function AppRouter() {
  settings: <Settings />,
  }
 
- // Which pages to render depends on the effective role (respects view-as)
- const isAdminView = effectiveRole === 'admin'
  const pages = isAdminView ? adminPages : memberPages
- const defaultPage = isAdminView ? 'overview':'home'
+ const defaultPage = isAdminView ? 'overview' : 'home'
  const validPage = pages[page] ? page : defaultPage
 
  const shellUI = (
@@ -146,17 +136,18 @@ function AppRouter() {
  </>
  )
 
- // Hard legal gate — members MUST have a signed health/terms/privacy
- // ack on file before they can use the app. Prevents bypass on a fresh
- // device by verifying against Supabase, not just localStorage.
- // Admin view bypasses (admin has their own consent flow).
- if (user.role === 'member' && !isAdminView) {
-   return <HealthAckGate user={user}>{shellUI}</HealthAckGate>
+ // Members go through PilotGate + HealthAckGate before seeing the shell.
+ // Admins bypass both.
+ if (isMemberView) {
+   return (
+     <PilotGate user={user}>
+       <HealthAckGate user={user}>{shellUI}</HealthAckGate>
+     </PilotGate>
+   )
  }
 
  return shellUI
- } // end AppShellRouter
-} // end AppRouter
+}
 
 // Pilot cap gate — resolves the user's pilot status, then either shows
 // the waitlist blocker or renders children (rest of the app).
