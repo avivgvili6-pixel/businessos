@@ -170,19 +170,35 @@ function MyPlan() {
  {/* Plans archive - always visible */}
  {archive.length > 0 && (
  <Card>
- <SectionHeader title="התכניות הקודמות שלך"subtitle={`${archive.length} תכניות בארכיון · לחיצה פותחת תצוגה מקדימה`} />
+ <SectionHeader
+ title="התכניות הקודמות שלך"
+ subtitle={`${archive.length} תכניות בארכיון · לחיצה פותחת תצוגה מקדימה`}
+ action={
+ <button
+ onClick={() => {
+ if (confirm(`למחוק את כל ${archive.length} התכניות מהארכיון? הפעולה בלתי הפיכה.`)) {
+ archive.forEach(p => removeArchivedPlan(p.id))
+ }
+ }}
+ style={{
+ background:'transparent', border:`1px solid ${t.color.danger}`,
+ color: t.color.danger, cursor:'pointer',
+ padding:'6px 12px', borderRadius: t.radius.sm,
+ fontFamily:'inherit', fontSize: 12, fontWeight: 600,
+ }}
+ >מחק הכל</button>
+ }
+ />
  <div style={{ display:'grid', gap: 8 }}>
  {archive.map(p => {
  const daysSince = p.archivedAt ? Math.floor((Date.now() - new Date(p.archivedAt).getTime()) / 86400000) : 0
  const lastUsedLabel = daysSince === 0 ? 'היום': daysSince === 1 ? 'אתמול': `לפני ${daysSince} ימים`
  return (
- <button
+ <div
  key={p.id}
- onClick={() => setPreviewPlan(p)}
  style={{
  display:'flex', gap: 12, alignItems:'center', width:'100%',
  padding: 12, background: t.color.bgSoft, borderRadius: t.radius.md,
- border:'none', cursor:'pointer', textAlign:'right', fontFamily:'inherit',
  color: t.color.text, transition: t.transition,
  }}
  onMouseEnter={e => e.currentTarget.style.background = t.color.bgCard}
@@ -196,22 +212,48 @@ function MyPlan() {
  color: p.completionPct >= 75 ? t.color.success : p.completionPct >= 40 ? t.color.gold : t.color.warning,
  flexShrink: 0,
  }}>{p.completionPct}%</div>
- <div style={{ flex: 1, minWidth: 0 }}>
+ <button
+ onClick={() => setPreviewPlan(p)}
+ style={{
+ flex: 1, minWidth: 0, background:'transparent', border:'none',
+ color: t.color.text, cursor:'pointer', textAlign:'right',
+ fontFamily:'inherit', padding: 0,
+ }}
+ >
  <div style={{ fontWeight: 700, marginBottom: 2 }}>{p.name}</div>
  <div style={{ fontSize: t.font.xs, color: t.color.textDim }}>
  {p.sessionsDone}/{p.sessionsExpected} אימונים · שימוש אחרון: {lastUsedLabel}
  </div>
- </div>
- <button
- onClick={(e) => { e.stopPropagation(); if (confirm('למחוק את התכנית לצמיתות?')) removeArchivedPlan(p.id) }}
- style={{
- background:'transparent', border:'none', color: t.color.textDim,
- cursor:'pointer', fontSize: 18, padding: 6,
- }}
- title="מחק"
- > </button>
- <span style={{ color: t.color.textMuted, fontSize: 20 }}>›</span>
  </button>
+ <button
+ onClick={() => { if (confirm(`למחוק את התכנית "${p.name}" לצמיתות?`)) removeArchivedPlan(p.id) }}
+ title="מחק תכנית"
+ aria-label="מחק תכנית"
+ style={{
+ background:'transparent', border:`1px solid ${t.color.border}`,
+ color: t.color.danger, cursor:'pointer',
+ padding:'8px 12px', borderRadius: t.radius.sm,
+ fontFamily:'inherit', fontSize: 12, fontWeight: 700,
+ display:'inline-flex', alignItems:'center', gap: 6,
+ transition: t.transition,
+ }}
+ onMouseEnter={e => { e.currentTarget.style.background = `${t.color.danger}18`; e.currentTarget.style.borderColor = t.color.danger }}
+ onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = t.color.border }}
+ >
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+ <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14zM10 11v6M14 11v6"/>
+ </svg>
+ מחק
+ </button>
+ <button
+ onClick={() => setPreviewPlan(p)}
+ aria-label="פתח תצוגה מקדימה"
+ style={{
+ background:'transparent', border:'none', color: t.color.textMuted,
+ cursor:'pointer', fontSize: 22, padding: '4px 8px',
+ }}
+ >›</button>
+ </div>
  )
  })}
  </div>
