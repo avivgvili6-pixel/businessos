@@ -278,6 +278,78 @@ function describeAuthError(err, redirectTo) {
   return 'Supabase החזיר שגיאה ריקה. פתח את הקונסול בדפדפן (F12) → Console — יש שם פרטים.'
 }
 
+// ─── MEMBER FEEDBACK ────────────────────────────────────────────────
+// The single "דברו איתנו" feedback stream: text-only messages from
+// members, admin reads them from the same table.
+
+const FEEDBACK_LS_KEY = 'selano.feedback.queue.v1'
+
+export async function submitFeedback({ user, body }) {
+  const payload = {
+    user_id: user?.id || null,
+    user_email: user?.email || null,
+    user_name: user?.name || null,
+    body: (body || '').trim(),
+    created_at: new Date().toISOString(),
+  }
+  if (supabaseEnabled) {
+    const { data, error } = await supabase.from('member_feedback').insert(payload).select().single()
+    if (!error) return { ok: true, data }
+    console.warn('[supabaseSync] feedback insert failed:', error.message)
+  }
+  // Fall back to a local queue so nothing is lost
+  try {
+    const raw = localStorage.getItem(FEEDBACK_LS_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    list.push(payload)
+    localStorage.setItem(FEEDBACK_LS_KEY, JSON.stringify(list))
+  } catch { /* noop */ }
+  return { ok: false, queued: true }
+}
+
+export async function listFeedback() {
+  const cloud = []
+  if (supabaseEnabled) {
+    const { data, error } = await supabase
+      .from('member_feedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) console.warn('[supabaseSync] list feedback failed:', error.message)
+    else cloud.push(...(data || []))
+  }
+  // Include local queue so admin can see what hasn't synced yet
+  let local = []
+  try {
+    const raw = localStorage.getItem(FEEDBACK_LS_KEY)
+    if (raw) local = JSON.parse(raw) || []
+  } catch { /* noop */ }
+  const localRows = local.map((r, idx) => ({
+    id: `local-${idx}-${r.created_at}`,
+    ...r,
+    _local: true,
+  }))
+  return [...cloud, ...localRows].sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+  )
+}
+
+export async function markFeedbackRead(id, read = true) {
+  if (!supabaseEnabled || String(id).startsWith('local-')) return { skipped: true }
+  const { error } = await supabase
+    .from('member_feedback')
+    .update({ read_at: read ? new Date().toISOString() : null })
+    .eq('id', id)
+  if (error) console.warn('[supabaseSync] mark read failed:', error.message)
+  return { error }
+}
+
+export async function deleteFeedback(id) {
+  if (!supabaseEnabled || String(id).startsWith('local-')) return { skipped: true }
+  const { error } = await supabase.from('member_feedback').delete().eq('id', id)
+  if (error) console.warn('[supabaseSync] delete feedback failed:', error.message)
+  return { error }
+}
+
 // Aggregate — how many progress photos each member uploaded (proxy for engagement)
 export async function memberEngagementSummary() {
   if (!supabaseEnabled) return { photos: {}, requests: {} }

@@ -23,6 +23,7 @@ import { OnDemand } from './modules/member/ondemand/OnDemand'
 import { Profile } from './modules/member/profile/Profile'
 import { Reminders } from './modules/member/reminders/Reminders'
 import { Talk } from './modules/member/talk/Talk'
+import { SLoader } from './components/ui/SLoader'
 
 // admin
 import { Overview } from './modules/admin/overview/Overview'
@@ -35,6 +36,7 @@ import { Settings } from './modules/admin/settings/Settings'
 import { CoachRequests } from './modules/admin/coach-requests/CoachRequests'
 import { PersonalRequests } from './modules/admin/personal-requests/PersonalRequests'
 import { MemberPhotos } from './modules/admin/member-photos/MemberPhotos'
+import { AdminFeedback } from './modules/admin/feedback/AdminFeedback'
 
 function AppRouter() {
  const { user, effectiveRole, loading, passwordRecovery } = useAuth()
@@ -48,11 +50,8 @@ function AppRouter() {
 
  // Wait for Supabase session hydration before deciding login/app view
  if (loading) return (
- <div style={{ minHeight:'100vh', display:'grid', placeItems:'center', background:'#0d0d14', color:'#c8a84b', fontFamily:'system-ui'}}>
- <div style={{ textAlign:'center'}}>
- <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
- <div style={{ fontSize: 14, letterSpacing: 2, opacity: 0.8 }}>טוען...</div>
- </div>
+ <div style={{ minHeight:'100vh', display:'grid', placeItems:'center', background:'#0f0d0b'}}>
+ <SLoader size={200} />
  </div>
  )
 
@@ -94,6 +93,7 @@ function AppRouter() {
  billing: <Billing />,
  analytics: <Analytics />,
  alerts: <Alerts />,
+ feedback: <AdminFeedback />,
  settings: <Settings />,
  }
 

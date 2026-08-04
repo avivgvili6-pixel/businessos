@@ -31,6 +31,7 @@ const ADMIN_NAV_KEYS = [
  { key:'billing', i18n:'nav.billing' },
  { key:'analytics', i18n:'nav.analytics' },
  { key:'alerts', i18n:'nav.alerts' },
+ { key:'feedback', i18n:'nav.feedback' },
  { key:'settings', i18n:'nav.settings' },
 ]
 
@@ -58,6 +59,8 @@ export function Shell({ page, setPage, children }) {
  width: 240, background: t.color.bgElevated, borderLeft:`1px solid ${t.color.border}`,
  padding: t.space.lg, display:'flex', flexDirection:'column', gap: t.space.md,
  position:'sticky', top: 0, height:'100vh',
+ overflowY:'auto', overscrollBehavior:'contain',
+ scrollBehavior:'smooth', scrollbarGutter:'stable',
  }}>
  <BrandBlock isAdmin={isAdminView} />
  <UserBlock user={user} onLogout={logout} />
@@ -353,6 +356,19 @@ function TopBar({ page, isAdmin, onMenu }) {
 function ResponsiveStyle() {
  return (
  <style>{`
+ /* Thin, discreet scrollbar for the desktop sidebar */
+ .hfos-sidebar {
+ scrollbar-width: thin;
+ scrollbar-color: rgba(199,64,80,0.28) transparent;
+ }
+ .hfos-sidebar::-webkit-scrollbar { width: 6px; }
+ .hfos-sidebar::-webkit-scrollbar-track { background: transparent; }
+ .hfos-sidebar::-webkit-scrollbar-thumb {
+ background: rgba(199,64,80,0.28);
+ border-radius: 999px;
+ transition: background 0.2s;
+ }
+ .hfos-sidebar:hover::-webkit-scrollbar-thumb { background: rgba(199,64,80,0.5); }
  @media (max-width: 900px) {
  .hfos-sidebar { display: none !important; }
  .hfos-bottomnav { display: flex !important; }

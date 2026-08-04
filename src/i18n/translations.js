@@ -33,6 +33,7 @@ export const TRANSLATIONS = {
     'nav.billing':           'תשלומים',
     'nav.analytics':         'אנליטיקה',
     'nav.alerts':            'התראות',
+    'nav.feedback':          'פידבקים',
     'nav.settings':          'הגדרות',
 
     // View-as switcher
@@ -198,6 +199,7 @@ export const TRANSLATIONS = {
     'nav.billing':           'Billing',
     'nav.analytics':         'Analytics',
     'nav.alerts':            'Alerts',
+    'nav.feedback':          'Feedback',
     'nav.settings':          'Settings',
 
     // View-as

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { t } from '../../../theme/tokens'
 import { useAuth } from '../../../auth/AuthContext'
-import { supabase, supabaseEnabled } from '../../../lib/supabase'
+import { submitFeedback } from '../../../services/supabaseSync'
 import { Card, Button } from '../../../components/ui/UI'
 
 // דברו איתנו — single unified feedback page.
@@ -12,7 +12,6 @@ import { Card, Button } from '../../../components/ui/UI'
 
 const WA_NUMBER_INTL = '972559579769' // 055-9579769 in international form
 const WA_DISPLAY = '055-9579769'
-const LS_QUEUE_KEY = 'selano.feedback.queue.v1'
 
 export function Talk() {
   const { user } = useAuth()
@@ -26,39 +25,10 @@ export function Talk() {
     if (!canSend) return
     setSending(true)
     setStatus(null)
-    const payload = {
-      user_id: user?.id || null,
-      user_email: user?.email || null,
-      user_name: user?.name || null,
-      body: text.trim(),
-      created_at: new Date().toISOString(),
-    }
-
-    let ok = false
-    if (supabaseEnabled) {
-      try {
-        const { error } = await supabase.from('member_feedback').insert(payload)
-        if (!error) ok = true
-        else console.warn('[feedback] supabase insert failed:', error.message)
-      } catch (e) {
-        console.warn('[feedback] insert threw:', e)
-      }
-    }
-
-    if (!ok) {
-      // Local fallback so nothing gets lost when Supabase isn't reachable.
-      try {
-        const raw = localStorage.getItem(LS_QUEUE_KEY)
-        const list = raw ? JSON.parse(raw) : []
-        list.push(payload)
-        localStorage.setItem(LS_QUEUE_KEY, JSON.stringify(list))
-      } catch { /* storage full — just show sent anyway */ }
-    }
-
+    const res = await submitFeedback({ user, body: text })
     setSending(false)
-    setStatus(ok ? 'sent' : 'saved')
+    setStatus(res.ok ? 'sent' : 'saved')
     setText('')
-    // Auto-clear the confirmation after a few seconds
     setTimeout(() => setStatus(null), 4200)
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Badge, SectionHeader, EmptyState, Button } from '../../../components/ui/UI'
+import { SLoader } from '../../../components/ui/SLoader'
 import { listProgressPhotos, signedPhotoUrl } from '../../../services/supabaseSync'
 import { supabaseEnabled } from '../../../lib/supabase'
 
@@ -43,9 +44,8 @@ export function MemberPhotos() {
 
  if (loading) {
  return (
- <Card style={{ padding: 40, textAlign:'center'}}>
- <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
- <div style={{ color: t.color.textDim }}>טוען תמונות מהענן...</div>
+ <Card style={{ padding: 40 }}>
+ <SLoader size={96} label="טוען תמונות מהענן" />
  </Card>
  )
  }

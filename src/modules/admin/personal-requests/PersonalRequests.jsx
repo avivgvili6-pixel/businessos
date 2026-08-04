@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { t } from '../../../theme/tokens'
 import { useApp } from '../../../store/AppStore'
 import { Card, Button, Badge, SectionHeader, EmptyState } from '../../../components/ui/UI'
+import { SLoader } from '../../../components/ui/SLoader'
 import { listTrainingRequests, updateTrainingRequestStatus } from '../../../services/supabaseSync'
 import { supabaseEnabled } from '../../../lib/supabase'
 
@@ -57,9 +58,8 @@ export function PersonalRequests() {
 
  if (loading) {
  return (
- <Card style={{ padding: 40, textAlign:'center'}}>
- <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
- <div style={{ color: t.color.textDim }}>טוען בקשות מהענן...</div>
+ <Card style={{ padding: 40 }}>
+ <SLoader size={96} label="טוען בקשות מהענן" />
  </Card>
  )
  }
