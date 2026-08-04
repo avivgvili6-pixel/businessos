@@ -22,6 +22,7 @@ import { Personal } from './modules/member/personal/Personal'
 import { OnDemand } from './modules/member/ondemand/OnDemand'
 import { Profile } from './modules/member/profile/Profile'
 import { Reminders } from './modules/member/reminders/Reminders'
+import { Talk } from './modules/member/talk/Talk'
 
 // admin
 import { Overview } from './modules/admin/overview/Overview'
@@ -80,6 +81,7 @@ function AppRouter() {
  personal: <Personal />,
  ondemand: <OnDemand />,
  reminders: <Reminders />,
+ talk: <Talk />,
  profile: <Profile go={setPage} />,
  }
  const adminPages = {

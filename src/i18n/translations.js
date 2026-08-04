@@ -18,6 +18,7 @@ export const TRANSLATIONS = {
     'nav.ondemand':   'On-Demand',
     'nav.store':      'חנות',
     'nav.personal':   'אימון אישי',
+    'nav.talk':       'דברו איתנו',
     'nav.profile':    'פרופיל',
 
     // Navigation — admin
@@ -182,6 +183,7 @@ export const TRANSLATIONS = {
     'nav.ondemand':   'On-Demand',
     'nav.store':      'Store',
     'nav.personal':   'Personal Training',
+    'nav.talk':       'Talk to Us',
     'nav.profile':    'Profile',
 
     // Navigation — admin
