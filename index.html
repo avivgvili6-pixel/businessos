@@ -6,6 +6,7 @@
     <title>Selano — Performance System</title>
     <meta name="description" content="Selano · מערכת לניהול ביצועים." />
     <meta name="theme-color" content="#a52a3a" />
+    <meta name="color-scheme" content="dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Selano" />
@@ -34,7 +35,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Heebo:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Heebo', 'Segoe UI', sans-serif; direction: rtl; background: #14120f; color: #eeece5; }
+      body { font-family: 'Heebo', 'Segoe UI', sans-serif; direction: rtl; background: #14120f; color: #eeece5; color-scheme: dark; }
+
+      /* Force all form inputs to render light text (fixes iOS/Android forced-color
+         theming that made typed text render white-on-white or otherwise invisible) */
+      input, textarea, select {
+        color: #eeece5 !important;
+        -webkit-text-fill-color: #eeece5 !important;
+        color-scheme: dark;
+      }
+      input::placeholder, textarea::placeholder {
+        color: #7a7167 !important;
+        -webkit-text-fill-color: #7a7167 !important;
+        opacity: 1;
+      }
+      /* Number input: iOS sometimes ignores color:. Force it. */
+      input[type=number], input[type=text], input[type=email], input[type=password], input[type=tel], input[type=search] {
+        color: #eeece5 !important;
+        -webkit-text-fill-color: #eeece5 !important;
+        caret-color: #c74050;
+      }
       #root { min-height: 100vh; }
       input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; background: #2d2925; border-radius: 2px; outline: none; }
       input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #a52a3a; cursor: pointer; }
