@@ -50,13 +50,14 @@ export async function listWaitlist() {
   return data || []
 }
 
-// Flip a waitlisted user to active. Returns { ok, released_email }.
+// Flip a waitlisted user to active. Returns { ok, error }.
+// .select() after update verifies rows were actually changed —
+// otherwise RLS blocking looks like silent success from the client.
 export async function releaseWaitlistedUser(userId) {
   if (!supabaseEnabled) return { ok: false, error: 'Supabase לא מחובר' }
-  // Fetch the user's email first for the notification prompt
   const { data: user } = await supabase
-    .from('profiles').select('email, name').eq('id', userId).single()
-  const { error } = await supabase
+    .from('profiles').select('email, name').eq('id', userId).maybeSingle()
+  const { data, error } = await supabase
     .from('profiles')
     .update({
       status: 'active',
@@ -64,7 +65,18 @@ export async function releaseWaitlistedUser(userId) {
       released_at: new Date().toISOString(),
     })
     .eq('id', userId)
-  if (error) { console.warn('[pilot] release:', error.message); return { ok: false, error: error.message } }
+    .select()
+  if (error) {
+    console.error('[pilot] release error:', error)
+    return { ok: false, error: error.message }
+  }
+  if (!data || data.length === 0) {
+    console.error('[pilot] release: 0 rows updated — likely RLS blocking. Run the admin update policy SQL.')
+    return {
+      ok: false,
+      error: 'לא עודכן אף שורה (RLS חוסם עדכון פרופילים ע"י אדמין). הרץ בסופאבייס:\n\ncreate policy "admins update all profiles" on profiles for update using (exists (select 1 from profiles p where p.id = auth.uid() and p.role = \'admin\')) with check (true);',
+    }
+  }
   return { ok: true, email: user?.email, name: user?.name }
 }
 
