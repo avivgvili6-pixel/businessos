@@ -13,12 +13,10 @@ const MEMBER_NAV_KEYS = [
  { key:'nutrition', i18n:'nav.nutrition' },
  { key:'mind', i18n:'nav.mind' },
  { key:'calendar', i18n:'nav.calendar' },
- { key:'reminders', i18n:'nav.reminders' },
- { key:'talk', i18n:'nav.talk' },
  { key:'ondemand', i18n:'nav.ondemand' },
  { key:'store', i18n:'nav.store' },
  { key:'personal', i18n:'nav.personal' },
- { key:'profile', i18n:'nav.profile' },
+ { key:'control', i18n:'nav.control' },
 ]
 
 const ADMIN_NAV_KEYS = [

@@ -23,6 +23,7 @@ import { OnDemand } from './modules/member/ondemand/OnDemand'
 import { Profile } from './modules/member/profile/Profile'
 import { Reminders } from './modules/member/reminders/Reminders'
 import { Talk } from './modules/member/talk/Talk'
+import { ControlCenter } from './modules/member/control/ControlCenter'
 import { SLoader } from './components/ui/SLoader'
 import { HealthAcknowledgment, readHealthAck } from './components/legal/HealthAcknowledgment'
 import { fetchHealthAck } from './services/supabaseSync'
@@ -101,6 +102,7 @@ function AppRouter() {
  reminders: <Reminders />,
  talk: <Talk />,
  profile: <Profile go={setPage} />,
+ control: <ControlCenter go={setPage} />,
  }
  const adminPages = {
  overview: <Overview />,

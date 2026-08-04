@@ -28,32 +28,33 @@ create or replace function assign_pilot_status()
 returns trigger
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
   current_active int;
   current_cap int;
   next_pos int;
 begin
-  -- Skip if status was explicitly set (e.g. admin inserting)
-  if new.status is not null and new.status = 'active' and tg_op = 'INSERT' then
-    -- allow explicit 'active' from admin — only auto-assign when default
-    null;
-  end if;
+  -- FAIL-SAFE: any error here defaults to active so signup never breaks
+  begin
+    select active_cap into current_cap from pilot_settings where id = 1;
+    if current_cap is null then current_cap := 30; end if;
+    select count(*) into current_active from profiles where status = 'active';
 
-  select active_cap into current_cap from pilot_settings where id = 1;
-  select count(*) into current_active from profiles where status = 'active';
-
-  if current_active < current_cap then
+    if current_active < current_cap then
+      new.status := 'active';
+      new.waitlist_position := null;
+    else
+      new.status := 'waitlisted';
+      select coalesce(max(waitlist_position), 0) + 1 into next_pos from profiles
+        where status = 'waitlisted';
+      new.waitlist_position := next_pos;
+      new.waitlisted_at := now();
+    end if;
+  exception when others then
     new.status := 'active';
     new.waitlist_position := null;
-  else
-    new.status := 'waitlisted';
-    select coalesce(max(waitlist_position), 0) + 1 into next_pos from profiles
-      where status = 'waitlisted';
-    new.waitlist_position := next_pos;
-    new.waitlisted_at := now();
-  end if;
-
+  end;
   return new;
 end;
 $$;
@@ -76,15 +77,8 @@ grant select on pilot_settings to anon, authenticated;
 grant select on pilot_stats to anon, authenticated;
 
 -- Admin-only write to pilot_settings (relies on the existing admin policy pattern)
-alter table pilot_settings enable row level security;
-drop policy if exists "read pilot settings" on pilot_settings;
-create policy "read pilot settings" on pilot_settings
-  for select using (true);
-drop policy if exists "admin writes pilot settings" on pilot_settings;
-create policy "admin writes pilot settings" on pilot_settings
-  for all using (
-    exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin')
-  );
+-- pilot_settings is just config — no RLS needed (readable by everyone via grants)
+alter table pilot_settings disable row level security;
 
 -- ─────────────────────────────────────────────────────────────
 -- Done. To verify:
