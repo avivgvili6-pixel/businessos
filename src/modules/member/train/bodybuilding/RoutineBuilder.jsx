@@ -5,6 +5,7 @@ import { useApp } from '../../../../store/AppStore'
 import { EXERCISES, EXERCISE_BY_ID, EQUIPMENT, MUSCLE_GROUPS } from '../../../../data/bodybuilding/exercisesUnified'
 import { ExerciseGuideButton } from '../../../../components/train/ExerciseGuidePopover'
 import { modeFromState, activeGoal, TRAINING_MODES } from '../../../../data/trainingMode'
+import { FreeformBuilder } from './FreeformBuilder'
 
 // ─── Level & goal presets ─────────────────────────────────
 // 4 levels, each layers on intensifiers (supersets, dropsets)
@@ -40,13 +41,14 @@ export function RoutineBuilder({ routine, open, onClose }) {
   const [seedExercises, setSeedExercises] = useState(null)
 
   const enterAuto = () => setMode('auto')
+  const enterFreeform = () => setMode('freeform')
   const enterManual = (seed) => { setSeedExercises(seed || null); setMode('manual') }
   const back = () => setMode('choose')
 
   if (mode === 'choose') {
     return (
       <Modal open={open} onClose={onClose} title="צור Routine חדש" width={620}>
-        <ModeChooser onAuto={enterAuto} onManual={() => enterManual(null)} />
+        <ModeChooser onAuto={enterAuto} onFreeform={enterFreeform} onManual={() => enterManual(null)} />
       </Modal>
     )
   }
@@ -62,6 +64,16 @@ export function RoutineBuilder({ routine, open, onClose }) {
     )
   }
 
+  if (mode === 'freeform') {
+    return (
+      <FreeformBuilder
+        open={open}
+        onClose={() => { back(); onClose() }}
+        onGenerated={(exercises) => enterManual(exercises)}
+      />
+    )
+  }
+
   return (
     <ManualBuilder
       routine={routine}
@@ -74,7 +86,7 @@ export function RoutineBuilder({ routine, open, onClose }) {
 }
 
 // ─── Mode chooser ─────────────────────────────────────────
-function ModeChooser({ onAuto, onManual }) {
+function ModeChooser({ onAuto, onFreeform, onManual }) {
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       <div style={{
@@ -86,15 +98,27 @@ function ModeChooser({ onAuto, onManual }) {
       </div>
 
       <ChoiceCard
+        title="בנייה מטקסט חופשי"
+        subtitle="תאר במילים שלך — המערכת בונה"
+        bullets={[
+          '״חזה יד קדמית ורגליים, נפח, חדר כושר, 60 דקות״',
+          'המערכת מזהה שרירים, מטרה, ציוד, ורמה',
+          'מציגה את מה שהיא הבינה לפני הבנייה',
+        ]}
+        cta="בואו נבנה →"
+        primary
+        onClick={onFreeform}
+      />
+
+      <ChoiceCard
         title="בנייה אוטומטית"
-        subtitle="בחר שרירים · מטרה · רמה — המערכת בונה"
+        subtitle="סמן שרירים · מטרה · רמה בטאבים"
         bullets={[
           'שרירים: סמן איזה שרירים לתקוף',
           'מטרה: היפרטרופיה / סיבולת / כוח מירבי',
           'רמה: 4 רמות, מהמתחיל ועד סופרסטים + דרופסטים',
         ]}
         cta="בואו נבנה →"
-        primary
         onClick={onAuto}
       />
 
@@ -102,7 +126,7 @@ function ModeChooser({ onAuto, onManual }) {
         title="בנייה קלאסית"
         subtitle="אתה מרכיב תרגיל־תרגיל, ידני מלא"
         bullets={[
-          'בחר תרגילים ממאגר של 280+ תרגילים',
+          'בחר תרגילים ממאגר של 562 תרגילים',
           'הגדר סטים, חזרות, מנוחות',
           'סמן סופרסטים ודרופסטים על תבנית התרגיל',
         ]}

@@ -7,6 +7,9 @@ import { LEVELS, GOALS, EQUIPMENT_TYPES } from '../../../../data/bodybuilding/pr
 import { ROUTINE_BY_ID } from '../../../../data/bodybuilding/routines'
 import { ProgramDetail } from './ProgramDetail'
 import { activeGoal, modeFromState, TRAINING_MODES } from '../../../../data/trainingMode'
+import {
+  parseProgramRequest, MUSCLE_HE, GOAL_HE, EQUIPMENT_HE, LEVEL_HE,
+} from '../../../../utils/nlWorkoutParser'
 
 // Wizard that generates a personalised program. If the user already
 // has an active goal from onboarding we skip the goal question and
@@ -29,6 +32,8 @@ export function TrainerGenerator() {
  const [result, setResult] = useState(null)
  const [detailOpen, setDetailOpen] = useState(false)
  const [overrideGoal, setOverrideGoal] = useState(false)
+ const [inputMode, setInputMode] = useState('wizard') // 'wizard' | 'freeform'
+ const [freeformText, setFreeformText] = useState('')
 
  const current = (overrideGoal ? WIZARD_STEPS : steps)[step]
  const activeSteps = overrideGoal ? WIZARD_STEPS : steps
@@ -46,7 +51,23 @@ export function TrainerGenerator() {
  }
  }
 
- const restart = () => { setAnswers(initialAnswers); setStep(0); setResult(null); setOverrideGoal(false) }
+ const restart = () => { setAnswers(initialAnswers); setStep(0); setResult(null); setOverrideGoal(false); setFreeformText(''); setInputMode('wizard') }
+
+ const freeformParsed = parseProgramRequest(freeformText)
+ const canGenerateFromFreeform = freeformParsed.muscles.length > 0 || freeformParsed.goal
+ const generateFromFreeform = () => {
+   const goalMode = freeformParsed.goal || inheritedMode || 'hypertrophy'
+   const params = {
+     goal: TRAINING_MODES[goalMode].bbGoalKey,
+     equipment: freeformParsed.equipment === 'gym' ? 'gym'
+              : freeformParsed.equipment === 'bodyweight' ? 'home_bodyweight'
+              : freeformParsed.equipment ? 'home_dumbbells' : 'gym',
+     daysPerWeek: freeformParsed.daysPerWeek || 4,
+     experience: freeformParsed.level || 'intermediate',
+   }
+   const gen = generatePersonalisedProgram(params)
+   setResult(gen)
+ }
 
  const activate = () => {
  if (!result?.program) return
@@ -106,6 +127,77 @@ export function TrainerGenerator() {
  // Wizard view
  return (
  <div>
+ {/* Input mode toggle */}
+ <div style={{
+   display:'flex', gap: 4, background: t.color.bgSoft, padding: 4,
+   borderRadius: t.radius.md, marginBottom: t.space.md,
+ }}>
+   <button onClick={() => setInputMode('wizard')} style={inputModeBtnStyle(inputMode === 'wizard')}>שאלון מודרך</button>
+   <button onClick={() => setInputMode('freeform')} style={inputModeBtnStyle(inputMode === 'freeform')}>תיאור בטקסט חופשי</button>
+ </div>
+
+ {inputMode === 'freeform' && (
+   <div style={{ display:'grid', gap: 14 }}>
+     <textarea
+       value={freeformText}
+       onChange={e => setFreeformText(e.target.value)}
+       placeholder={'למשל: ״תכנית של 4 ימים לבניית מסה, חדר כושר, מתקדם״'}
+       rows={4}
+       autoFocus
+       style={{
+         width:'100%', padding: 14,
+         background: t.color.bgSoft,
+         border:`1px solid ${freeformText ? t.color.gold : t.color.border}`,
+         borderRadius: t.radius.md,
+         color: t.color.text, fontFamily:'inherit', fontSize: 14,
+         lineHeight: 1.55, resize:'vertical', outline:'none',
+         direction:'rtl',
+       }}
+     />
+     <div style={{ display:'flex', flexWrap:'wrap', gap: 6 }}>
+       {[
+         'תכנית של 4 ימים לבניית מסה, חדר כושר, מתקדם',
+         '3 פעמים בשבוע בבית, סיבולת',
+         'תכנית כוח מירבי, 5 ימים, מוט וכבלים',
+       ].map(ex => (
+         <button key={ex} onClick={() => setFreeformText(ex)} style={{
+           padding:'5px 10px', background: t.color.bgSoft,
+           border:`1px solid ${t.color.border}`, borderRadius: t.radius.pill,
+           cursor:'pointer', fontFamily:'inherit', fontSize: 11,
+           color: t.color.silver1, textAlign:'right',
+         }}>{ex}</button>
+       ))}
+     </div>
+     {freeformText && (
+       <Card style={{
+         padding: 14,
+         background:`linear-gradient(160deg, rgba(199,143,58,0.06) 0%, ${t.color.bgElevated} 60%)`,
+         border:`1px solid rgba(199,143,58,0.35)`,
+       }}>
+         <div style={{
+           fontFamily:'Space Mono, monospace', fontSize: 10, letterSpacing:'0.24em',
+           textTransform:'uppercase', color: t.color.gold, fontWeight: 700, marginBottom: 8,
+         }}>מה זיהיתי · {freeformParsed.confidence}%</div>
+         <div style={{ display:'grid', gap: 6, fontSize: 12.5, color: t.color.bone }}>
+           {freeformParsed.muscles.length > 0 && (
+             <div>שרירים: <b>{freeformParsed.muscles.map(m => MUSCLE_HE[m] || m).join(' · ')}</b></div>
+           )}
+           <div>מטרה: <b>{GOAL_HE[freeformParsed.goal] || GOAL_HE[inheritedMode]}</b>{!freeformParsed.goal && <em style={{ color: t.color.silver2, fontSize: 11 }}> · מהמטרה שלך</em>}</div>
+           <div>ציוד: <b>{EQUIPMENT_HE[freeformParsed.equipment] || 'לא צוין (ברירת מחדל)'}</b></div>
+           <div>ימים בשבוע: <b>{freeformParsed.daysPerWeek || 4}</b>{!freeformParsed.daysPerWeek && <em style={{ color: t.color.silver2, fontSize: 11 }}> · ברירת מחדל</em>}</div>
+           <div>רמה: <b>{LEVEL_HE[freeformParsed.level] || 'בינוני'}</b>{!freeformParsed.level && <em style={{ color: t.color.silver2, fontSize: 11 }}> · ברירת מחדל</em>}</div>
+         </div>
+       </Card>
+     )}
+     <Button
+       variant="primary" size="lg"
+       onClick={generateFromFreeform}
+       disabled={!canGenerateFromFreeform}
+     >{canGenerateFromFreeform ? 'צור תכנית ←' : 'הזן תיאור כדי להמשיך'}</Button>
+   </div>
+ )}
+
+ {inputMode === 'wizard' && <>
  {/* Progress indicator */}
  <div style={{ display:'flex', gap: 4, marginBottom: t.space.lg }}>
  {activeSteps.map((_, i) => (
@@ -194,6 +286,15 @@ export function TrainerGenerator() {
  → חזור
  </Button>
  )}
+ </>}
  </div>
  )
 }
+
+const inputModeBtnStyle = (on) => ({
+  flex: 1, padding:'10px 14px', border:'none', fontFamily:'inherit',
+  cursor:'pointer', fontSize: 13, fontWeight: 600,
+  background: on ? t.color.bgCard :'transparent',
+  color: on ? t.color.gold : t.color.textDim,
+  borderRadius: t.radius.sm,
+})
