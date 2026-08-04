@@ -6,6 +6,7 @@ import { Kicker, SectionHead, Label, Button as SButton } from '../../../design/c
 import { useAuth } from '../../../auth/AuthContext'
 import { supabaseEnabled } from '../../../lib/supabase'
 import { listAllMembers, memberEngagementSummary, adminSendPasswordRecovery } from '../../../services/supabaseSync'
+import { sendAccessLink } from '../../../services/pilot'
 import { useI18n } from '../../../i18n/i18n'
 
 // Real admin roster — reads live from Supabase profiles table.
@@ -235,8 +236,8 @@ export function Members() {
               <thead>
                 <tr>
                   {(isRTL
-                    ? ['מתאמן', 'תפקיד', 'מטרה', 'סטטוס', 'תמונות', 'הצטרף']
-                    : ['Member', 'Role', 'Goal', 'Status', 'Photos', 'Joined']
+                    ? ['מתאמן', 'תפקיד', 'מטרה', 'סטטוס', 'תמונות', 'הצטרף', 'פעולה']
+                    : ['Member', 'Role', 'Goal', 'Status', 'Photos', 'Joined', 'Action']
                   ).map(h => (
                     <th key={h} style={{
                       textAlign: 'right', padding: '12px 16px',
@@ -329,6 +330,21 @@ function goalLabel(key) {
 // ─── Row component ─────────────────────────────────────────
 function MemberRow({ member, onOpen }) {
   const initials = (member.name || '?').trim().slice(0, 1).toUpperCase()
+  const [sendState, setSendState] = useState('idle') // idle | sending | sent | error
+
+  const quickSendLink = async (e) => {
+    e.stopPropagation() // don't open the modal
+    if (!member.email || sendState === 'sending') return
+    setSendState('sending')
+    const res = await sendAccessLink(member.email)
+    setSendState(res.ok ? 'sent' : 'error')
+    if (res.ok) {
+      setTimeout(() => setSendState('idle'), 3500)
+    } else {
+      alert('שגיאה בשליחה: ' + (res.error || 'לא ידוע'))
+      setSendState('idle')
+    }
+  }
 
   return (
     <tr
@@ -392,6 +408,32 @@ function MemberRow({ member, onOpen }) {
             : member.joinedDays === 1 ? 'אתמול'
             : `${member.joinedDays} ימים`}
         </Label>
+      </td>
+      <td style={{ padding: '14px 16px', textAlign: 'left' }} onClick={e => e.stopPropagation()}>
+        <button
+          onClick={quickSendLink}
+          disabled={!member.email || sendState === 'sending'}
+          title={member.email ? 'שלח קישור כניסה למייל' : 'אין מייל רשום'}
+          style={{
+            padding: '6px 12px',
+            background: sendState === 'sent' ? 'rgba(74,156,106,0.15)'
+              : sendState === 'sending' ? t.color.bgSoft
+              : 'transparent',
+            border: `1px solid ${sendState === 'sent' ? '#4a9c6a'
+              : sendState === 'sending' ? t.color.border
+              : t.color.wineLight}`,
+            color: sendState === 'sent' ? '#7fce9a'
+              : sendState === 'sending' ? t.color.silver2
+              : t.color.wineLight,
+            borderRadius: t.radius.sm,
+            cursor: member.email && sendState !== 'sending' ? 'pointer' : 'not-allowed',
+            fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+            whiteSpace: 'nowrap',
+            opacity: !member.email ? 0.4 : 1,
+          }}
+        >{sendState === 'sending' ? 'שולח...'
+          : sendState === 'sent' ? '✔ נשלח'
+          : 'שלח קישור'}</button>
       </td>
     </tr>
   )
@@ -548,6 +590,21 @@ function MemberDrawer({ member, onClose }) {
     setViewAs('member')
     onClose()
   }
+  const sendMagicLink = async () => {
+    if (!member.email) {
+      setResetState({ status: 'error', message: 'למתאמן/ת אין מייל רשום — אי אפשר לשלוח קישור.' })
+      return
+    }
+    setResetState({ status: 'sending', message: '' })
+    const res = await sendAccessLink(member.email)
+    setResetState({
+      status: res.ok ? 'ok' : 'error',
+      message: res.ok
+        ? `✔ קישור כניסה נשלח ל־${member.email}. תוקף שעה — לחיצה מכניסה ישר לאפליקציה בלי סיסמה.`
+        : `שגיאה בשליחה: ${res.error || 'לא ידוע'}`,
+    })
+  }
+
   const sendReset = async () => {
     if (!member.email) {
       setResetState({ status: 'error', message: 'למתאמן/ת אין מייל רשום — אי אפשר לשלוח איפוס.' })
@@ -658,10 +715,17 @@ function MemberDrawer({ member, onClose }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <SButton
               variant="primary"
+              onClick={sendMagicLink}
+              disabled={resetState.status === 'sending' || !member.email}
+            >
+              {resetState.status === 'sending' ? 'שולח…' : 'שלח קישור כניסה למייל'}
+            </SButton>
+            <SButton
+              variant="ghost"
               onClick={sendReset}
               disabled={resetState.status === 'sending' || !member.email}
             >
-              {resetState.status === 'sending' ? 'שולח…' : 'שלח מייל איפוס סיסמה'}
+              איפוס סיסמה
             </SButton>
             <SButton variant="ghost" onClick={copyInvite}>
               העתק קישור הזמנה

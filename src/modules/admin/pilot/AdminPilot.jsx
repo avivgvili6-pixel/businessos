@@ -4,7 +4,7 @@ import { Card, Button, Badge, EmptyState } from '../../../components/ui/UI'
 import { SLoader } from '../../../components/ui/SLoader'
 import {
   fetchPilotStats, listWaitlist, releaseWaitlistedUser,
-  updatePilotCap, buildReleaseEmail,
+  updatePilotCap, buildReleaseEmail, sendAccessLink,
 } from '../../../services/pilot'
 import { supabaseEnabled } from '../../../lib/supabase'
 
@@ -50,6 +50,19 @@ export function AdminPilot() {
   const handleMail = (row) => {
     const url = buildReleaseEmail(row.email, row.name)
     if (url) window.open(url, '_blank')
+  }
+
+  const handleSendLink = async (row) => {
+    if (!row.email) return
+    if (!confirm(`לשלוח ל־${row.name || row.email} מייל עם קישור כניסה?\n(לא משנה סטטוס — רק שולח קישור נוסף)`)) return
+    setBusy(row.id + ':link')
+    const res = await sendAccessLink(row.email)
+    setBusy(null)
+    if (res.ok) {
+      alert(`✔ קישור כניסה נשלח ל־${row.email}`)
+    } else {
+      alert('שגיאה בשליחה: ' + (res.error || 'לא ידוע'))
+    }
   }
 
   const handleSaveCap = async () => {

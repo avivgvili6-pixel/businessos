@@ -109,6 +109,29 @@ export async function releaseWaitlistedUser(userId) {
   return { ok: true, email: user?.email, name: user?.name, emailSent, emailError }
 }
 
+// Standalone Magic Link send — used by admin "resend access link" buttons
+// across the app (member modal, waitlist, etc.). Doesn't touch status.
+export async function sendAccessLink(email) {
+  if (!supabaseEnabled) return { ok: false, error: 'Supabase לא מחובר' }
+  if (!email) return { ok: false, error: 'אין כתובת מייל' }
+  const redirectTo = typeof window !== 'undefined'
+    ? window.location.origin + window.location.pathname
+    : undefined
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false, emailRedirectTo: redirectTo },
+    })
+    if (error) {
+      console.warn('[pilot] sendAccessLink:', error.message)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) }
+  }
+}
+
 // Update the pilot cap (admin only — enforced by RLS)
 export async function updatePilotCap(newCap) {
   if (!supabaseEnabled) return { ok: false }
