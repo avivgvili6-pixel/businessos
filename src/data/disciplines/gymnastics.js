@@ -1,140 +1,323 @@
 // Gymnastics — skill-focused catalogue + workout generator + program library.
-// The generator builds a session as: Skill block → Strength/EMOM → Core finisher.
-// Programs are progression cycles (e.g. "First Muscle-Up · 6 weeks").
+// Each session key has MULTIPLE variants so every "generate" gives a
+// different workout even for the same focus.
 
-export const GYMN_SKILLS = [
-  // pulling
-  { id:'strict_pu',    he:'Strict Pull-up',        cat:'pull', level:'basic' },
-  { id:'kipping_pu',   he:'Kipping Pull-up',       cat:'pull', level:'basic' },
-  { id:'c2b',          he:'Chest-to-Bar',          cat:'pull', level:'inter' },
-  { id:'bmu',          he:'Bar Muscle-up',         cat:'pull', level:'adv'  },
-  { id:'rmu',          he:'Ring Muscle-up',        cat:'pull', level:'adv'  },
-  { id:'false_grip',   he:'False Grip Row',        cat:'pull', level:'inter' },
-  { id:'rope_climb',   he:'Rope Climb',            cat:'pull', level:'inter' },
-  // pushing
-  { id:'strict_hspu',  he:'Strict HSPU',           cat:'push', level:'adv'  },
-  { id:'kipping_hspu', he:'Kipping HSPU',          cat:'push', level:'inter' },
-  { id:'hs_hold',      he:'Handstand Hold',        cat:'push', level:'basic' },
-  { id:'wall_walk',    he:'Wall Walk',             cat:'push', level:'basic' },
-  { id:'freestand_hs', he:'Freestanding HS',       cat:'push', level:'adv'  },
-  { id:'ring_dip',     he:'Ring Dip',              cat:'push', level:'inter' },
-  { id:'strict_dip',   he:'Strict Dip',            cat:'push', level:'basic' },
-  // core / static
-  { id:'l_sit',        he:'L-sit Hold',            cat:'core', level:'inter' },
-  { id:'hollow_rock',  he:'Hollow Rock',           cat:'core', level:'basic' },
-  { id:'toes_to_bar',  he:'Toes-to-Bar',           cat:'core', level:'inter' },
-  { id:'ghd_situp',    he:'GHD Sit-up',            cat:'core', level:'inter' },
-  { id:'v_up',         he:'V-up',                  cat:'core', level:'basic' },
-  { id:'plank_60',     he:'Plank 60s',             cat:'core', level:'basic' },
-  // legs / balance
-  { id:'pistol',       he:'Pistol Squat',          cat:'legs', level:'inter' },
-  { id:'shrimp',       he:'Shrimp Squat',          cat:'legs', level:'adv'  },
-  { id:'jumping_lunge',he:'Jumping Lunge',         cat:'legs', level:'basic' },
-]
+import { applyLevelToWod } from './levels'
 
-const SKILL_BY_ID = Object.fromEntries(GYMN_SKILLS.map(s => [s.id, s]))
-
-// Session templates — Skill / EMOM / Finisher
-const SESSION_TEMPLATES = {
+// Multi-variant session families.
+// Each variant is a fully-worked prescription (A/B/C blocks).
+const SESSIONS = {
   muscle_up: {
-    name: 'Muscle-Up Skill Day',
-    a: { title:'A · כישור (15 דק׳)', lines: [
-      'False Grip Row × 5 → Kipping Pull-up × 3',
-      '× 5 סבבים · מנוחה כשצריך',
-    ]},
-    b: { title:'B · EMOM (10 דק׳)', lines: [
-      'Min 1: 3× Chest-to-Bar',
-      'Min 2: 5× Ring Dips',
-    ]},
-    c: { title:'C · Core Finisher', lines: [
-      '3× Hollow Rocks 20s + L-sit 15s',
-    ]},
+    name: 'Muscle-Up Day',
+    variants: [
+      {
+        title: 'Skill + EMOM',
+        a: { title:'A · Skill (15 דק׳)', lines:[
+          'False Grip Row × 5 → Kipping Pull-up × 3',
+          '× 5 סבבים · מנוחה כשצריך',
+        ]},
+        b: { title:'B · EMOM (10 דק׳)', lines:[
+          'Min 1: 3× Chest-to-Bar',
+          'Min 2: 5× Ring Dips',
+        ]},
+        c: { title:'C · Core Finisher', lines:[
+          '3× Hollow Rocks 20s + L-sit 15s',
+        ]},
+      },
+      {
+        title: 'Transition Focus',
+        a: { title:'A · Transition Drill (12 דק׳)', lines:[
+          'Banded MU Transition × 3',
+          'Russian Dip × 5',
+          '× 5 סבבים',
+        ]},
+        b: { title:'B · Volume (15 דק׳)', lines:[
+          '5×5 Chest-to-Bar Pull-ups',
+          '5×5 Ring Dips',
+        ]},
+        c: { title:'C · Hollow Body', lines:[
+          '4× Hollow Hold 30s',
+        ]},
+      },
+      {
+        title: 'Grip + Pull Density',
+        a: { title:'A · False Grip (8 דק׳)', lines:[
+          'False Grip Hang 20s → Row × 3',
+          '× 4 סבבים',
+        ]},
+        b: { title:'B · For Time', lines:[
+          '30 Chest-to-Bar Pull-ups · Cap 6:00',
+        ]},
+        c: { title:'C · Ring Support', lines:[
+          '3 × Ring Support 30s',
+        ]},
+      },
+      {
+        title: 'Explosive Pull',
+        a: { title:'A · Kip Work (10 דק׳)', lines:[
+          'Bar Kip Swings × 6',
+          'High Pull-ups (chest to belly) × 3',
+          '× 5 סבבים',
+        ]},
+        b: { title:'B · Practice Sets', lines:[
+          '5 attempts × 1 MU (or best available)',
+          'מנוחה 2:00 בין ניסיונות',
+        ]},
+        c: { title:'C · Hollow to Arch', lines:[
+          '4× 10 Hollow ↔ Arch swings',
+        ]},
+      },
+    ],
   },
+
   handstand: {
     name: 'Handstand Day',
-    a: { title:'A · כישור (12 דק׳)', lines: [
-      'Wall Walk × 3 → Handstand Hold 20s',
-      '× 6 סבבים',
-    ]},
-    b: { title:'B · Strength (15 דק׳)', lines: [
-      '5×5 Strict HSPU (scale: box HSPU)',
-      'מנוחה 90 שנ׳ בין סטים',
-    ]},
-    c: { title:'C · Core Finisher', lines: [
-      'AMRAP 5:00 — 10× V-ups + 20s Plank',
-    ]},
+    variants: [
+      {
+        title: 'Wall Practice',
+        a: { title:'A · Wall Walks (12 דק׳)', lines:[
+          'Wall Walk × 3 → Handstand Hold 20s',
+          '× 6 סבבים',
+        ]},
+        b: { title:'B · HSPU Strength (15 דק׳)', lines:[
+          '5×5 Strict HSPU (scale: Box HSPU)',
+          'מנוחה 90 שנ׳ בין סטים',
+        ]},
+        c: { title:'C · Core', lines:[
+          'AMRAP 5:00 — 10× V-ups + 20s Plank',
+        ]},
+      },
+      {
+        title: 'Freestanding Prep',
+        a: { title:'A · Balance Drill (10 דק׳)', lines:[
+          'Kick-up to Wall × 5',
+          'Chest-facing HS Hold 15s',
+          '× 5 סבבים',
+        ]},
+        b: { title:'B · Volume', lines:[
+          '10 × 30s Handstand Hold',
+          'מנוחה 30 שנ׳ בין',
+        ]},
+        c: { title:'C · Shoulder Prep', lines:[
+          '3 × 10 Pike Push-ups',
+        ]},
+      },
+      {
+        title: 'HSPU Density',
+        a: { title:'A · Warm-up (10 דק׳)', lines:[
+          'Wall Walks × 4',
+          'Pike Push-ups × 10',
+          '× 3 סבבים',
+        ]},
+        b: { title:'B · EMOM (12 דק׳)', lines:[
+          'Min 1: 5× HSPU',
+          'Min 2: 30s HS Hold',
+          'Min 3: 8× Pike Push-ups',
+        ]},
+        c: { title:'C · Hollow', lines:[
+          '3 × Hollow Rocks 30s',
+        ]},
+      },
+      {
+        title: 'Walking Progression',
+        a: { title:'A · Wall Time (8 דק׳)', lines:[
+          '3 × Wall HS Hold 45s',
+        ]},
+        b: { title:'B · Walking Drill (15 דק׳)', lines:[
+          'Kick-up → Try 2 steps free',
+          'Kick-up → 30s Hold',
+          '× 8 סבבים',
+        ]},
+        c: { title:'C · Core Circuit', lines:[
+          '3× (10 V-ups + 20s L-sit)',
+        ]},
+      },
+    ],
   },
+
   pulling: {
     name: 'Pulling Volume',
-    a: { title:'A · Strict Work (15 דק׳)', lines: [
-      '5 × 5 Strict Pull-ups',
-      'הוסף משקל אם 5 קל',
-    ]},
-    b: { title:'B · EMOM (12 דק׳)', lines: [
-      'Min 1: 6× Kipping Pull-ups',
-      'Min 2: 8× Toes-to-Bar',
-      'Min 3: 20s L-sit',
-    ]},
-    c: { title:'C · Grip Finisher', lines: [
-      '3× Max Hang from bar',
-    ]},
+    variants: [
+      {
+        title: 'Strict + Kipping',
+        a: { title:'A · Strict Work (15 דק׳)', lines:[
+          '5 × 5 Strict Pull-ups',
+          'הוסף משקל אם 5 קל',
+        ]},
+        b: { title:'B · EMOM (12 דק׳)', lines:[
+          'Min 1: 6× Kipping Pull-ups',
+          'Min 2: 8× Toes-to-Bar',
+          'Min 3: 20s L-sit',
+        ]},
+        c: { title:'C · Grip', lines:[
+          '3× Max Hang from bar',
+        ]},
+      },
+      {
+        title: 'Chin-up Ladder',
+        a: { title:'A · Ladder (15 דק׳)', lines:[
+          '1-2-3-4-5-4-3-2-1 Chin-ups',
+          'מנוחה = חצי מזמן העבודה',
+        ]},
+        b: { title:'B · Rope Climb', lines:[
+          '5 × 1 Rope Climb (scale: 3× Rope Pulls from ground)',
+        ]},
+        c: { title:'C · Isometric', lines:[
+          '3 × Flex Hang 20s (סנטר מעל הבר)',
+        ]},
+      },
+      {
+        title: 'For Time',
+        a: { title:'A · Warm-up (8 דק׳)', lines:[
+          '3× (10 Ring Rows + 30s Bar Hang)',
+        ]},
+        b: { title:'B · For Time', lines:[
+          '50 Pull-ups לזמן (Cap 8:00)',
+          'שיטה: 5-10-15-20',
+        ]},
+        c: { title:'C · Cool', lines:[
+          '2 × Scap Pull 10',
+        ]},
+      },
+      {
+        title: 'Muscle-Up Ladder',
+        a: { title:'A · Skill (10 דק׳)', lines:[
+          'C2B × 3 → Ring Dip × 5',
+          '× 5 סבבים',
+        ]},
+        b: { title:'B · Volume', lines:[
+          'EMOM 15: 5× Weighted Pull-ups (add 5kg)',
+        ]},
+        c: { title:'C · T2B', lines:[
+          '4 × 10 Toes-to-Bar',
+        ]},
+      },
+    ],
   },
+
   pistol: {
     name: 'Pistol + Core',
-    a: { title:'A · טכניקה (10 דק׳)', lines: [
-      'Shrimp Squat 3×5 (each leg)',
-      'עם TRX/עמוד תמיכה אם צריך',
-    ]},
-    b: { title:'B · Volume (15 דק׳)', lines: [
-      'EMOM 15: 6× Pistol Squats (alt legs)',
-    ]},
-    c: { title:'C · Core Finisher', lines: [
-      '4× GHD Sit-ups 10 + V-up 10',
-    ]},
+    variants: [
+      {
+        title: 'Shrimp + EMOM',
+        a: { title:'A · Technique (10 דק׳)', lines:[
+          'Shrimp Squat 3×5 (each leg)',
+          'עם TRX/עמוד תמיכה אם צריך',
+        ]},
+        b: { title:'B · Volume (15 דק׳)', lines:[
+          'EMOM 15: 6× Pistol Squats (alt legs)',
+        ]},
+        c: { title:'C · Core', lines:[
+          '4× GHD Sit-ups 10 + V-up 10',
+        ]},
+      },
+      {
+        title: 'Assisted → Free',
+        a: { title:'A · Assisted (10 דק׳)', lines:[
+          '5 × 5 Assisted Pistol (TRX)',
+        ]},
+        b: { title:'B · Free Pistols', lines:[
+          '10-8-6-4-2 Pistol (per leg)',
+          'מנוחה כשצריך',
+        ]},
+        c: { title:'C · Plank Series', lines:[
+          '3× (Plank 45s + Side Plank 20s ea)',
+        ]},
+      },
+      {
+        title: 'Density Ladder',
+        a: { title:'A · Warm-up (8 דק׳)', lines:[
+          '3× (10 Air Squats + 5 Cossack Squats ea)',
+        ]},
+        b: { title:'B · Ladder', lines:[
+          '1-2-3-4-5-6 Pistols/leg',
+          '20s מנוחה בין שלבים',
+        ]},
+        c: { title:'C · Hollow', lines:[
+          '3× Hollow Rocks 30s',
+        ]},
+      },
+    ],
   },
+
   ring_work: {
     name: 'Ring Foundations',
-    a: { title:'A · Support (10 דק׳)', lines: [
-      '5 × Ring Support 30s + Ring Row 10',
-    ]},
-    b: { title:'B · Dips + Pull (15 דק׳)', lines: [
-      '5×5 Ring Dips',
-      '5×5 False Grip Rows',
-    ]},
-    c: { title:'C · Static', lines: [
-      '4× L-sit 15s',
-    ]},
+    variants: [
+      {
+        title: 'Support + Dips',
+        a: { title:'A · Support (10 דק׳)', lines:[
+          '5 × Ring Support 30s + Ring Row 10',
+        ]},
+        b: { title:'B · Dips + Rows (15 דק׳)', lines:[
+          '5×5 Ring Dips',
+          '5×5 False Grip Rows',
+        ]},
+        c: { title:'C · Static', lines:[
+          '4× L-sit 15s',
+        ]},
+      },
+      {
+        title: 'False Grip Focus',
+        a: { title:'A · Grip (8 דק׳)', lines:[
+          '5 × False Grip Hang 20s',
+        ]},
+        b: { title:'B · Pull (15 דק׳)', lines:[
+          '5 × 5 Ring Pull-ups',
+          '5 × 5 Ring Rows @ chest-touch',
+        ]},
+        c: { title:'C · Iron Cross Prep', lines:[
+          '3× Ring Support Extended 20s',
+        ]},
+      },
+      {
+        title: 'MU Assembly',
+        a: { title:'A · Elements (10 דק׳)', lines:[
+          'Ring Dip × 5 → Pull-up × 5 → Support 15s',
+          '× 5 סבבים',
+        ]},
+        b: { title:'B · Ring MU Attempts', lines:[
+          'EMOM 10: 1 Ring MU attempt',
+          '(scale: Jumping Ring MU)',
+        ]},
+        c: { title:'C · Hollow-Arch', lines:[
+          '4× 10 Kip Swings',
+        ]},
+      },
+    ],
   },
 }
 
-// Single-workout generator — deterministic pick + subtle randomization.
-// Returns { title, format, lines, movements } shape compatible with WodDisplay.
-export function generateGymnasticsWod({ focus = 'random' } = {}) {
-  const keys = Object.keys(SESSION_TEMPLATES)
-  const key = focus === 'random'
-    ? keys[Math.floor(Math.random() * keys.length)]
-    : focus
-  const tpl = SESSION_TEMPLATES[key] || SESSION_TEMPLATES.pulling
+// Helpers
+const SESSION_KEYS = Object.keys(SESSIONS)
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)]
+
+// Single-workout generator
+export function generateGymnasticsWod({ focus = 'random', level = 'intermediate' } = {}) {
+  const key = focus === 'random' ? pickRandom(SESSION_KEYS) : focus
+  const family = SESSIONS[key] || SESSIONS.pulling
+  const variant = pickRandom(family.variants)
+  const title = `${family.name} · ${variant.title}`
   const lines = [
-    tpl.name.toUpperCase(),
+    title.toUpperCase(),
     '',
-    tpl.a.title,
-    ...tpl.a.lines,
+    variant.a.title,
+    ...variant.a.lines,
     '',
-    tpl.b.title,
-    ...tpl.b.lines,
+    variant.b.title,
+    ...variant.b.lines,
     '',
-    tpl.c.title,
-    ...tpl.c.lines,
+    variant.c.title,
+    ...variant.c.lines,
   ]
-  return {
-    title: tpl.name,
-    format: 'strength', // shows a neutral badge in WodDisplay
+  const base = {
+    title,
+    format: 'strength',
     lines,
-    movements: [], // no timer, this is skill work
+    movements: [],
     discipline: 'gymnastics',
     focus: key,
   }
+  return applyLevelToWod(base, level)
 }
 
 export const GYMN_FOCUSES = [
@@ -146,10 +329,20 @@ export const GYMN_FOCUSES = [
   { key:'ring_work',  he:'Rings'     },
 ]
 
-// ─── Programs (adopt into state.plan) ─────────────────────────
-// Each program is a full weekly cycle → converted to the plan shape
-// that MyPlan/SessionRunner understands.
+// Kept for backward compat with programs that reference specific movements.
+export const GYMN_SKILLS = [
+  { id:'strict_pu', he:'Strict Pull-up', cat:'pull' },
+  { id:'kipping_pu', he:'Kipping Pull-up', cat:'pull' },
+  { id:'c2b', he:'Chest-to-Bar', cat:'pull' },
+  { id:'bmu', he:'Bar Muscle-up', cat:'pull' },
+  { id:'rmu', he:'Ring Muscle-up', cat:'pull' },
+  { id:'hs_hold', he:'Handstand Hold', cat:'push' },
+  { id:'strict_hspu', he:'Strict HSPU', cat:'push' },
+  { id:'l_sit', he:'L-sit Hold', cat:'core' },
+  { id:'pistol', he:'Pistol Squat', cat:'legs' },
+]
 
+// ─── Programs ─────────────────────────
 export const GYMN_PROGRAMS = [
   {
     id: 'gymn_first_mu',
@@ -189,12 +382,12 @@ export const GYMN_PROGRAMS = [
   },
 ]
 
-// Materialize program → plan structure for setPlan()
 export function gymnasticsProgramToPlan(programId) {
   const prog = GYMN_PROGRAMS.find(p => p.id === programId)
   if (!prog) return null
   const sessions = prog.sessionNames.map(name => {
     const wod = generateGymnasticsWod({
+      level: 'intermediate',
       focus: name === 'Wall Time' ? 'handstand'
         : name === 'Kick-up' ? 'handstand'
         : name === 'Freestand' ? 'handstand'
@@ -209,7 +402,7 @@ export function gymnasticsProgramToPlan(programId) {
       name: `${name} · ${wod.title}`,
       wodType: 'Gymnastics',
       prescription: wod.lines.join('\n'),
-      exercises: [], // free-form skill work; runner shows the prescription
+      exercises: [],
     }
   })
   return {

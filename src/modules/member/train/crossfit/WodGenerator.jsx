@@ -12,13 +12,14 @@ import { BenchmarkList } from './BenchmarkList'
 import { useI18n } from '../../../../i18n/i18n'
 
 const INTENTS = [
- { key:'general', he:'כללי', icon:'', desc:'אימון מאוזן'},
- { key:'strength', he:'כוח', icon:'', desc:'בניית שריר ועוצמה'},
- { key:'endurance', he:'סיבולת', icon:'', desc:'קרדיו וסיבולת'},
- { key:'fat_loss', he:'שריפת שומן', icon:'', desc:'HIIT + שריפת קלוריות'},
- { key:'skill', he:'טכניקה', icon:'', desc:'מיומנות ותיאום'},
- { key:'recovery', he:'התאוששות', icon:'', desc:'תנועה קלה ומוביליות'},
- { key:'competition',he:'תחרות', icon:'', desc:'ספציפי למתחרים'},
+ { key:'general',    he:'כללי',      icon:'', desc:'אימון מאוזן'},
+ { key:'hybrid',     he:'היברידי',    icon:'', desc:'כוח + סיבולת בסשן אחד'},
+ { key:'strength',   he:'כוח',        icon:'', desc:'בניית שריר ועוצמה'},
+ { key:'endurance',  he:'סיבולת',     icon:'', desc:'קרדיו וסיבולת'},
+ { key:'fat_loss',   he:'שריפת שומן', icon:'', desc:'HIIT + שריפת קלוריות'},
+ { key:'skill',      he:'טכניקה',     icon:'', desc:'מיומנות ותיאום'},
+ { key:'recovery',   he:'התאוששות',   icon:'', desc:'תנועה קלה ומוביליות'},
+ { key:'competition',he:'תחרות',      icon:'', desc:'ספציפי למתחרים'},
 ]
 
 const LENGTHS = [

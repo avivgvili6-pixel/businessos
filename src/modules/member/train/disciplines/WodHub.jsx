@@ -16,6 +16,7 @@ import {
 import {
   HYROX_FOCUSES, HYROX_PROGRAMS, generateHyroxWod, hyroxProgramToPlan,
 } from '../../../../data/disciplines/hyrox'
+import { WOD_LEVELS, levelFromProfile } from '../../../../data/disciplines/levels'
 
 // The WOD tab shell: 4 discipline chips at top, each routes to its own
 // generator UI. CrossFit keeps the existing full-featured generator
@@ -41,7 +42,7 @@ export function WodHub() {
           disciplineKey="gymnastics"
           focuses={GYMN_FOCUSES}
           programs={GYMN_PROGRAMS}
-          generate={(focus) => generateGymnasticsWod({ focus })}
+          generate={(focus, ctx) => generateGymnasticsWod({ focus, level: ctx.level })}
           programToPlan={gymnasticsProgramToPlan}
         />
       )}
@@ -50,7 +51,7 @@ export function WodHub() {
           disciplineKey="weightlifting"
           focuses={OLY_FOCUSES}
           programs={OLY_PROGRAMS}
-          generate={(focus, ctx) => generateWeightliftingWod({ focus, oneRMs: ctx.oneRMs })}
+          generate={(focus, ctx) => generateWeightliftingWod({ focus, level: ctx.level, oneRMs: ctx.oneRMs })}
           programToPlan={(id, ctx) => weightliftingProgramToPlan(id, ctx.oneRMs)}
         />
       )}
@@ -59,7 +60,7 @@ export function WodHub() {
           disciplineKey="running"
           focuses={RUN_FOCUSES}
           programs={RUN_PROGRAMS}
-          generate={(focus, ctx) => generateRunningWod({ focus, fiveKSec: ctx.fiveKSec })}
+          generate={(focus, ctx) => generateRunningWod({ focus, level: ctx.level, fiveKSec: ctx.fiveKSec })}
           programToPlan={(id, ctx) => runningProgramToPlan(id, ctx.fiveKSec)}
         />
       )}
@@ -68,7 +69,7 @@ export function WodHub() {
           disciplineKey="hyrox"
           focuses={HYROX_FOCUSES}
           programs={HYROX_PROGRAMS}
-          generate={(focus) => generateHyroxWod({ focus })}
+          generate={(focus, ctx) => generateHyroxWod({ focus, level: ctx.level })}
           programToPlan={hyroxProgramToPlan}
         />
       )}
@@ -110,13 +111,14 @@ function DisciplineStrip({ active, onChange }) {
 
 // ─── Generic discipline UI (used by gymnastics) ─────────────
 function SimpleDiscipline({ disciplineKey, focuses, programs, generate, programToPlan, context = {} }) {
-  const { logWorkout, setPlan } = useApp()
+  const { state, logWorkout, setPlan } = useApp()
   const [mode, setMode] = useState('single') // 'single' | 'program'
   const [focus, setFocus] = useState('random')
+  const [level, setLevel] = useState(() => levelFromProfile(state.profile?.experience))
   const [wod, setWod] = useState(null)
 
   const handleGenerate = () => {
-    const result = generate(focus, context)
+    const result = generate(focus, { ...context, level })
     setWod(result)
     if (typeof window !== 'undefined') window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' })
   }
@@ -151,6 +153,25 @@ function SimpleDiscipline({ disciplineKey, focuses, programs, generate, programT
 
       {mode === 'single' ? (
         <>
+          <Card style={{ marginBottom: 10 }}>
+            <div style={{
+              fontFamily: t.font.family.mono, fontSize: 10, letterSpacing:'0.22em',
+              color: t.color.silver1, fontWeight: 700, textTransform:'uppercase', marginBottom: 10,
+            }}>רמה</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 6 }}>
+              {WOD_LEVELS.map(l => (
+                <button key={l.key} onClick={() => setLevel(l.key)} style={{
+                  padding:'10px 6px',
+                  background: level === l.key ? `${t.color.wineLight}22` : t.color.bgSoft,
+                  border:`1px solid ${level === l.key ? t.color.wineLight : t.color.border}`,
+                  borderRadius: t.radius.sm, cursor:'pointer', fontFamily:'inherit',
+                  color: t.color.text, textAlign:'center',
+                  fontSize: 13, fontWeight: level === l.key ? 700 : 500,
+                }}>{l.short}</button>
+              ))}
+            </div>
+          </Card>
+
           <Card style={{ marginBottom: 14 }}>
             <div style={{
               fontFamily: t.font.family.mono, fontSize: 10, letterSpacing:'0.22em',

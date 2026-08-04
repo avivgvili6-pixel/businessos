@@ -6,6 +6,7 @@ import { BUILDERS, FORMATS } from './formats'
 
 const INTENT_TAGS = {
   general:    ['metcon'],
+  hybrid:     ['strength', 'metcon', 'olympic'], // mixes big lifts with metcon movement
   strength:   ['strength'],
   endurance:  ['endurance'],
   fat_loss:   ['metcon', 'high_intensity'],
@@ -166,6 +167,7 @@ function shuffle(arr) {
 function randomFormat(intent, lengthKey, avoidFormat) {
   const bags = {
     strength:    ['strength_metcon', 'strength_metcon', 'for_time'],
+    hybrid:      ['strength_metcon', 'strength_metcon', 'chipper', 'for_time'],
     endurance:   ['amrap', 'intervals', 'amrap'],
     fat_loss:    ['emom', 'amrap', 'intervals'],
     skill:       ['emom', 'for_time'],
