@@ -35,6 +35,35 @@ const ALL_MUSCLES = (() => {
   return out
 })()
 
+// Neon palette for superset visual grouping — each superset gets its own
+// letter (A/B/C…) + neon color so the builder + runner can tell at a glance
+// which exercises pair together.
+const NEON_PALETTE = [
+  '#00E5FF', // cyan
+  '#FF2CB4', // pink
+  '#39FF14', // green
+  '#FF6E00', // orange
+  '#B026FF', // purple
+  '#FFEA00', // yellow
+]
+
+// Walk exercises in order; each new supersetGroup id gets the next
+// letter + next neon color. Returns { [groupId]: { letter, color } }.
+function computeSupersetBadges(exercises) {
+  const badges = {}
+  let idx = 0
+  ;(exercises || []).forEach(ex => {
+    if (ex.supersetGroup && !badges[ex.supersetGroup]) {
+      badges[ex.supersetGroup] = {
+        letter: String.fromCharCode(65 + (idx % 26)),
+        color: NEON_PALETTE[idx % NEON_PALETTE.length],
+      }
+      idx++
+    }
+  })
+  return badges
+}
+
 // ─── Root ─────────────────────────────────────────────────
 export function RoutineBuilder({ routine, open, onClose }) {
   const [mode, setMode] = useState(routine ? 'manual' : 'choose')
@@ -531,18 +560,22 @@ function ManualBuilder({ routine, seedExercises, open, onClose, onBack }) {
         </div>
       )}
 
-      {exercises.map((ex, idx) => (
-        <ExerciseInRoutine
-          key={idx}
-          exerciseInRoutine={ex}
-          idx={idx}
-          onUpdate={patch => updateExercise(idx, patch)}
-          onDelete={() => deleteExercise(idx)}
-          onToggleSupersetWithNext={idx < exercises.length - 1 ? () => toggleSupersetWithNext(idx) : null}
-          isSupersetTopHalf={exercises[idx + 1]?.supersetGroup && exercises[idx + 1].supersetGroup === ex.supersetGroup}
-          isSupersetBottomHalf={exercises[idx - 1]?.supersetGroup && exercises[idx - 1].supersetGroup === ex.supersetGroup}
-        />
-      ))}
+      {(() => {
+        const badges = computeSupersetBadges(exercises)
+        return exercises.map((ex, idx) => (
+          <ExerciseInRoutine
+            key={idx}
+            exerciseInRoutine={ex}
+            idx={idx}
+            supersetBadge={ex.supersetGroup ? badges[ex.supersetGroup] : null}
+            onUpdate={patch => updateExercise(idx, patch)}
+            onDelete={() => deleteExercise(idx)}
+            onToggleSupersetWithNext={idx < exercises.length - 1 ? () => toggleSupersetWithNext(idx) : null}
+            isSupersetTopHalf={exercises[idx + 1]?.supersetGroup && exercises[idx + 1].supersetGroup === ex.supersetGroup}
+            isSupersetBottomHalf={exercises[idx - 1]?.supersetGroup && exercises[idx - 1].supersetGroup === ex.supersetGroup}
+          />
+        ))
+      })()}
 
       <Button variant="primary" size="lg" onClick={() => setAddingExercise(true)} style={{ width: '100%', justifyContent: 'center', marginTop: t.space.md }}>
         + הוסף תרגיל
@@ -568,7 +601,7 @@ function ManualBuilder({ routine, seedExercises, open, onClose, onBack }) {
   )
 }
 
-function ExerciseInRoutine({ exerciseInRoutine: ex, idx, onUpdate, onDelete, onToggleSupersetWithNext, isSupersetTopHalf, isSupersetBottomHalf }) {
+function ExerciseInRoutine({ exerciseInRoutine: ex, idx, supersetBadge, onUpdate, onDelete, onToggleSupersetWithNext, isSupersetTopHalf, isSupersetBottomHalf }) {
   const cataloged = EXERCISE_BY_ID[ex.exerciseId]
   const exercise = cataloged || { he: ex.exerciseName || ex.name || 'תרגיל', en: '' }
 
@@ -587,22 +620,26 @@ function ExerciseInRoutine({ exerciseInRoutine: ex, idx, onUpdate, onDelete, onT
     updateSet(setIdx, { type: next })
   }
 
+  const neon = supersetBadge?.color
+  const letter = supersetBadge?.letter
   const isInSuperset = !!ex.supersetGroup
-  const borderColor = isInSuperset ? t.color.wineLight : t.color.border
+  const borderColor = isInSuperset && neon ? neon : t.color.border
 
   return (
     <>
-      {isSupersetBottomHalf && (
+      {isSupersetBottomHalf && neon && (
         <div style={{
-          padding: '4px 0', textAlign: 'center',
-          fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.2em',
-          color: t.color.wineLight, fontWeight: 700,
+          padding: '6px 0', textAlign: 'center',
+          fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.24em',
+          color: neon, fontWeight: 800,
           marginTop: -8, marginBottom: -4,
-        }}>↕ SUPERSET</div>
+          textShadow: `0 0 8px ${neon}80`,
+        }}>↕ SUPERSET · {letter}</div>
       )}
       <Card style={{
         marginBottom: t.space.md,
         border: `1px solid ${borderColor}`,
+        boxShadow: isInSuperset && neon ? `0 0 0 1px ${neon}22, 0 0 12px ${neon}20` : undefined,
         borderTopLeftRadius: isSupersetBottomHalf ? 0 : undefined,
         borderTopRightRadius: isSupersetBottomHalf ? 0 : undefined,
         borderBottomLeftRadius: isSupersetTopHalf ? 0 : undefined,
@@ -610,6 +647,17 @@ function ExerciseInRoutine({ exerciseInRoutine: ex, idx, onUpdate, onDelete, onT
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          {isInSuperset && neon && letter && (
+            <span style={{
+              width: 30, height: 30, borderRadius: 8,
+              background: `${neon}22`, border: `1.5px solid ${neon}`,
+              color: neon, fontWeight: 900, fontSize: 15,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: t.font.family.mono, letterSpacing: 0,
+              textShadow: `0 0 6px ${neon}cc`,
+              flexShrink: 0,
+            }} title={`סופרסט ${letter}`}>{letter}</span>
+          )}
           <span style={{ fontSize: 22 }}>{EQUIPMENT[ex.equipment]?.icon || ''}</span>
           <b style={{ color: t.color.wineLight, flex: 1, minWidth: 100, fontSize: t.font.md }}>{exercise.he}</b>
           <ExerciseGuideButton exercise={exercise} compact />
@@ -635,20 +683,26 @@ function ExerciseInRoutine({ exerciseInRoutine: ex, idx, onUpdate, onDelete, onT
               }}
             /><span style={{ color: t.color.silver2 }}>ש׳</span>
           </div>
-          {onToggleSupersetWithNext && (
-            <button
-              onClick={onToggleSupersetWithNext}
-              style={{
-                background: isSupersetTopHalf ? t.color.wineLight : 'transparent',
-                border: `1px solid ${t.color.wineLight}`,
-                color: isSupersetTopHalf ? t.color.white : t.color.wineLight,
-                padding: '4px 10px', borderRadius: t.radius.pill, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
-              }}
-            >
-              {isSupersetTopHalf ? '↕ סופרסט עם הבא — פעיל' : '↕ צור סופרסט עם התרגיל הבא'}
-            </button>
-          )}
+          {onToggleSupersetWithNext && (() => {
+            // When active, the "next" exercise's badge tells us which color/letter
+            // to render — the shared group is on the next exercise's supersetGroup id.
+            const activeColor = isSupersetTopHalf && neon ? neon : t.color.wineLight
+            return (
+              <button
+                onClick={onToggleSupersetWithNext}
+                style={{
+                  background: isSupersetTopHalf ? activeColor : 'transparent',
+                  border: `1px solid ${activeColor}`,
+                  color: isSupersetTopHalf ? '#0f0d0b' : activeColor,
+                  padding: '4px 10px', borderRadius: t.radius.pill, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+                  boxShadow: isSupersetTopHalf ? `0 0 10px ${activeColor}80` : undefined,
+                }}
+              >
+                {isSupersetTopHalf ? `↕ סופרסט ${letter} — פעיל` : '↕ צור סופרסט עם התרגיל הבא'}
+              </button>
+            )
+          })()}
         </div>
 
         {/* Notes */}
