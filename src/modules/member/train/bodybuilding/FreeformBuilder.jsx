@@ -5,7 +5,7 @@ import { useApp } from '../../../../store/AppStore'
 import { EXERCISES } from '../../../../data/bodybuilding/exercisesUnified'
 import {
   parseWorkoutRequest,
-  MUSCLE_HE, GOAL_HE, EQUIPMENT_HE, LEVEL_HE,
+  MUSCLE_HE, GOAL_HE, EQUIPMENT_HE, LEVEL_HE, GENDER_HE, SECONDARY_GOAL_HE,
   exerciseCountForDuration,
 } from '../../../../utils/nlWorkoutParser'
 import { modeFromState, TRAINING_MODES } from '../../../../data/trainingMode'
@@ -22,10 +22,10 @@ import { modeFromState, TRAINING_MODES } from '../../../../data/trainingMode'
 //     parent (RoutineBuilder) pipes it into its manual editor.
 
 const EXAMPLES = [
-  'חזה יד קדמית ורגליים, נפח וכוח, אני בחדר כושר, 60 דקות',
+  'תכתוב אימון למתאמנת ברמה גבוהה בת 40 שרוצה להתחטב ולתחזק, מיקוד בבטן ליבה רגליים ועכוז',
+  'חזה יד קדמית ורגליים, נפח וכוח, חדר כושר, 60 דקות',
   'דחיפה כבד בבית עם משקולות',
   'גב וכתפיים, סיבולת, 40 דקות',
-  'רגליים כבד, כוח מירבי, מוט',
 ]
 
 export function FreeformBuilder({ open, onClose, onGenerated }) {
@@ -33,11 +33,17 @@ export function FreeformBuilder({ open, onClose, onGenerated }) {
   const [text, setText] = useState('')
   const inheritedMode = modeFromState(state)
 
+  // Manual overrides — only used when the parser did NOT catch it
+  const [genderOverride, setGenderOverride] = useState(null) // 'female' | 'male' | null
+  const [ageOverride, setAgeOverride] = useState(null)       // number | null
+
   const parsed = useMemo(() => parseWorkoutRequest(text), [text])
 
-  // Effective params — fill missing slots with sensible defaults
+  // Effective params — parser first, manual override next, sensible defaults last
   const goal = parsed.goal || inheritedMode || 'hypertrophy'
   const level = parsed.level || 'intermediate'
+  const gender = parsed.gender || genderOverride || null
+  const age = parsed.age || ageOverride || null
   const totalExercises = exerciseCountForDuration(parsed.duration) || 6
 
   const canGenerate = parsed.muscles.length > 0
@@ -47,9 +53,12 @@ export function FreeformBuilder({ open, onClose, onGenerated }) {
     const exercises = buildFromParams({
       muscles: parsed.muscles,
       goal,
+      secondaryGoal: parsed.secondaryGoal,
       level,
       equipment: parsed.equipment,
       totalExercises,
+      gender,
+      age,
     })
     if (!exercises.length) {
       alert('לא נמצאו תרגילים מתאימים במאגר לשילוב שביקשת. נסה תיאור אחר.')
@@ -144,7 +153,20 @@ export function FreeformBuilder({ open, onClose, onGenerated }) {
               </SlotRow>
               <SlotRow label="מטרה" ok={!!parsed.goal} inherited={!parsed.goal}>
                 {GOAL_HE[goal]}
+                {parsed.secondaryGoal && (
+                  <span style={{ marginInlineStart: 6, color: '#4a9c6a', fontSize: 11, fontWeight: 700 }}>
+                    · {SECONDARY_GOAL_HE[parsed.secondaryGoal]}
+                  </span>
+                )}
                 {!parsed.goal && <em style={{ color: t.color.silver2, fontSize: 11, marginInlineStart: 6 }}>· יורש מהמטרה שלך</em>}
+              </SlotRow>
+              <SlotRow label="מין" ok={!!parsed.gender} inherited={!parsed.gender && !!genderOverride}>
+                {gender ? GENDER_HE[gender] : 'לא צוין'}
+                {!parsed.gender && genderOverride && <em style={{ color: t.color.silver2, fontSize: 11, marginInlineStart: 6 }}>· הושלם ידנית</em>}
+              </SlotRow>
+              <SlotRow label="גיל" ok={!!parsed.age} inherited={!parsed.age && !!ageOverride}>
+                {age ? `${age}` : 'לא צוין'}
+                {!parsed.age && ageOverride && <em style={{ color: t.color.silver2, fontSize: 11, marginInlineStart: 6 }}>· הושלם ידנית</em>}
               </SlotRow>
               <SlotRow label="ציוד" ok={!!parsed.equipment}>
                 {parsed.equipment ? EQUIPMENT_HE[parsed.equipment] : 'כל הציוד — לא צוין'}
@@ -160,6 +182,18 @@ export function FreeformBuilder({ open, onClose, onGenerated }) {
           )}
         </Card>
 
+        {/* Manual quick-completions — appear only when the parser missed something */}
+        {text && (!parsed.gender || !parsed.age) && (
+          <QuickCompletions
+            missingGender={!parsed.gender}
+            missingAge={!parsed.age}
+            genderOverride={genderOverride}
+            ageOverride={ageOverride}
+            onGender={setGenderOverride}
+            onAge={setAgeOverride}
+          />
+        )}
+
         {/* Actions */}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose}>ביטול</Button>
@@ -169,6 +203,69 @@ export function FreeformBuilder({ open, onClose, onGenerated }) {
         </div>
       </div>
     </Modal>
+  )
+}
+
+// Manual chip picker — only rendered when the text-parser missed something.
+// Kept minimal on purpose: the primary path is still natural language.
+function QuickCompletions({ missingGender, missingAge, genderOverride, ageOverride, onGender, onAge }) {
+  return (
+    <div style={{
+      padding: 12,
+      background: `linear-gradient(180deg, rgba(0,229,255,0.05) 0%, ${t.color.bgSoft} 100%)`,
+      border: `1px dashed rgba(0,229,255,0.3)`,
+      borderRadius: t.radius.md,
+      display: 'grid', gap: 12,
+    }}>
+      <div style={{
+        fontFamily: t.font.family.mono, fontSize: 9, letterSpacing: '0.24em',
+        textTransform: 'uppercase', color: '#00E5FF', fontWeight: 700,
+      }}>השלמות מהירות · אופציונלי</div>
+
+      {missingGender && (
+        <div>
+          <div style={{ fontSize: 11, color: t.color.silver1, marginBottom: 6 }}>מין:</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[{ k: 'female', label: 'נקבה' }, { k: 'male', label: 'זכר' }].map(o => {
+              const on = genderOverride === o.k
+              return (
+                <button key={o.k} onClick={() => onGender(on ? null : o.k)} style={{
+                  padding: '6px 14px',
+                  background: on ? '#00E5FF22' : 'transparent',
+                  border: `1px solid ${on ? '#00E5FF' : t.color.border}`,
+                  color: on ? '#00E5FF' : t.color.silver1,
+                  borderRadius: t.radius.pill, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 12, fontWeight: 700,
+                }}>{o.label}</button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {missingAge && (
+        <div>
+          <div style={{ fontSize: 11, color: t.color.silver1, marginBottom: 6 }}>
+            גיל: <span style={{ color: '#00E5FF', fontWeight: 800 }}>{ageOverride || '—'}</span>
+          </div>
+          <input
+            type="range"
+            min={15}
+            max={70}
+            step={1}
+            value={ageOverride || 30}
+            onChange={e => onAge(+e.target.value)}
+            style={{
+              width: '100%', accentColor: '#00E5FF', direction: 'ltr',
+              cursor: 'pointer',
+            }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.color.silver2 }}>
+            <span>15</span><span>70</span>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -193,24 +290,47 @@ function SlotRow({ label, ok, inherited, children }) {
 }
 
 // ─── Build routine exercises from parsed params ─────────────
-// Same pattern the AutoBuilder uses: pick 1-2 exercises per muscle,
-// prefer compound first (barbell/dumbbell/bodyweight), then isolation
-// (cable/machine). Apply goal reps + level intensifiers.
-function buildFromParams({ muscles, goal, level, equipment, totalExercises }) {
+// Extended: uses gender + age + secondaryGoal to bias exercise selection
+// and rest timing on top of the base compound-then-isolation pattern.
+function buildFromParams({ muscles, goal, secondaryGoal, level, equipment, totalExercises, gender, age }) {
   const mode = TRAINING_MODES[goal] || TRAINING_MODES.hypertrophy
   const workingSets = level === 'beginner' ? 3 : level === 'intermediate' ? 3 : 4
-  const reps = Math.round((mode.repRange[0] + mode.repRange[1]) / 2)
-  const restSeconds = mode.restSeconds
+  // Toning shortens the load and lengthens the set — pushes reps toward the
+  // upper end of the endurance range; maintenance sits mid-hypertrophy.
+  let reps = Math.round((mode.repRange[0] + mode.repRange[1]) / 2)
+  if (secondaryGoal === 'toning') reps = Math.max(reps, mode.repRange[1] - 1)
+  if (secondaryGoal === 'maintenance') reps = Math.min(10, Math.max(8, reps))
+
+  // Older trainees get more rest — recovery capacity drops after 40, more
+  // sharply after 50. Younger stays on the mode default.
+  let restSeconds = mode.restSeconds
+  if (age && age >= 50) restSeconds += 30
+  else if (age && age >= 40) restSeconds += 15
 
   // Equipment filter — soft filter (prefer, don't exclude)
   const equipmentPref = (eq) => {
-    if (!equipment || equipment === 'gym') return true // gym = all allowed
+    if (!equipment || equipment === 'gym') return true
     if (equipment === 'bodyweight') return eq === 'bodyweight' || eq === 'none'
-    return eq === equipment || eq === 'bodyweight' // fallback to bodyweight if specific equipment out
+    return eq === equipment || eq === 'bodyweight'
   }
 
-  // How many exercises per muscle
-  const perMuscle = Math.max(1, Math.round(totalExercises / muscles.length))
+  // Muscles the female-toning bias emphasizes — these get an extra pick
+  // when female + toning is requested.
+  const femaleTonePriorityMuscles = new Set(['glutes', 'hamstrings', 'abdominals', 'lower_back'])
+  const isFemaleToning = gender === 'female' && (secondaryGoal === 'toning' || goal === 'endurance')
+
+  // How many exercises per muscle — biased muscles get +1
+  const basePerMuscle = Math.max(1, Math.round(totalExercises / muscles.length))
+  const perMuscleFor = (muscleKey) => {
+    if (isFemaleToning && femaleTonePriorityMuscles.has(muscleKey)) return basePerMuscle + 1
+    return basePerMuscle
+  }
+
+  // Compound-heavy for younger + strength/hypertrophy; skew toward
+  // cable/machine for older trainees (kinder joints, easier setup).
+  const isOlder = age && age >= 45
+  const compoundEquipment = ['barbell', 'dumbbell', 'bodyweight']
+  const jointFriendlyEquipment = ['cable', 'machine', 'band']
 
   const picked = []
   const usedIds = new Set()
@@ -219,17 +339,21 @@ function buildFromParams({ muscles, goal, level, equipment, totalExercises }) {
     const candidates = EXERCISES.filter(e => e.primaryMuscle === muscleKey)
     if (!candidates.length) continue
 
-    // Sort: preferred equipment first, then compound before isolation
-    const compound = ['barbell', 'dumbbell', 'bodyweight']
-    const scored = candidates.map(ex => ({
-      ex,
-      score: (equipmentPref(ex.equipment) ? 2 : 0)
-           + (compound.includes(ex.equipment) ? 1 : 0),
-    })).sort((a, b) => b.score - a.score)
+    const scored = candidates.map(ex => {
+      let score = 0
+      if (equipmentPref(ex.equipment)) score += 3
+      if (isOlder) {
+        if (jointFriendlyEquipment.includes(ex.equipment)) score += 2
+      } else {
+        if (compoundEquipment.includes(ex.equipment)) score += 2
+      }
+      return { ex, score }
+    }).sort((a, b) => b.score - a.score)
 
     const pickedForMuscle = []
+    const target = perMuscleFor(muscleKey)
     for (const { ex } of scored) {
-      if (pickedForMuscle.length >= perMuscle) break
+      if (pickedForMuscle.length >= target) break
       if (usedIds.has(ex.id)) continue
       pickedForMuscle.push(ex)
       usedIds.add(ex.id)
@@ -256,13 +380,10 @@ function buildFromParams({ muscles, goal, level, equipment, totalExercises }) {
     const grp = 'ss_' + Date.now()
     picked[picked.length - 2].supersetGroup = grp
     picked[picked.length - 1].supersetGroup = grp
-    // Dropset on last set of first exercise
     picked[picked.length - 2].sets.push({
       type: 'dropset', weight: 0, reps: Math.max(6, reps - 4),
     })
-  }
-  // Advanced → single superset on last pair
-  else if (level === 'advanced' && picked.length >= 2) {
+  } else if (level === 'advanced' && picked.length >= 2) {
     const grp = 'ss_' + Date.now()
     picked[picked.length - 2].supersetGroup = grp
     picked[picked.length - 1].supersetGroup = grp

@@ -90,8 +90,14 @@ export function RoutineRunner({ routine, open, onClose }) {
  ...ex,
  sets: ex.sets.map((ss, j) => j !== setIdx ? ss : { ...ss, completed: newCompleted }),
  }))
- // Start rest timer only when marking completed (not un-completing)
- if (newCompleted && exInRoutine.restSeconds > 0) {
+ // Rest timer rule: a dropset is executed IMMEDIATELY after the previous
+ // set — no rest between them. So skip the timer when the NEXT set in the
+ // chain is a dropset, whether the current set is a working set or another
+ // dropset in the chain. The last dropset (or a standalone working set)
+ // is the only one that triggers rest.
+ const nextSet = exInRoutine.sets[setIdx + 1]
+ const nextIsDropset = nextSet && nextSet.type === 'dropset'
+ if (newCompleted && exInRoutine.restSeconds > 0 && !nextIsDropset) {
  setRestEnd(Date.now() + exInRoutine.restSeconds * 1000)
  }
  // Update PR only for cataloged exercises (free-text legend
@@ -242,9 +248,13 @@ export function RoutineRunner({ routine, open, onClose }) {
  const cataloged = EXERCISE_BY_ID[ex.exerciseId]
  const exercise = cataloged || { he: ex.exerciseName || ex.name || 'תרגיל', en: '' }
  if (!ex.sets) return null
- const totalWorking = ex.sets.filter(s => s.type !== 'warmup').length
- const completedWorking = ex.sets.filter(s => s.type !== 'warmup'&& s.completed).length
- const allDone = totalWorking > 0 && completedWorking >= totalWorking
+ const workingSetsCount = ex.sets.filter(s => s.type === 'working').length
+ const dropsetsCount = ex.sets.filter(s => s.type === 'dropset').length
+ // "Completed" means completed working sets — dropsets ride on their parent
+ const completedWorking = ex.sets.filter(s => s.type === 'working' && s.completed).length
+ const totalRequired = ex.sets.filter(s => s.type !== 'warmup').length
+ const completedRequired = ex.sets.filter(s => s.type !== 'warmup' && s.completed).length
+ const allDone = totalRequired > 0 && completedRequired >= totalRequired
  const collapsed = !!ex.collapsed
  return (
  <Card key={idx} style={{
@@ -283,10 +293,20 @@ export function RoutineRunner({ routine, open, onClose }) {
  letterSpacing:'-0.025em',
  lineHeight: 1.05,
  }}>{exercise.he}</div>
- <div style={{ marginTop: 6 }}>
+ <div style={{ marginTop: 6, display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap' }}>
  <Label>
- {completedWorking}/{totalWorking} סטים · מנוחה {ex.restSeconds}s
+ {completedWorking}/{workingSetsCount} סטים · מנוחה {ex.restSeconds}s
  </Label>
+ {dropsetsCount > 0 && (
+ <span style={{
+   fontFamily: t.font.family.mono, fontSize: 9, letterSpacing:'0.2em',
+   textTransform:'uppercase', fontWeight: 800,
+   color: '#FF2CB4', textShadow: '0 0 6px #FF2CB460',
+   padding: '2px 8px', borderRadius: 999,
+   border: '1px solid #FF2CB4',
+   background: '#FF2CB412',
+ }}>+{dropsetsCount} דרופסט{dropsetsCount > 1 ? 'ים' : ''}</span>
+ )}
  </div>
  </div>
  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap: 6 }}>
@@ -341,20 +361,68 @@ export function RoutineRunner({ routine, open, onClose }) {
  </div>
  )}
  {!collapsed && ex.sets.map((s, si) => {
- const setNumber = s.type === 'warmup'? 'W': ex.sets.slice(0, si + 1).filter(x => x.type !== 'warmup').length
+ // Numbering rule:
+ //  warmup    → 'W'
+ //  working   → sequential index among working sets only (1, 2, 3…)
+ //  dropset   → 'D1', 'D2' — position within the current dropset chain
+ //              (a chain resets after any non-dropset set)
+ let setNumber
+ if (s.type === 'warmup') setNumber = 'W'
+ else if (s.type === 'dropset') {
+   let d = 1
+   for (let i = si - 1; i >= 0; i--) {
+     if (ex.sets[i].type === 'dropset') d++
+     else break
+   }
+   setNumber = `D${d}`
+ } else {
+   setNumber = ex.sets.slice(0, si + 1).filter(x => x.type === 'working').length
+ }
+ const isDropset = s.type === 'dropset'
+ // Show the connector row above the FIRST dropset in each chain so
+ // "this set has dropsets" is visible at a glance, matching what you built.
+ const isFirstOfDropChain = isDropset && ex.sets[si - 1]?.type !== 'dropset'
+ const dropsetTint = '#FF2CB4'
  return (
- <div key={si} style={{
+ <React.Fragment key={si}>
+ {isFirstOfDropChain && (
+   <div style={{
+     display:'flex', alignItems:'center', gap: 8,
+     marginTop: -2, marginBottom: 2, paddingInlineStart: 12,
+     fontFamily: t.font.family.mono, fontSize: 9, letterSpacing:'0.22em',
+     textTransform:'uppercase', fontWeight: 800,
+     color: dropsetTint, textShadow: `0 0 6px ${dropsetTint}55`,
+   }}>
+     <span style={{ width: 20, height: 1, background: dropsetTint, opacity: 0.6 }} />
+     דרופסט · בלי מנוחה · הורד משקל והמשך
+   </div>
+ )}
+ <div style={{
  display:'grid', gridTemplateColumns:'50px 1fr 1fr 40px 40px', gap: 6,
  padding:'10px 6px',
- background: s.completed ? `${t.color.wineGlow}` : s.type === 'warmup'? `${t.color.panel}` : t.color.charcoal,
- border: `1px solid ${s.completed ? t.color.wineLight : t.color.hairline}`,
+ marginInlineStart: isDropset ? 24 : 0,
+ background: s.completed
+   ? (isDropset ? `${dropsetTint}22` : `${t.color.wineGlow}`)
+   : s.type === 'warmup' ? `${t.color.panel}`
+   : isDropset ? `${dropsetTint}0d`
+   : t.color.charcoal,
+ border: `1px solid ${
+   s.completed
+     ? (isDropset ? dropsetTint : t.color.wineLight)
+     : isDropset ? `${dropsetTint}66`
+     : t.color.hairline
+ }`,
+ borderInlineStart: isDropset ? `3px solid ${dropsetTint}` : undefined,
  borderRadius: t.radius.sm, alignItems:'center', marginBottom: 4,
+ boxShadow: isDropset && s.completed ? `0 0 8px ${dropsetTint}40` : undefined,
  }}>
  <span style={{
  textAlign:'center',
  fontFamily: t.font.family.display,
- fontSize: 16, fontWeight: t.font.weight.semi,
- color: s.type === 'warmup'? t.color.silver2 : s.completed ? t.color.wineLight : t.color.white,
+ fontSize: isDropset ? 14 : 16, fontWeight: t.font.weight.semi,
+ color: s.type === 'warmup' ? t.color.silver2
+   : isDropset ? dropsetTint
+   : s.completed ? t.color.wineLight : t.color.white,
  letterSpacing:'-0.02em',
  fontVariantNumeric:'tabular-nums',
  }}>{setNumber}</span>
@@ -393,6 +461,7 @@ export function RoutineRunner({ routine, open, onClose }) {
  }}
  >{s.completed ? '' :''}</button>
  </div>
+ </React.Fragment>
  )
  })}
  </Card>
