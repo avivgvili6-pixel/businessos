@@ -6,7 +6,9 @@
 // Free tier: 15 requests/min, 1500/day per project (plenty for pilot).
 
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY
-const GEMINI_MODEL = 'gemini-2.0-flash-exp' // fast + free tier
+// gemini-2.5-flash — current stable, generous free tier
+// (1500 requests/day, 1M tokens/day). Bumped from 2.0-flash-exp.
+const GEMINI_MODEL = 'gemini-2.5-flash'
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 export const aiEnabled = !!GEMINI_KEY
