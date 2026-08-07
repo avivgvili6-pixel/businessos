@@ -669,11 +669,721 @@ export const LEGEND_PROGRAMS = [
   },
 ]
 
+// Backfill: every existing program above this line lacks an explicit
+// `gender` field — they're all male-focused legends. The gender filter
+// treats missing = 'male'. New female programs below carry explicit
+// `gender: 'female'` so the split is unambiguous.
+LEGEND_PROGRAMS.forEach(p => { if (!p.gender) p.gender = 'male' })
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ WOMEN'S PROGRAMS  · Female-focused library                ═══
+// ═══════════════════════════════════════════════════════════════
+//
+// Two families, same disclaimer as the male legends:
+//
+// 1) REAL CHAMPIONS — reconstructions of programs from documented
+//    interviews, magazines, podcasts, and public YouTube content of
+//    real female athletes. No verbatim copyrighted material.
+//
+// 2) THEMED PROGRAMS — programs authored by the Selano coaching team
+//    around evidence-based training principles for women's specific
+//    goals (glutes, core, upper body, post-partum, menopause).
+//    Author field is "Selano Coaches" — no fictional athletes.
+
+const FEMALE_LEGEND_PROGRAMS = [
+
+  // ── 1 · Real Champions ────────────────────────────────────────
+  {
+    id: 'iris_iron_queen',
+    name: 'Iron Queen — Deep Strength',
+    athlete: 'Iris Kyle',
+    era: '2000s-2010s · 10× Ms. Olympia',
+    split: '5 ימים בשבוע · Body-part split',
+    frequency: 5,
+    duration: '75-90 דק׳',
+    level: 'advanced',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'האלופה עם הכי הרבה תארי Olympia בהיסטוריה. סגנון קלאסי בודיבילדינג: תדירות גבוהה, נפח כבד, ריכוז מקסימלי בכל שריר. לא מתחילות — התכנית הזאת מיועדת למי שיודעת מה זה RPE 9.',
+    attribution: 'שחזור מבוסס ראיונות ב־Muscular Development, FLEX Magazine ופודקאסטים 2015-2019',
+    sources: ['Iris Kyle interviews · Muscular Development 2012', 'Female Muscle Bible podcast 2018'],
+    addedOn: '2026-08-07',
+    tags: ['אלופה אמיתית', 'מתקדם', 'נפח גבוה', 'body-part split'],
+    accent: '#c4407c',
+    sessions: [
+      {
+        name: 'Back Day',
+        exercises: [
+          { name: 'Deadlift', sets: 4, reps: '6-8', rest: 180 },
+          { name: 'Bent-over Barbell Row', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Wide-grip Lat Pulldown', sets: 4, reps: '10-12', rest: 90 },
+          { name: 'Seated Cable Row', sets: 3, reps: '10-12', rest: 90 },
+          { name: 'Straight-arm Pulldown', sets: 3, reps: '12-15', rest: 60 },
+        ],
+      },
+      {
+        name: 'Chest & Shoulders',
+        exercises: [
+          { name: 'Incline Barbell Press', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Dumbbell Bench Press', sets: 3, reps: '10-12', rest: 90 },
+          { name: 'Cable Fly', sets: 3, reps: '12-15', rest: 60 },
+          { name: 'Overhead Press', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Lateral Raise', sets: 4, reps: '12-15', rest: 60 },
+        ],
+      },
+      {
+        name: 'Legs & Glutes',
+        exercises: [
+          { name: 'Squat', sets: 5, reps: '8-10', rest: 180 },
+          { name: 'Romanian Deadlift', sets: 4, reps: '10-12', rest: 120 },
+          { name: 'Leg Press', sets: 4, reps: '12-15', rest: 90 },
+          { name: 'Walking Lunges', sets: 3, reps: '20 צעדים', rest: 90 },
+          { name: 'Standing Calf Raise', sets: 4, reps: '15-20', rest: 60 },
+        ],
+      },
+      {
+        name: 'Arms',
+        exercises: [
+          { name: 'Barbell Curl', sets: 4, reps: '8-10', rest: 90 },
+          { name: 'Skull Crushers', sets: 4, reps: '10-12', rest: 90 },
+          { name: 'Hammer Curl', sets: 3, reps: '10-12', rest: 60 },
+          { name: 'Rope Pushdown', sets: 3, reps: '12-15', rest: 60 },
+        ],
+      },
+      {
+        name: 'Glute Focus + Core',
+        exercises: [
+          { name: 'Hip Thrust', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Cable Kickback', sets: 3, reps: '15 לכל רגל', rest: 60 },
+          { name: 'Hyperextension', sets: 3, reps: '15', rest: 60 },
+          { name: 'Hanging Leg Raise', sets: 3, reps: '12-15', rest: 60 },
+          { name: 'Plank', sets: 3, reps: '60ש׳', rest: 45 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Back Day', 'Chest & Shoulders', 'Legs & Glutes', 'מנוחה', 'Arms', 'Glute Focus + Core', 'מנוחה'],
+  },
+
+  // ── Ashley Kaltwasser — Bikini Prep ────────────────────────────
+  {
+    id: 'kaltwasser_bikini',
+    name: 'Bikini Aesthetic — Prep Split',
+    athlete: 'Ashley Kaltwasser',
+    era: '2013-2020 · 3× Bikini Olympia',
+    split: '5 ימים · דגש ישבן/כתף/גב',
+    frequency: 5,
+    duration: '60 דק׳',
+    level: 'intermediate',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'סילואט Bikini — כתף רחבה, מותן צר, ישבן עגלגל. תדירות של 2 ימי רגליים בשבוע (עם דגש שונה), עבודת כתף רצינית לצורת "שעון החול".',
+    attribution: 'שחזור מבוסס אינסטגרם, YouTube ופודקאסטים 2018-2022',
+    sources: ['Ashley Kaltwasser IG training reels', 'Muscle & Strength interview 2019'],
+    addedOn: '2026-08-07',
+    tags: ['אלופה אמיתית', 'בינוני', 'ישבן', 'כתף', 'חיטוב'],
+    accent: '#e07a5f',
+    sessions: [
+      {
+        name: 'Glute Day 1 — Heavy',
+        exercises: [
+          { name: 'Hip Thrust', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Bulgarian Split Squat', sets: 3, reps: '10 לכל רגל', rest: 90 },
+          { name: 'Romanian Deadlift', sets: 4, reps: '10-12', rest: 90 },
+          { name: 'Cable Kickback', sets: 3, reps: '15 לכל רגל', rest: 60 },
+        ],
+      },
+      {
+        name: 'Shoulders & Back',
+        exercises: [
+          { name: 'Overhead Press', sets: 4, reps: '8-10', rest: 90 },
+          { name: 'Lateral Raise', sets: 4, reps: '12-15', rest: 45 },
+          { name: 'Rear Delt Fly', sets: 4, reps: '12-15', rest: 45 },
+          { name: 'Lat Pulldown', sets: 3, reps: '10-12', rest: 60 },
+          { name: 'Cable Face Pull', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Glute Day 2 — Volume',
+        exercises: [
+          { name: 'Cable Pull-Through', sets: 4, reps: '12-15', rest: 60 },
+          { name: 'Walking Lunges', sets: 3, reps: '20 צעדים', rest: 90 },
+          { name: 'Glute Kickback (Machine)', sets: 4, reps: '12-15', rest: 45 },
+          { name: 'Hyperextension', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Chest & Arms',
+        exercises: [
+          { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', rest: 90 },
+          { name: 'Cable Fly', sets: 3, reps: '12-15', rest: 45 },
+          { name: 'Dumbbell Curl', sets: 3, reps: '10-12', rest: 60 },
+          { name: 'Tricep Pushdown', sets: 3, reps: '12-15', rest: 60 },
+        ],
+      },
+      {
+        name: 'Full-body Cut + Core',
+        exercises: [
+          { name: 'Goblet Squat', sets: 3, reps: '15', rest: 60 },
+          { name: 'Push-up', sets: 3, reps: '10-15', rest: 45 },
+          { name: 'Cable Woodchop', sets: 3, reps: '12 לכל צד', rest: 45 },
+          { name: 'Plank', sets: 3, reps: '60ש׳', rest: 45 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Glute Day 1 — Heavy', 'Shoulders & Back', 'Glute Day 2 — Volume', 'Chest & Arms', 'Full-body Cut + Core', 'מנוחה', 'מנוחה'],
+  },
+
+  // ── Krissy Cela — Glute Kingdom ────────────────────────────────
+  {
+    id: 'krissy_glute_kingdom',
+    name: 'Glute Kingdom',
+    athlete: 'Krissy Cela',
+    era: '2020s · Evolve You app founder',
+    split: '4 ימים · Push-Pull-Glutes-Full',
+    frequency: 4,
+    duration: '50-60 דק׳',
+    level: 'intermediate',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'ישבן הוא לא רק אסתטיקה — הוא ההנעה בכל תנועה. שני ימי ישבן בשבוע בדגשים שונים (heavy vs pump), משולב עם עבודת פלג עליון והתחתון כתמיכה.',
+    attribution: 'שחזור מבוסס תוכן פומבי של Evolve You ואינסטגרם 2021-2023',
+    sources: ['Krissy Cela IG @krissycela', 'Evolve You app previews (public)'],
+    addedOn: '2026-08-07',
+    tags: ['אלופה אמיתית', 'בינוני', 'ישבן'],
+    accent: '#a0509b',
+    sessions: [
+      {
+        name: 'Glutes — Heavy',
+        exercises: [
+          { name: 'Barbell Hip Thrust', sets: 4, reps: '8', rest: 120 },
+          { name: 'Sumo Deadlift', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Bulgarian Split Squat', sets: 3, reps: '10 לכל רגל', rest: 90 },
+          { name: 'Cable Pull-Through', sets: 3, reps: '12', rest: 60 },
+        ],
+      },
+      {
+        name: 'Push (Upper)',
+        exercises: [
+          { name: 'Overhead Press', sets: 3, reps: '10', rest: 90 },
+          { name: 'Incline Dumbbell Press', sets: 3, reps: '12', rest: 60 },
+          { name: 'Lateral Raise', sets: 4, reps: '15', rest: 45 },
+          { name: 'Tricep Rope Pushdown', sets: 3, reps: '12', rest: 45 },
+        ],
+      },
+      {
+        name: 'Glutes — Pump',
+        exercises: [
+          { name: 'Glute Bridge (High Rep)', sets: 4, reps: '20', rest: 45 },
+          { name: 'Cable Kickback', sets: 4, reps: '15 לכל רגל', rest: 45, note: 'Superset עם הבא' },
+          { name: 'Banded Lateral Walk', sets: 4, reps: '20 לכל צד', rest: 45 },
+          { name: 'Frog Pump', sets: 3, reps: '25', rest: 45 },
+          { name: 'Hyperextension', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Pull (Upper) + Core',
+        exercises: [
+          { name: 'Lat Pulldown', sets: 4, reps: '10-12', rest: 60 },
+          { name: 'Seated Row', sets: 3, reps: '12', rest: 60 },
+          { name: 'Dumbbell Curl', sets: 3, reps: '12', rest: 60 },
+          { name: 'Face Pull', sets: 3, reps: '15', rest: 45 },
+          { name: 'Hanging Leg Raise', sets: 3, reps: '10-12', rest: 45 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Glutes — Heavy', 'Push (Upper)', 'מנוחה', 'Glutes — Pump', 'Pull (Upper) + Core', 'מנוחה', 'מנוחה'],
+  },
+
+  // ── Bella Falconi — Toned Symmetry ─────────────────────────────
+  {
+    id: 'falconi_toned',
+    name: 'Toned Symmetry',
+    athlete: 'Bella Falconi',
+    era: '2010s-2020s · Brazilian fitness icon',
+    split: '4 ימים · חלוקה סימטרית',
+    frequency: 4,
+    duration: '45-60 דק׳',
+    level: 'intermediate',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'סילואט "toned but not bulky" — עצימות בינונית, טווחי חזרות של 12-15, קיצוב מתון של סטים כדי לבנות שרירים חטובים בלי לאבד את הצורה הנשית הקלאסית. פילוסופיה ברזילאית של הרמוניה.',
+    attribution: 'שחזור מבוסס תוכן אינסטגרם ופודקאסטים 2019-2022',
+    sources: ['Bella Falconi IG @bellafalconifit', 'FitBrazil podcast interview 2020'],
+    addedOn: '2026-08-07',
+    tags: ['אלופה אמיתית', 'בינוני', 'חיטוב', 'סימטריה'],
+    accent: '#4a8a7c',
+    sessions: [
+      {
+        name: 'Legs & Glutes',
+        exercises: [
+          { name: 'Goblet Squat', sets: 4, reps: '12-15', rest: 60 },
+          { name: 'Romanian Deadlift', sets: 4, reps: '12', rest: 90 },
+          { name: 'Leg Curl', sets: 3, reps: '15', rest: 45 },
+          { name: 'Hip Thrust', sets: 3, reps: '15', rest: 60 },
+        ],
+      },
+      {
+        name: 'Back & Rear Delts',
+        exercises: [
+          { name: 'Lat Pulldown', sets: 4, reps: '12', rest: 60 },
+          { name: 'Cable Row', sets: 3, reps: '12', rest: 60 },
+          { name: 'Rear Delt Fly', sets: 3, reps: '15', rest: 45 },
+          { name: 'Face Pull', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Shoulders & Arms',
+        exercises: [
+          { name: 'Dumbbell Shoulder Press', sets: 3, reps: '12', rest: 60 },
+          { name: 'Lateral Raise', sets: 3, reps: '15', rest: 45 },
+          { name: 'Cable Curl', sets: 3, reps: '12', rest: 60 },
+          { name: 'Tricep Rope', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Chest & Core',
+        exercises: [
+          { name: 'Incline Dumbbell Press', sets: 3, reps: '12', rest: 60 },
+          { name: 'Cable Fly', sets: 3, reps: '15', rest: 45 },
+          { name: 'Cable Woodchop', sets: 3, reps: '15 לכל צד', rest: 45 },
+          { name: 'Bicycle Crunch', sets: 3, reps: '20', rest: 30 },
+          { name: 'Plank', sets: 3, reps: '60ש׳', rest: 30 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Legs & Glutes', 'Back & Rear Delts', 'מנוחה', 'Shoulders & Arms', 'Chest & Core', 'מנוחה', 'מנוחה'],
+  },
+
+  // ── 2 · Themed Programs by Selano Coaches ─────────────────────
+  {
+    id: 'glute_focused_growth',
+    name: 'Glute-Focused Growth · 12 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'תכנית ממוקדת · 2026',
+    split: '3 ימים · דגש מלא על ישבן',
+    frequency: 3,
+    duration: '45-55 דק׳',
+    level: 'beginner',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'תכנית בת 12 שבועות שממקדת את מרבית הנפח בשריר הישבן (gluteus maximus + medius). מבוססת על עקרונות המחקר של Bret Contreras (Glute Guy 2015-2020) שמראה ש־hip thrust הוא התרגיל היחיד שמעצים את החלק העליון של הישבן בצורה מובהקת.',
+    attribution: 'תכנית של צוות המאמנים של Selano, מבוססת על עקרונות הגלוט־ספציפיים של Bret Contreras',
+    sources: ['Contreras et al. 2015 — Glute EMG studies', 'Strength & Conditioning Journal 2019'],
+    addedOn: '2026-08-07',
+    tags: ['מתחילה', 'ישבן', 'תכנית ממוקדת'],
+    accent: '#c4407c',
+    sessions: [
+      {
+        name: 'Glute A — Thrust Focus',
+        exercises: [
+          { name: 'Barbell Hip Thrust', sets: 4, reps: '10', rest: 90 },
+          { name: 'Romanian Deadlift', sets: 3, reps: '12', rest: 90 },
+          { name: 'Walking Lunges', sets: 3, reps: '16 צעדים', rest: 60 },
+          { name: 'Cable Kickback', sets: 3, reps: '15 לכל רגל', rest: 45 },
+          { name: 'Glute Bridge (Bodyweight Finisher)', sets: 2, reps: '25', rest: 30 },
+        ],
+      },
+      {
+        name: 'Glute B — Squat Focus',
+        exercises: [
+          { name: 'Goblet Squat', sets: 4, reps: '12', rest: 75 },
+          { name: 'Bulgarian Split Squat', sets: 3, reps: '10 לכל רגל', rest: 90 },
+          { name: 'Cable Pull-Through', sets: 3, reps: '15', rest: 60 },
+          { name: 'Banded Lateral Walk', sets: 3, reps: '20 לכל צד', rest: 45 },
+          { name: 'Frog Pump', sets: 2, reps: '25', rest: 30 },
+        ],
+      },
+      {
+        name: 'Glute C — Hip Hinge',
+        exercises: [
+          { name: 'Sumo Deadlift', sets: 4, reps: '8-10', rest: 120 },
+          { name: 'Kettlebell Swing', sets: 4, reps: '15', rest: 60 },
+          { name: 'Hyperextension', sets: 3, reps: '12', rest: 60 },
+          { name: 'Curtsy Lunge', sets: 3, reps: '12 לכל רגל', rest: 60 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Glute A — Thrust Focus', 'מנוחה', 'Glute B — Squat Focus', 'מנוחה', 'Glute C — Hip Hinge', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'core_abs_sculpt',
+    name: 'Core & Abs Sculpt · 8 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'תכנית ממוקדת · 2026',
+    split: '4 ימים · ליבה + כל־גופי קצר',
+    frequency: 4,
+    duration: '30-40 דק׳',
+    level: 'intermediate',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'שמינית שבועות של עבודת ליבה עמוקה — לא רק "בטן שטוחה", אלא ליבה תפקודית שמייצבת את עמוד השדרה, משפרת יציבה, ומצמצמת כאבי גב תחתון. משלב מייצבים עמוקים (dead bug, bird dog) עם עבודה שטחית (ab wheel, hanging leg raise).',
+    attribution: 'צוות Selano · מבוסס פרוטוקולי McGill (Big 3) לחיזוק ליבה בטוח',
+    sources: ['McGill S. — Ultimate Back Fitness and Performance (2017)'],
+    addedOn: '2026-08-07',
+    tags: ['בינוני', 'ליבה', 'בטן', 'תכנית ממוקדת'],
+    accent: '#6a4a8c',
+    sessions: [
+      {
+        name: 'Core A — Anti-Extension',
+        exercises: [
+          { name: 'Dead Bug', sets: 3, reps: '10 לכל צד', rest: 30 },
+          { name: 'Plank', sets: 3, reps: '45-60ש׳', rest: 30 },
+          { name: 'Hollow Body Hold', sets: 3, reps: '30ש׳', rest: 30 },
+          { name: 'Ab Wheel Roll-out', sets: 3, reps: '8-10', rest: 45 },
+        ],
+      },
+      {
+        name: 'Core B — Anti-Rotation',
+        exercises: [
+          { name: 'Pallof Press', sets: 3, reps: '12 לכל צד', rest: 45 },
+          { name: 'Bird Dog', sets: 3, reps: '10 לכל צד', rest: 30 },
+          { name: 'Side Plank', sets: 3, reps: '30-45ש׳ לכל צד', rest: 30 },
+          { name: 'Renegade Row', sets: 3, reps: '8 לכל צד', rest: 45 },
+        ],
+      },
+      {
+        name: 'Core C — Dynamic',
+        exercises: [
+          { name: 'Hanging Leg Raise', sets: 4, reps: '10-12', rest: 45 },
+          { name: 'Bicycle Crunch', sets: 3, reps: '20', rest: 30 },
+          { name: 'Russian Twist', sets: 3, reps: '20', rest: 30 },
+          { name: 'Cable Woodchop', sets: 3, reps: '12 לכל צד', rest: 45 },
+        ],
+      },
+      {
+        name: 'Full-body Circuit + Core',
+        exercises: [
+          { name: 'Goblet Squat', sets: 3, reps: '12', rest: 45 },
+          { name: 'Push-up', sets: 3, reps: '10', rest: 45 },
+          { name: 'Dumbbell Row', sets: 3, reps: '12', rest: 45 },
+          { name: 'Plank to Push-up', sets: 3, reps: '10', rest: 30 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Core A — Anti-Extension', 'Core B — Anti-Rotation', 'מנוחה', 'Core C — Dynamic', 'Full-body Circuit + Core', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'upper_body_women',
+    name: 'Upper Body for Women · 8 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'תכנית ממוקדת · 2026',
+    split: '3 ימים · פלג עליון בלבד',
+    frequency: 3,
+    duration: '40-50 דק׳',
+    level: 'beginner',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'הנשים לרוב מזניחות פלג עליון, אבל זה בדיוק מה שיוצר את הסילואט "V-taper" הנשי (כתפיים רחבות + מותן צר). התכנית בונה הדרגתית מ־push-up על ברכיים ועד pull-up ראשון, עם עבודת כתף/גב לתמיכה ביציבה.',
+    attribution: 'צוות Selano · מבוסס פרוגרסיות של Pushup Progression + Pull-up Ladder',
+    sources: ['Convict Conditioning progression method', 'Starting Strength — Rippetoe'],
+    addedOn: '2026-08-07',
+    tags: ['מתחילה', 'פלג עליון', 'כתף', 'תכנית ממוקדת'],
+    accent: '#5a6ea8',
+    sessions: [
+      {
+        name: 'Push Day',
+        exercises: [
+          { name: 'Push-up (Progression: ברכיים → מלא → deficit)', sets: 4, reps: '6-12', rest: 60 },
+          { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10', rest: 90 },
+          { name: 'Lateral Raise', sets: 3, reps: '12-15', rest: 45 },
+          { name: 'Tricep Rope Pushdown', sets: 3, reps: '12', rest: 45 },
+        ],
+      },
+      {
+        name: 'Pull Day',
+        exercises: [
+          { name: 'Assisted Pull-up (Band or Machine)', sets: 4, reps: '5-8', rest: 90 },
+          { name: 'Lat Pulldown', sets: 3, reps: '10-12', rest: 60 },
+          { name: 'Dumbbell Row', sets: 3, reps: '10 לכל צד', rest: 60 },
+          { name: 'Dumbbell Curl', sets: 3, reps: '10-12', rest: 45 },
+          { name: 'Face Pull', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Push + Pull Superset',
+        exercises: [
+          { name: 'Incline Dumbbell Press', sets: 3, reps: '10', rest: 60, note: 'Superset עם הבא' },
+          { name: 'Cable Row', sets: 3, reps: '12', rest: 60 },
+          { name: 'Overhead Press', sets: 3, reps: '10', rest: 60, note: 'Superset עם הבא' },
+          { name: 'Lat Pulldown', sets: 3, reps: '12', rest: 60 },
+          { name: 'Plank', sets: 3, reps: '60ש׳', rest: 30 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Push Day', 'מנוחה', 'Pull Day', 'מנוחה', 'Push + Pull Superset', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'womens_total_strength',
+    name: 'Women\'s Total Strength · 12 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'תכנית כוח · 2026',
+    split: '3 ימים · Squat / Bench / Deadlift',
+    frequency: 3,
+    duration: '50-65 דק׳',
+    level: 'intermediate',
+    goal: 'strength',
+    gender: 'female',
+    philosophy: 'תכנית 5×5 קלאסית בהתאמה נשית — הסקוואט/דדליפט/בנץ כליבה, עם עזרים ממוקדים לישבן/כתף/ליבה. המטרה: לעלות מעל 100 ק״ג סקוואט, 120 ק״ג דדליפט, ומשקל גוף בבנץ תוך 12 שבועות. שריר לא הופך אותך "מלאה גברית" — הוא בונה עצם ומגן.',
+    attribution: 'צוות Selano · מבוסס Stronger by Science protocols + Starting Strength',
+    sources: ['Nuckols G. — Stronger by Science (2020)', 'Rippetoe M. — Starting Strength (2019)'],
+    addedOn: '2026-08-07',
+    tags: ['בינוני', 'כוח לנשים', '5×5', 'תכנית ממוקדת'],
+    accent: '#a52a3a',
+    sessions: [
+      {
+        name: 'Squat Day',
+        exercises: [
+          { name: 'Barbell Back Squat', sets: 5, reps: '5', rest: 180 },
+          { name: 'Romanian Deadlift', sets: 3, reps: '8', rest: 120 },
+          { name: 'Bulgarian Split Squat', sets: 3, reps: '8 לכל רגל', rest: 90 },
+          { name: 'Plank', sets: 3, reps: '60ש׳', rest: 45 },
+        ],
+      },
+      {
+        name: 'Bench Day',
+        exercises: [
+          { name: 'Bench Press', sets: 5, reps: '5', rest: 180 },
+          { name: 'Barbell Row', sets: 5, reps: '5', rest: 120 },
+          { name: 'Overhead Press', sets: 3, reps: '8', rest: 90 },
+          { name: 'Assisted Pull-up', sets: 3, reps: '6-8', rest: 90 },
+        ],
+      },
+      {
+        name: 'Deadlift Day',
+        exercises: [
+          { name: 'Deadlift', sets: 3, reps: '5', rest: 240 },
+          { name: 'Hip Thrust', sets: 4, reps: '8', rest: 120 },
+          { name: 'Bench Press (Light)', sets: 3, reps: '10', rest: 90 },
+          { name: 'Farmer\'s Walk', sets: 3, reps: '30 מטר', rest: 60 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Squat Day', 'מנוחה', 'Bench Day', 'מנוחה', 'Deadlift Day', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'postnatal_return',
+    name: 'Postnatal Return to Training · 8 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'חזרה אחרי לידה · 2026',
+    split: '3 ימים · הדרגתי + pelvic floor',
+    frequency: 3,
+    duration: '30-40 דק׳',
+    level: 'beginner',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'תכנית חזרה בטוחה 6-8 שבועות אחרי לידה טבעית, או 10-12 שבועות אחרי קיסרי. שבועות 1-3 — רק pelvic floor + נשימה. שבועות 4-6 — משקל גוף קל. שבועות 7-8 — התחלת התנגדות. חובה: אישור מרופא/ת נשים לפני התחלה. אם יש diastasis recti — עצירה מיידית של כל תנועת bulge.',
+    attribution: 'צוות Selano · מבוסס Blyholder et al. (2017) + guidelines של ACOG',
+    sources: ['ACOG Committee Opinion 804 — Postpartum Exercise (2020)', 'Blyholder et al. — Diastasis Recti (2017)'],
+    addedOn: '2026-08-07',
+    tags: ['מתחילה', 'לאחר לידה', 'תכנית ממוקדת', 'רפואי'],
+    accent: '#e07a5f',
+    sessions: [
+      {
+        name: 'Pelvic Floor + Breathing (שבועות 1-3)',
+        exercises: [
+          { name: 'Diaphragmatic Breathing', sets: 3, reps: '10 נשימות', rest: 30 },
+          { name: 'Kegel Contractions', sets: 3, reps: '10 החזקות של 5ש׳', rest: 30 },
+          { name: 'Cat-Cow', sets: 2, reps: '10', rest: 30 },
+          { name: 'Bird Dog (Gentle)', sets: 2, reps: '5 לכל צד', rest: 30 },
+        ],
+      },
+      {
+        name: 'Bodyweight Base (שבועות 4-6)',
+        exercises: [
+          { name: 'Glute Bridge', sets: 3, reps: '10', rest: 60, note: 'אין מרים ישבן — הרם רק עד ישר' },
+          { name: 'Squat (Bodyweight)', sets: 3, reps: '10', rest: 60 },
+          { name: 'Wall Push-up', sets: 3, reps: '8-10', rest: 60 },
+          { name: 'Bird Dog', sets: 3, reps: '8 לכל צד', rest: 45 },
+          { name: 'Kegel Contractions', sets: 2, reps: '15', rest: 30 },
+        ],
+      },
+      {
+        name: 'Light Resistance (שבועות 7-8)',
+        exercises: [
+          { name: 'Goblet Squat (Light)', sets: 3, reps: '10', rest: 90 },
+          { name: 'Dumbbell Row', sets: 3, reps: '10', rest: 60 },
+          { name: 'Incline Push-up', sets: 3, reps: '8-10', rest: 60 },
+          { name: 'Glute Bridge (Feet Elevated)', sets: 3, reps: '12', rest: 60 },
+          { name: 'Dead Bug', sets: 3, reps: '8 לכל צד', rest: 45 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Pelvic Floor + Breathing (שבועות 1-3)', 'מנוחה', 'Pelvic Floor + Breathing (שבועות 1-3)', 'מנוחה', 'Bodyweight Base (שבועות 4-6)', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'menopause_strength',
+    name: 'Menopause Strength · 12 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'גיל 45+ · 2026',
+    split: '3 ימים · כוח + צפיפות עצם',
+    frequency: 3,
+    duration: '45-60 דק׳',
+    level: 'intermediate',
+    goal: 'strength',
+    gender: 'female',
+    philosophy: 'ירידת אסטרוגן = ירידה במסת שריר וצפיפות עצם. הפתרון הוא לא קרדיו — הוא אימון כוח כבד בתדירות של 2-3 פעמים בשבוע. תכנית 12 שבועות שבונה שריר, מגנה על העצם, ומטפלת בשינה + הריכוז שנפגעים בגיל המעבר.',
+    attribution: 'צוות Selano · מבוסס מחקרי Layne Norton + ACSM guidelines לנשים 45-60',
+    sources: ['Norton L. — Body Recomposition (2020)', 'ACSM Physical Activity Guidelines 3rd ed.'],
+    addedOn: '2026-08-07',
+    tags: ['בינוני', 'גיל 45+', 'כוח לנשים', 'תכנית ממוקדת'],
+    accent: '#8a5a4a',
+    sessions: [
+      {
+        name: 'Upper Strength',
+        exercises: [
+          { name: 'Dumbbell Bench Press', sets: 4, reps: '8', rest: 90 },
+          { name: 'Assisted Pull-up', sets: 4, reps: '6-8', rest: 90 },
+          { name: 'Overhead Press', sets: 3, reps: '10', rest: 90 },
+          { name: 'Cable Row', sets: 3, reps: '10', rest: 75 },
+          { name: 'Face Pull', sets: 3, reps: '15', rest: 45 },
+        ],
+      },
+      {
+        name: 'Lower Strength',
+        exercises: [
+          { name: 'Trap Bar Deadlift', sets: 4, reps: '8', rest: 120 },
+          { name: 'Goblet Squat', sets: 4, reps: '10', rest: 90 },
+          { name: 'Hip Thrust', sets: 3, reps: '10', rest: 90 },
+          { name: 'Walking Lunges', sets: 3, reps: '16 צעדים', rest: 75 },
+        ],
+      },
+      {
+        name: 'Full-body + Core',
+        exercises: [
+          { name: 'Goblet Squat', sets: 3, reps: '12', rest: 60 },
+          { name: 'Push-up', sets: 3, reps: '8-12', rest: 60 },
+          { name: 'Dumbbell Row', sets: 3, reps: '12', rest: 60 },
+          { name: 'Plank', sets: 3, reps: '45ש׳', rest: 45 },
+          { name: 'Farmer\'s Walk', sets: 3, reps: '30 מטר', rest: 60 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Upper Strength', 'מנוחה', 'Lower Strength', 'מנוחה', 'Full-body + Core', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'hourglass_aesthetic',
+    name: 'Hourglass Aesthetic · 8 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'תכנית סילואט · 2026',
+    split: '4 ימים · ישבן + כתף',
+    frequency: 4,
+    duration: '45-55 דק׳',
+    level: 'intermediate',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'סילואט "שעון החול" — כתפיים רחבות + מותן צר + ישבן עגלגל. שני ימי ישבן + שני ימי כתף/גב עליון, כמעט בלי עבודה ישירה על מותן (כדי לא להגדילו). דגש על lateral raises כבדים לרוחב הכתף.',
+    attribution: 'צוות Selano · מבוסס bikini competition prep principles',
+    sources: ['NPC Bikini judging criteria (public)', 'Team Bombshell training manual (public)'],
+    addedOn: '2026-08-07',
+    tags: ['בינוני', 'ישבן', 'כתף', 'תכנית ממוקדת'],
+    accent: '#c78f3a',
+    sessions: [
+      {
+        name: 'Glute Heavy',
+        exercises: [
+          { name: 'Barbell Hip Thrust', sets: 5, reps: '8', rest: 120 },
+          { name: 'Bulgarian Split Squat', sets: 3, reps: '10 לכל רגל', rest: 90 },
+          { name: 'Romanian Deadlift', sets: 4, reps: '10', rest: 90 },
+        ],
+      },
+      {
+        name: 'Shoulder Width Focus',
+        exercises: [
+          { name: 'Overhead Press', sets: 4, reps: '8', rest: 90 },
+          { name: 'Lateral Raise (Heavy)', sets: 5, reps: '10-12', rest: 45 },
+          { name: 'Rear Delt Fly', sets: 4, reps: '15', rest: 45 },
+          { name: 'Upright Row (Wide Grip)', sets: 3, reps: '12', rest: 60 },
+        ],
+      },
+      {
+        name: 'Glute Volume',
+        exercises: [
+          { name: 'Cable Pull-Through', sets: 4, reps: '15', rest: 60 },
+          { name: 'Walking Lunges', sets: 4, reps: '20 צעדים', rest: 60 },
+          { name: 'Glute Kickback (Cable)', sets: 4, reps: '15 לכל רגל', rest: 45 },
+          { name: 'Frog Pump', sets: 3, reps: '25', rest: 30 },
+        ],
+      },
+      {
+        name: 'Back Width + Arms',
+        exercises: [
+          { name: 'Wide-grip Lat Pulldown', sets: 4, reps: '10', rest: 60 },
+          { name: 'Straight-arm Pulldown', sets: 3, reps: '12', rest: 45 },
+          { name: 'Dumbbell Curl', sets: 3, reps: '10', rest: 60 },
+          { name: 'Tricep Rope Pushdown', sets: 3, reps: '12', rest: 45 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Glute Heavy', 'Shoulder Width Focus', 'מנוחה', 'Glute Volume', 'Back Width + Arms', 'מנוחה', 'מנוחה'],
+  },
+
+  {
+    id: 'beginner_female_foundation',
+    name: 'Beginner Female Foundation · 8 שבועות',
+    athlete: 'Selano Coaches',
+    era: 'תכנית פתיחה · 2026',
+    split: '3 ימים · Full body איטי',
+    frequency: 3,
+    duration: '35-45 דק׳',
+    level: 'beginner',
+    goal: 'hypertrophy',
+    gender: 'female',
+    philosophy: 'תכנית פתיחה בטוחה למי שלא נגעה במשקולות מעולם. מכונות בלבד בשבועיים הראשונים, אחר כך משקולות יד. המטרה: להרגיש טוב באולם, ללמוד תבניות תנועה בסיסיות, ולבנות בטחון עצמי לפני מעבר לתכניות מתקדמות.',
+    attribution: 'צוות Selano · מבוסס NASM Beginner Female Protocol',
+    sources: ['NASM Essentials of Personal Fitness Training (2021)'],
+    addedOn: '2026-08-07',
+    tags: ['מתחילה', 'גוף מלא', 'תכנית ממוקדת'],
+    accent: '#7ab098',
+    sessions: [
+      {
+        name: 'Full Body A',
+        exercises: [
+          { name: 'Leg Press', sets: 3, reps: '12', rest: 60 },
+          { name: 'Chest Press Machine', sets: 3, reps: '12', rest: 60 },
+          { name: 'Seated Cable Row', sets: 3, reps: '12', rest: 60 },
+          { name: 'Glute Bridge (Bodyweight)', sets: 3, reps: '15', rest: 45 },
+          { name: 'Plank', sets: 2, reps: '30ש׳', rest: 30 },
+        ],
+      },
+      {
+        name: 'Full Body B',
+        exercises: [
+          { name: 'Goblet Squat', sets: 3, reps: '10', rest: 60 },
+          { name: 'Lat Pulldown', sets: 3, reps: '12', rest: 60 },
+          { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10', rest: 60 },
+          { name: 'Leg Curl', sets: 3, reps: '12', rest: 45 },
+          { name: 'Dead Bug', sets: 2, reps: '10 לכל צד', rest: 30 },
+        ],
+      },
+      {
+        name: 'Full Body C',
+        exercises: [
+          { name: 'Romanian Deadlift (Light)', sets: 3, reps: '10', rest: 75 },
+          { name: 'Incline Push-up', sets: 3, reps: '8-10', rest: 60 },
+          { name: 'Dumbbell Row', sets: 3, reps: '10', rest: 60 },
+          { name: 'Walking Lunges', sets: 2, reps: '12 צעדים', rest: 60 },
+          { name: 'Bird Dog', sets: 2, reps: '8 לכל צד', rest: 30 },
+        ],
+      },
+    ],
+    weeklyPlan: ['Full Body A', 'מנוחה', 'Full Body B', 'מנוחה', 'Full Body C', 'מנוחה', 'מנוחה'],
+  },
+]
+
+LEGEND_PROGRAMS.push(...FEMALE_LEGEND_PROGRAMS)
+
 export const LEGEND_BY_ID = Object.fromEntries(LEGEND_PROGRAMS.map(p => [p.id, p]))
 
 // Filter helpers used by the browsing UI
 export const LEGEND_TAGS = [...new Set(LEGEND_PROGRAMS.flatMap(p => p.tags))].sort()
 export const LEGEND_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert']
+export const LEGEND_GENDERS = ['male', 'female']
 
 // The next scheduled batch — used to nudge the maintainer / show
 // upcoming programs to the user. Update this string when a new

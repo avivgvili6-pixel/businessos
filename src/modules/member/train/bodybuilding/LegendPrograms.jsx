@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { t } from '../../../../theme/tokens'
 import { Card, Button, Badge, Modal } from '../../../../components/ui/UI'
 import { useApp } from '../../../../store/AppStore'
 import { useI18n } from '../../../../i18n/i18n'
 import {
-  LEGEND_PROGRAMS, LEGEND_TAGS, LEGEND_LEVELS, NEXT_UPDATE_TARGET,
+  LEGEND_PROGRAMS, LEGEND_TAGS, LEGEND_LEVELS, LEGEND_GENDERS, NEXT_UPDATE_TARGET,
 } from '../../../../data/bodybuilding/legendPrograms'
 import { ExerciseGuideButton } from '../../../../components/train/ExerciseGuidePopover'
 
@@ -21,18 +21,42 @@ const LEVEL_LABELS = {
 
 export function LegendPrograms() {
   const { isRTL } = useI18n()
+  const { state } = useApp()
+  // Default the gender tab from the user's profile so a woman opens
+  // straight to the women's library, a man to the men's. Falls back
+  // to 'male' when sex is missing (existing library default).
+  const defaultGender = state?.profile?.sex === 'female' ? 'female' : 'male'
+  const [genderFilter, setGenderFilter] = useState(defaultGender)
   const [levelFilter, setLevelFilter] = useState(null)
   const [tagFilter, setTagFilter] = useState(null)
   const [selected, setSelected] = useState(null)
 
+  // Tags available to filter — narrow to tags that exist inside the
+  // active gender's programs, so the woman's tag pills don't include
+  // "HIT" (a men-only tag) etc.
+  const genderPrograms = useMemo(
+    () => LEGEND_PROGRAMS.filter(p => (p.gender || 'male') === genderFilter),
+    [genderFilter],
+  )
+  const genderTags = useMemo(
+    () => [...new Set(genderPrograms.flatMap(p => p.tags))].sort(),
+    [genderPrograms],
+  )
+
+  // Reset the tag filter when gender changes if the chosen tag doesn't
+  // exist on the other side (otherwise the grid would show nothing).
+  useEffect(() => {
+    if (tagFilter && !genderTags.includes(tagFilter)) setTagFilter(null)
+  }, [genderTags, tagFilter])
+
   const filtered = useMemo(() => {
-    let out = [...LEGEND_PROGRAMS]
+    let out = [...genderPrograms]
     if (levelFilter) out = out.filter(p => p.level === levelFilter)
     if (tagFilter) out = out.filter(p => p.tags.includes(tagFilter))
     // Newest first
     out.sort((a, b) => (b.addedOn || '').localeCompare(a.addedOn || ''))
     return out
-  }, [levelFilter, tagFilter])
+  }, [genderPrograms, levelFilter, tagFilter])
 
   const nextDate = new Date(NEXT_UPDATE_TARGET)
   const daysUntilNext = Math.max(0, Math.ceil((nextDate - new Date()) / (24 * 3600 * 1000)))
@@ -70,11 +94,21 @@ export function LegendPrograms() {
           fontFamily: t.font.family.mono, letterSpacing: '0.18em',
           textTransform: 'uppercase',
         }}>
-          <span>{LEGEND_PROGRAMS.length} תכניות</span>
+          <span>{LEGEND_PROGRAMS.length} תכניות בסך הכל</span>
           <span>·</span>
           <span>עדכון הבא בעוד {daysUntilNext} ימים</span>
         </div>
       </Card>
+
+      {/* Gender toggle — Men / Women with Mars / Venus symbols */}
+      <GenderToggle
+        value={genderFilter}
+        onChange={setGenderFilter}
+        counts={{
+          male: LEGEND_PROGRAMS.filter(p => (p.gender || 'male') === 'male').length,
+          female: LEGEND_PROGRAMS.filter(p => p.gender === 'female').length,
+        }}
+      />
 
       {/* Filters */}
       <Card style={{ padding: 14 }}>
@@ -91,7 +125,7 @@ export function LegendPrograms() {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <FilterPill on={!tagFilter} onClick={() => setTagFilter(null)}>כל התגים</FilterPill>
-          {LEGEND_TAGS.map(tg => (
+          {genderTags.map(tg => (
             <FilterPill key={tg} on={tagFilter === tg} onClick={() => setTagFilter(tg)}>{tg}</FilterPill>
           ))}
         </div>
@@ -179,6 +213,85 @@ const pillTag = (color) => ({
   background: color ? `${color}18` : 'transparent',
   border: `1px solid ${color || t.color.border}`,
 })
+
+// Mars / Venus segmented toggle at the top of the legends browser.
+// Two large tabs, each with an SVG glyph so the choice is unmistakable
+// from any distance. Active tab picks up a distinct accent color per
+// gender (wine for Men — matches the male legends palette, rose for
+// Women — matches the female programs palette).
+function GenderToggle({ value, onChange, counts }) {
+  const TABS = [
+    {
+      key: 'male',
+      label: 'Men',
+      accent: '#a52a3a',
+      count: counts.male,
+      glyph: (
+        // Mars — circle + arrow (♂)
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="10" cy="14" r="6"/>
+          <line x1="14.5" y1="9.5" x2="20" y2="4"/>
+          <polyline points="14,4 20,4 20,10"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'female',
+      label: 'Women',
+      accent: '#c4407c',
+      count: counts.female,
+      glyph: (
+        // Venus — circle + cross (♀)
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="9" r="6"/>
+          <line x1="12" y1="15" x2="12" y2="22"/>
+          <line x1="9" y1="19" x2="15" y2="19"/>
+        </svg>
+      ),
+    },
+  ]
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+      padding: 6,
+      background: t.color.bgSoft,
+      border: `1px solid ${t.color.border}`,
+      borderRadius: t.radius.lg,
+    }}>
+      {TABS.map(tab => {
+        const on = value === tab.key
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onChange(tab.key)}
+            aria-pressed={on}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: '14px 12px',
+              background: on ? `${tab.accent}22` : 'transparent',
+              border: `1.5px solid ${on ? tab.accent : 'transparent'}`,
+              color: on ? tab.accent : t.color.silver1,
+              borderRadius: t.radius.md, cursor: 'pointer', fontFamily: 'inherit',
+              fontWeight: 800, fontSize: 15, letterSpacing: '0.02em',
+              boxShadow: on ? `0 0 12px ${tab.accent}44` : 'none',
+              transition: t.transition,
+            }}
+          >
+            {tab.glyph}
+            <span>{tab.label}</span>
+            <span style={{
+              fontFamily: t.font.family.mono, fontSize: 10, letterSpacing: '0.16em',
+              padding: '2px 8px', borderRadius: 999,
+              background: on ? `${tab.accent}33` : 'rgba(255,255,255,0.06)',
+              color: on ? tab.accent : t.color.silver2,
+              fontWeight: 700,
+            }}>{tab.count}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 function FilterPill({ on, onClick, children }) {
   return (
