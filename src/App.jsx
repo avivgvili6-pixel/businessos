@@ -131,7 +131,10 @@ function AppRouter() {
  </Shell>
  <NotificationScheduler />
  {!isAdminView && (
- <FloatingAssistant onOpenMentalCoach={() => setPage('mind')} />
+ <FloatingAssistant
+   onOpenMentalCoach={() => setPage('mind')}
+   onNavigate={(page) => setPage(page)}
+ />
  )}
  </>
  )

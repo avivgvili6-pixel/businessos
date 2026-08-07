@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef } from 'react'
 import { t } from '../../theme/tokens'
 import { useApp } from '../../store/AppStore'
 import { askAiCoach, aiEnabled, isMentalQuestion } from '../../services/aiCoach'
+import { tryCalculator } from '../../services/coachingCalculators'
+import { tryKnowledge } from '../../services/coachingKnowledge'
 
 // Floating AI coach - powered by Gemini when configured, falls back to
 // keyword answers when offline / not configured.
 
 const QUICK_QUESTIONS = [
- { q:'איך אני מוסיף אימון?'},
- { q:'מה זה 1RM?'},
+ { q:'כמה קלוריות בחיטוב?'},
  { q:'כמה חלבון ליום?'},
- { q:'איך משפרים שינה?'},
+ { q:'מה זה סופרסט?'},
+ { q:'כמה מנוחה בין סטים?'},
  { q:'איך בונים תכנית?'},
 ]
 
@@ -18,18 +20,51 @@ const MENTAL_KEYWORDS = ['מרגיש רע','לחוץ','עצוב','חרד','מפ�
  'שחוק נפשית','לא רוצה יותר','מוותר','קשה לי נפשית','ריקנות','בודד',
  'רוצה לבכות','שנאה','תסכול נפשי']
 
+// Navigation-only fallbacks — each ships with a nav action so the user can
+// jump directly instead of scrolling to find the section.
 const FALLBACK_ANSWERS = {
- add_workout:'עבור ל־**אימונים → התכנית שלי** ולחץ על כרטיס האימון. תוכל לרשום סטים, משקל, וחזרות בזמן אמת עם טיימר מנוחה אוטומטי.',
- build_plan:'עבור ל־**מטרה** ולחץ על **"בנה לי תכנית "**. תעבור wizard של 3 שלבים.',
- add_meal:'עבור ל־**תזונה → היום → + הוסף**. יש 3 אפשרויות: חיפוש, ברקוד, או הזנה ידנית.',
- what_1rm:'המשקל המקסימלי בחזרה אחת. עבור ל־**פרופיל → יכולת מירבית** להזין. כל האחוזים בתכניות מחושבים מזה.',
- calendar:'עבור ל־**יומן** בתפריט. אפשר להוריד קובץ ICS לשבוע שלם או להוסיף לGoogle Calendar.',
- progress:'עבור ל־**התקדמות** בתפריט. אפשר לרשום מדידות, להעלות תמונות, ולתעד שיאים אישיים.',
- rehab:'עבור ל־**שיקום** בתפריט. בחר אזור, ענה על שאלון, וקבל פרוטוקול 4 שבועות.',
- bloodtest:'עבור ל־**תזונה → בדיקות דם**. הזן ערכים ותקבל פרשנות תזונתית.',
- goal:'עבור ל־**מטרה**. אם עוד לא הגדרת, בחר "בואו נבנה מטרה"- 3 קליקים.',
- install:'iPhone: שיתוף ⬆️ → הוסף למסך הבית. Android: יופיע banner "התקן את האפליקציה".',
- default:'לא הבנתי בדיוק. נסה לנסח אחרת או בחר מהשאלות המוצעות. לשאלות אישיות/רגשיות - יש את המאמן המנטלי בתפריט.',
+ add_workout: {
+   text: 'עבור ל־**אימונים → התכנית שלי** ולחץ על כרטיס האימון. תוכל לרשום סטים, משקל, וחזרות בזמן אמת עם טיימר מנוחה אוטומטי.',
+   nav: { page: 'train', label: 'עבור לאימונים' },
+ },
+ build_plan: {
+   text: 'עבור ל־**מטרה** ולחץ על **"בנה לי תכנית"**. תעבור wizard של 3 שלבים.',
+   nav: { page: 'goals', label: 'עבור למטרה' },
+ },
+ add_meal: {
+   text: 'עבור ל־**תזונה → היום → + הוסף**. יש 3 אפשרויות: חיפוש, ברקוד, או הזנה ידנית.',
+   nav: { page: 'nutrition', label: 'עבור לתזונה' },
+ },
+ what_1rm: {
+   text: 'המשקל המקסימלי בחזרה אחת. עבור ל־**פרופיל → יכולת מירבית** להזין. כל האחוזים בתכניות מחושבים מזה.',
+   nav: { page: 'profile', label: 'עדכן 1RM בפרופיל' },
+ },
+ calendar: {
+   text: 'עבור ל־**יומן** בתפריט. אפשר להוריד קובץ ICS לשבוע שלם או להוסיף ל־Google Calendar.',
+   nav: { page: 'calendar', label: 'עבור ליומן' },
+ },
+ progress: {
+   text: 'עבור ל־**התקדמות** בתפריט. אפשר לרשום מדידות, להעלות תמונות, ולתעד שיאים אישיים.',
+   nav: { page: 'progress', label: 'עבור להתקדמות' },
+ },
+ rehab: {
+   text: 'עבור ל־**שיקום** בתפריט. בחר אזור, ענה על שאלון, וקבל פרוטוקול 4 שבועות.',
+   nav: { page: 'rehab', label: 'עבור לשיקום' },
+ },
+ bloodtest: {
+   text: 'עבור ל־**תזונה → בדיקות דם**. הזן ערכים ותקבל פרשנות תזונתית.',
+   nav: { page: 'nutrition', label: 'תזונה — בדיקות דם' },
+ },
+ goal: {
+   text: 'עבור ל־**מטרה**. אם עוד לא הגדרת, בחר "בואו נבנה מטרה" - 3 קליקים.',
+   nav: { page: 'goals', label: 'עבור למטרה' },
+ },
+ install: {
+   text: 'iPhone: שיתוף ⬆️ → הוסף למסך הבית. Android: יופיע banner "התקן את האפליקציה".',
+ },
+ default: {
+   text: 'לא הבנתי בדיוק. נסה לנסח אחרת או בחר מהשאלות המוצעות. לשאלות אישיות/רגשיות - יש את המאמן המנטלי בתפריט.',
+ },
 }
 
 function matchFallback(text) {
@@ -38,17 +73,18 @@ function matchFallback(text) {
  for (const kw of MENTAL_KEYWORDS) {
  if (lower.includes(kw)) return { key:'MENTAL', text: null }
  }
- if (/אימון|תרגיל|לרשום/.test(lower)) return { key:'add_workout', text: FALLBACK_ANSWERS.add_workout }
- if (/תכנית|לבנות|תוכנית/.test(lower)) return { key:'build_plan', text: FALLBACK_ANSWERS.build_plan }
- if (/ארוחה|אוכל|קלוריות|מזון/.test(lower)) return { key:'add_meal', text: FALLBACK_ANSWERS.add_meal }
- if (/1rm|יכולת מירבית|מקסימום/.test(lower)) return { key:'what_1rm', text: FALLBACK_ANSWERS.what_1rm }
- if (/יומן|calendar|לו״ז|לוז/.test(lower)) return { key:'calendar', text: FALLBACK_ANSWERS.calendar }
- if (/משקל גוף|התקדמות|מדידה|תמונ|שיא|pr/i.test(lower)) return { key:'progress', text: FALLBACK_ANSWERS.progress }
- if (/שיקום|פציעה|כאב/.test(lower)) return { key:'rehab', text: FALLBACK_ANSWERS.rehab }
- if (/דם|בדיקה|ויטמין/.test(lower)) return { key:'bloodtest', text: FALLBACK_ANSWERS.bloodtest }
- if (/מטרה|goal|יעד/.test(lower)) return { key:'goal', text: FALLBACK_ANSWERS.goal }
- if (/להתקין|התקנה|install|מסך הבית/.test(lower)) return { key:'install', text: FALLBACK_ANSWERS.install }
- return { key:'default', text: FALLBACK_ANSWERS.default }
+ const pick = (key) => ({ key, ...FALLBACK_ANSWERS[key] })
+ if (/אימון|תרגיל|לרשום/.test(lower)) return pick('add_workout')
+ if (/תכנית|לבנות|תוכנית/.test(lower)) return pick('build_plan')
+ if (/ארוחה|אוכל|קלוריות|מזון/.test(lower)) return pick('add_meal')
+ if (/1rm|יכולת מירבית|מקסימום/.test(lower)) return pick('what_1rm')
+ if (/יומן|calendar|לו״ז|לוז/.test(lower)) return pick('calendar')
+ if (/משקל גוף|התקדמות|מדידה|תמונ|שיא|pr/i.test(lower)) return pick('progress')
+ if (/שיקום|פציעה|כאב/.test(lower)) return pick('rehab')
+ if (/דם|בדיקה|ויטמין/.test(lower)) return pick('bloodtest')
+ if (/מטרה|goal|יעד/.test(lower)) return pick('goal')
+ if (/להתקין|התקנה|install|מסך הבית/.test(lower)) return pick('install')
+ return pick('default')
 }
 
 // ─── Draggable position ─────────────────────────────────────
@@ -101,7 +137,7 @@ const panelPosFor = (buttonPos) => {
   return { x, y }
 }
 
-export function FloatingAssistant({ onOpenMentalCoach }) {
+export function FloatingAssistant({ onOpenMentalCoach, onNavigate }) {
  const { state } = useApp()
  const [open, setOpen] = useState(false)
  const [messages, setMessages] = useState([])
@@ -198,33 +234,58 @@ export function FloatingAssistant({ onOpenMentalCoach }) {
 
  setThinking(true)
 
- // Try AI first
- if (aiEnabled) {
- const aiReply = await askAiCoach({
- question: q,
- history: messages,
- userContext,
- })
- if (aiReply) {
- setMessages(m => [...m, { role:'bot', text: aiReply, ai: true }])
- setThinking(false)
- return
- }
+ // Layer A — personalised calculators (calories/protein/water/1RM/rest/BMI)
+ const calcAns = tryCalculator(q, state)
+ if (calcAns) {
+   setTimeout(() => {
+     setMessages(m => [...m, { role:'bot', text: calcAns.text, nav: calcAns.nav, source: 'calc' }])
+     setThinking(false)
+   }, 120)
+   return
  }
 
- // Fallback to keyword matching
- setTimeout(() => {
- const match = matchFallback(q)
- if (match?.key === 'MENTAL') {
- setMessages(m => [...m, { role:'bot', mental: true, text:'זו שאלה למאמן המנטלי. רוצה שאעביר אותך?'}])
- } else {
- setMessages(m => [...m, { role:'bot', text: match?.text || FALLBACK_ANSWERS.default }])
+ // Layer B — static professional knowledge base
+ const kbAns = tryKnowledge(q)
+ if (kbAns) {
+   setTimeout(() => {
+     setMessages(m => [...m, { role:'bot', text: kbAns.text, nav: kbAns.nav, source: 'kb' }])
+     setThinking(false)
+   }, 120)
+   return
  }
- setThinking(false)
- }, 300)
+
+ // Layer C — Gemini fallback (if configured)
+ if (aiEnabled) {
+   const aiReply = await askAiCoach({
+     question: q,
+     history: messages,
+     userContext,
+   })
+   if (aiReply) {
+     setMessages(m => [...m, { role:'bot', text: aiReply, ai: true }])
+     setThinking(false)
+     return
+   }
+ }
+
+ // Layer D — keyword-matched navigation fallback
+ setTimeout(() => {
+   const match = matchFallback(q)
+   if (match?.key === 'MENTAL') {
+     setMessages(m => [...m, { role:'bot', mental: true, text: 'זו שאלה למאמן המנטלי. רוצה שאעביר אותך?' }])
+   } else {
+     setMessages(m => [...m, { role:'bot', text: match?.text || FALLBACK_ANSWERS.default.text, nav: match?.nav }])
+   }
+   setThinking(false)
+ }, 200)
  }
 
  const goToMental = () => { setOpen(false); onOpenMentalCoach?.() }
+ const goToPage = (page) => {
+   if (!page || !onNavigate) return
+   setOpen(false)
+   onNavigate(page)
+ }
 
  const panelPos = panelPosFor(pos)
 
@@ -305,17 +366,33 @@ export function FloatingAssistant({ onOpenMentalCoach }) {
  color: m.role === 'user'? '#0d0d14': t.color.text,
  fontSize: 13, lineHeight: 1.6,
  }} dangerouslySetInnerHTML={{ __html: formatText(m.text) }} />
+ {(m.source === 'calc' || m.source === 'kb') && (
+ <div style={{ fontSize: 9, color: t.color.textDim, marginTop: 2, textAlign:'left', paddingLeft: 4 }}>
+ {m.source === 'calc' ? 'מחשבון · לפי הנתונים שלך' : 'מקצועי · מבוסס־ראיות'}
+ </div>
+ )}
  {m.ai && (
  <div style={{ fontSize: 9, color: t.color.textDim, marginTop: 2, textAlign:'left', paddingLeft: 4 }}>
  AI · Gemini
  </div>
+ )}
+ {m.nav && (
+ <button onClick={() => goToPage(m.nav.page)} style={{
+ marginTop: 8, padding: '9px 16px',
+ background: `linear-gradient(135deg, ${t.color.gold} 0%, #d4b45a 100%)`,
+ color: '#0d0d14',
+ border: 'none', borderRadius: 999, cursor: 'pointer',
+ fontWeight: 800, fontSize: 12,
+ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+ boxShadow: `0 2px 12px ${t.color.gold}55`,
+ }}>← {m.nav.label}</button>
  )}
  {m.mental && (
  <button onClick={goToMental} style={{
  marginTop: 6, padding:'8px 14px', background: t.color.gold, color:'#0d0d14',
  border:'none', borderRadius: 999, cursor:'pointer', fontWeight: 700, fontSize: 12,
  display:'flex', alignItems:'center', gap: 6, fontFamily:'inherit',
- }}> עבור למאמן המנטלי ←</button>
+ }}>← עבור למאמן המנטלי</button>
  )}
  </div>
  ))}
