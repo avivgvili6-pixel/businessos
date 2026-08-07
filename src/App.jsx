@@ -83,9 +83,16 @@ function AppRouter() {
  const isMemberView = user.role === 'member' && !isAdminView
 
  // Onboarding gate for members only — wrap in PilotGate so waitlisted
- // users see WaitlistScreen instead of onboarding
+ // users see WaitlistScreen instead of onboarding. Health-ack gate wraps
+ // BOTH onboarding and the shell so no member — new or already-in-system —
+ // can use the app without signing the health/liability/privacy bundle.
+ // Existing users who haven't signed yet will be prompted on their next open.
  if (isMemberView && !state.onboarded) {
-   return <PilotGate user={user}><Onboarding /></PilotGate>
+   return (
+     <PilotGate user={user}>
+       <HealthAckGate user={user}><Onboarding /></HealthAckGate>
+     </PilotGate>
+   )
  }
 
  const memberPages = {
